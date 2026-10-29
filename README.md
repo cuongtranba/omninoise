@@ -125,7 +125,6 @@
 - NextJS (React)
 - NestJS
 - Prisma (Default to PostgreSQL)
-- Temporal
 - Resend (email notifications)
 
 ## Quick Start
