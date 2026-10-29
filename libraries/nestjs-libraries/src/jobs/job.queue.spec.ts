@@ -2,7 +2,10 @@ import { afterAll, beforeEach, expect, test, vi } from 'vitest';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { JobWorker } from '@gitroom/nestjs-libraries/jobs/job.worker';
 import { markStarted } from '@gitroom/nestjs-libraries/jobs/job.context';
-import { NonRetryable } from '@gitroom/nestjs-libraries/jobs/job.errors';
+import {
+  isJobNotOwned,
+  NonRetryable,
+} from '@gitroom/nestjs-libraries/jobs/job.errors';
 import { getPgPool } from '@gitroom/nestjs-libraries/pg/pg.pool';
 
 const queue = new JobQueueService();
@@ -352,4 +355,155 @@ test('a handler can return a follow-up job that then runs', async () => {
   await queue.enqueue('first', {}, { queue: q });
 
   await vi.waitFor(() => expect(seen).toEqual(['first', 'second']));
+});
+
+test('a job cancelled while its handler runs is refused at markStarted and runs no cleanup', async () => {
+  const q = uniqueName('notowned');
+  const postId = `post-${q}`;
+  const cleaned: string[] = [];
+  let refusal: unknown;
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let entered = false;
+
+  const worker = await startWorker(q, (w) =>
+    w.register(
+      'notowned',
+      async () => {
+        entered = true;
+        await hold;
+        try {
+          await markStarted();
+        } catch (err) {
+          refusal = err;
+          throw err;
+        }
+      },
+      { onFailed: async (_job, error) => void cleaned.push(error) }
+    )
+  );
+  const { id } = await queue.enqueue('notowned', {}, { queue: q, postId });
+  await vi.waitFor(() => expect(entered).toBe(true));
+
+  // the owner edits the post: its job is cancelled while the handler works
+  await queue.cancelByPost(postId);
+  release();
+
+  await vi.waitFor(() => expect(worker.runningCount()).toBe(0));
+  expect(isJobNotOwned(refusal)).toBe(true);
+  expect(await status(id)).toBe('cancelled');
+  expect(cleaned).toEqual([]);
+});
+
+test('reschedulePost leaves exactly one active job for the post', async () => {
+  const q = uniqueName('resched');
+  const postId = `post-${q}`;
+  const publish = (runAt: Date) => ({
+    kind: 'noop',
+    payload: {},
+    opts: { queue: q, dedupeKey: `post:${postId}`, runAt },
+  });
+  const old = await queue.enqueue(
+    'noop',
+    {},
+    {
+      queue: q,
+      postId,
+      dedupeKey: `post:${postId}`,
+      runAt: new Date(Date.now() + 3_600_000),
+    }
+  );
+  const child = await queue.enqueue(
+    'noop',
+    {},
+    {
+      queue: q,
+      postId,
+      dedupeKey: `post:${postId}:abc`,
+      runAt: new Date(Date.now() + 7_200_000),
+    }
+  );
+
+  const second = new Date(Date.now() + 10_800_000);
+  const res = await queue.reschedulePost(postId, publish(second));
+
+  expect(res).toEqual({ cancelled: 2, created: true });
+  expect(await status(old.id)).toBe('cancelled');
+  expect(await status(child.id)).toBe('cancelled');
+  const active = await getPgPool().query(
+    `SELECT run_at FROM pgonly.jobs
+     WHERE post_id = $1 AND status IN ('pending','running')`,
+    [postId]
+  );
+  expect(active.rows).toHaveLength(1);
+  expect(active.rows[0].run_at.getTime()).toBe(second.getTime());
+});
+
+test('reschedulePost does not cancel a publish in flight nor create a second one', async () => {
+  const q = uniqueName('inflight');
+  const postId = `post-${q}`;
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let started = false;
+
+  await startWorker(q, (w) =>
+    w.register('inflight', async () => {
+      await markStarted();
+      started = true;
+      await hold;
+    })
+  );
+  const { id } = await queue.enqueue(
+    'inflight',
+    {},
+    { queue: q, postId, dedupeKey: `post:${postId}` }
+  );
+  await vi.waitFor(() => expect(started).toBe(true));
+
+  const res = await queue.reschedulePost(postId, {
+    kind: 'inflight',
+    payload: {},
+    opts: { queue: q, dedupeKey: `post:${postId}` },
+  });
+
+  expect(res).toEqual({ cancelled: 0, created: false });
+  expect(await status(id)).toBe('running');
+  const active = await getPgPool().query(
+    `SELECT id FROM pgonly.jobs
+     WHERE post_id = $1 AND status IN ('pending','running')`,
+    [postId]
+  );
+  expect(active.rows.map((r) => Number(r.id))).toEqual([id]);
+
+  release();
+  await vi.waitFor(async () => expect(await status(id)).toBe('done'));
+});
+
+test('startedPublishPostIds reports the posts whose publish began, in any status', async () => {
+  const q = uniqueName('startedpub');
+  const begun = `post-${q}-begun`;
+  const waiting = `post-${q}-waiting`;
+
+  await startWorker(q, (w) =>
+    w.register('post.publish', async (job) => {
+      if (job.postId === begun) {
+        await markStarted();
+      }
+    })
+  );
+  const done = await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId: begun }
+  );
+  await vi.waitFor(async () => expect(await status(done.id)).toBe('done'));
+  await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId: waiting, runAt: new Date(Date.now() + 3_600_000) }
+  );
+
+  const started = await queue.startedPublishPostIds([begun, waiting, 'none']);
+
+  expect([...started]).toEqual([begun]);
 });

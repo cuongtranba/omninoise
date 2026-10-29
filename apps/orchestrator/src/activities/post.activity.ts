@@ -106,7 +106,18 @@ export class PostActivity {
 
   async searchForMissingThreeHoursPosts() {
     const list = await this._postService.searchForMissingThreeHoursPosts();
+    // A post whose publish ever began has an unknown outcome (it may be live
+    // although the flow never recorded it): publishing it again could
+    // duplicate it, so it is never picked up automatically.
+    const started = await this._queue.startedPublishPostIds(
+      list.map((post) => post.id)
+    );
+    let enqueued = 0;
     for (const post of list) {
+      if (started.has(post.id)) {
+        continue;
+      }
+      enqueued++;
       // 'keep': a post that already has a live job is left alone
       await this._queue.enqueue(
         'post.publish',
@@ -124,7 +135,7 @@ export class PostActivity {
         }
       );
     }
-    return list.length;
+    return enqueued;
   }
 
   async updatePost(id: string, postId: string, releaseURL: string) {
@@ -146,6 +157,16 @@ export class PostActivity {
     }
 
     return reanchorInterval(post);
+  }
+
+  /** One comment of a post's chain by id; undefined once it was deleted. */
+  async getComment(orgId: string, id: string) {
+    const [comment] = await this._postService.getPostsRecursively(
+      id,
+      false,
+      orgId
+    );
+    return comment ? slimPost(comment) : undefined;
   }
 
   async getPostsList(orgId: string, postId: string) {

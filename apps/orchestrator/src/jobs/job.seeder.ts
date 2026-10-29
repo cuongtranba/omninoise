@@ -57,7 +57,15 @@ export class JobSeeder {
         integration: { select: { providerIdentifier: true } },
       },
     });
+    // A post whose publish ever began is not re-published on boot: it may be
+    // live although the flow never recorded it.
+    const started = await this._queue.startedPublishPostIds(
+      posts.map((post) => post.id)
+    );
     for (const post of posts) {
+      if (started.has(post.id)) {
+        continue;
+      }
       const queue = providerQueue(post.integration.providerIdentifier);
       const res = await this._queue.enqueue(
         'post.publish',

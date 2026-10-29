@@ -34,6 +34,24 @@ export const isNonRetryable = (err: unknown): err is NonRetryable =>
   err instanceof NonRetryable ||
   (!!err && typeof err === 'object' && (err as any).nonRetryable === true);
 
+/**
+ * The job was cancelled, rescheduled or reclaimed while its handler ran, so
+ * nothing the handler does may touch the post any more: the job that replaced
+ * it owns the post. Handlers rethrow it untouched (no state change, no
+ * notification) and the worker records nothing, because the guarded UPDATEs of
+ * the row are no-ops for a job it no longer owns.
+ */
+export class JobNotOwned extends Error {
+  constructor(message = 'Job is no longer owned') {
+    super(message);
+    this.name = 'JobNotOwned';
+  }
+}
+
+export const isJobNotOwned = (err: unknown): err is JobNotOwned =>
+  err instanceof JobNotOwned ||
+  (!!err && typeof err === 'object' && (err as any).name === 'JobNotOwned');
+
 /** A provider call that ran past its time budget; its outcome is unknown. */
 export class JobTimeout extends Error {
   constructor(message = 'Timed out') {

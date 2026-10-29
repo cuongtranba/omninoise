@@ -1,8 +1,5 @@
-import { Client } from 'pg';
-import {
-  getPgPool,
-  pgConnectionString,
-} from '@gitroom/nestjs-libraries/pg/pg.pool';
+import { Client, Pool } from 'pg';
+import { pgConnectionString } from '@gitroom/nestjs-libraries/pg/pg.pool';
 import {
   insertFollowUps,
   JOBS_CHANNEL,
@@ -14,7 +11,11 @@ import {
   JobContext,
   runWithJobContext,
 } from '@gitroom/nestjs-libraries/jobs/job.context';
-import { isNonRetryable } from '@gitroom/nestjs-libraries/jobs/job.errors';
+import {
+  isJobNotOwned,
+  isNonRetryable,
+  JobNotOwned,
+} from '@gitroom/nestjs-libraries/jobs/job.errors';
 
 export type JobHandler<P = any> = (
   job: Job<P>,
@@ -26,6 +27,8 @@ export type HandlerOptions = {
    * Runs once when the job ends `failed` for good: retries used up, a
    * NonRetryable error, or a lease lost after `markStarted`. Cleanup lives
    * here (mark the post errored, release the media, refund the clipping).
+   * Never runs for a job that lost ownership (`JobNotOwned`): it was cancelled
+   * or reclaimed and the job that replaced it is in charge.
    */
   onFailed?: (job: Job, error: string, type?: string) => Promise<unknown>;
 };
@@ -49,6 +52,10 @@ export type WorkerOptions = {
 };
 
 const MAX_CLAIM_BATCH = 100;
+// The worker's own connections (claim, lease, complete, fail, reap). Apart
+// from the app pool on purpose: a burst of request-time queries must never
+// starve the lease extension, or the reaper fails jobs that are still alive.
+const WORKER_POOL_SIZE = 4;
 
 type Running = { job: Job; progress?: string };
 
@@ -73,6 +80,8 @@ export class JobWorker {
   private runners = new Map<string, QueueRunner>();
   private timers: NodeJS.Timeout[] = [];
   private listener?: Client;
+  private pool?: Pool;
+  private polling = false;
   private stopped = true;
   private reconnectTimer?: NodeJS.Timeout;
   private readonly leaseMs: number;
@@ -99,11 +108,26 @@ export class JobWorker {
     return this;
   }
 
+  // Bookkeeping connections; created at start() and closed at stop().
+  private get db(): Pool {
+    if (!this.pool) {
+      throw new Error('job worker is not started');
+    }
+    return this.pool;
+  }
+
   async start() {
     if (!this.stopped) {
       return;
     }
     await ensureJobsSchema();
+    this.pool = new Pool({
+      connectionString: pgConnectionString(),
+      max: WORKER_POOL_SIZE,
+    });
+    this.pool.on('error', (err) =>
+      console.error('job worker: idle client error', err.message)
+    );
     this.stopped = false;
     await this.listen();
     this.timers.push(
@@ -129,6 +153,11 @@ export class JobWorker {
     while (this.runningCount() > 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
+    // Handlers still running past the grace period get their writes refused
+    // (the pool is gone); their jobs are left to the reaper.
+    const pool = this.pool;
+    this.pool = undefined;
+    await pool?.end().catch(() => undefined);
   }
 
   runningCount() {
@@ -196,8 +225,40 @@ export class JobWorker {
     }, 1_000);
   }
 
+  // One cheap query finds the queues that have something due, instead of one
+  // claim per queue (about 35 per worker) every second.
   private wakeAll() {
-    this.runners.forEach((runner) => void this.claim(runner));
+    void this.poll();
+  }
+
+  private async poll() {
+    if (this.stopped || this.polling) {
+      return;
+    }
+    this.polling = true;
+    try {
+      const open = [...this.runners.values()].filter((r) => this.free(r) > 0);
+      if (!open.length) {
+        return;
+      }
+      const res = await this.db.query(
+        `SELECT DISTINCT queue FROM pgonly.jobs
+         WHERE status = 'pending' AND run_at <= now() AND queue = ANY($1::text[])`,
+        [open.map((r) => r.config.name)]
+      );
+      for (const { queue } of res.rows) {
+        const runner = this.runners.get(queue);
+        if (runner) {
+          void this.claim(runner);
+        }
+      }
+    } catch (err) {
+      if (!this.stopped) {
+        console.error('job worker: poll failed', (err as Error).message);
+      }
+    } finally {
+      this.polling = false;
+    }
   }
 
   // ---- claim ------------------------------------------------------------
@@ -229,7 +290,7 @@ export class JobWorker {
         if (free <= 0) {
           break;
         }
-        const res = await getPgPool().query(
+        const res = await this.db.query(
           `UPDATE pgonly.jobs
              SET status = 'running', attempts = attempts + 1,
                  started_at = NULL, progress = NULL,
@@ -276,18 +337,27 @@ export class JobWorker {
       const ctx: JobContext = {
         job,
         markStarted: async () => {
-          const res = await getPgPool().query(
-            `UPDATE pgonly.jobs SET started_at = now(), updated_at = now()
+          const res = await this.db.query(
+            `UPDATE pgonly.jobs SET started_at = COALESCE(started_at, now()),
+               updated_at = now()
              WHERE id = $1 AND attempts = $2 AND status = 'running'`,
             [job.id, job.attempts]
           );
           if (!res.rowCount) {
             // Cancelled or reclaimed: do not publish for a job nobody owns.
-            throw Object.assign(new Error('Job is no longer owned'), {
-              nonRetryable: true,
-            });
+            throw new JobNotOwned();
           }
-          job.startedAt = new Date();
+          job.startedAt ??= new Date();
+        },
+        assertOwned: async () => {
+          const res = await this.db.query(
+            `SELECT 1 FROM pgonly.jobs
+             WHERE id = $1 AND attempts = $2 AND status = 'running'`,
+            [job.id, job.attempts]
+          );
+          if (!res.rowCount) {
+            throw new JobNotOwned();
+          }
         },
         setProgress: (details) => {
           entry.progress = details;
@@ -319,7 +389,7 @@ export class JobWorker {
   }
 
   private async complete(job: Job, outcome: JobOutcome) {
-    const client = await getPgPool().connect();
+    const client = await this.db.connect();
     try {
       await client.query('BEGIN');
       // Guarded by status and attempt: a job that was cancelled or reclaimed
@@ -343,6 +413,12 @@ export class JobWorker {
   }
 
   private async fail(job: Job, err: unknown, opts?: HandlerOptions) {
+    // The row was cancelled or reclaimed under the handler: whoever took it
+    // over decides its fate. Nothing to record, and no cleanup, because the
+    // cleanup would act on a post that now belongs to another job.
+    if (isJobNotOwned(err)) {
+      return;
+    }
     const message = String((err as Error)?.message ?? err).slice(0, 4000);
     // A job past markStarted is never retried: its outcome is unknown.
     const retry =
@@ -350,7 +426,7 @@ export class JobWorker {
 
     if (retry) {
       const delay = job.retryDelayMs * Math.pow(job.backoff, job.attempts - 1);
-      await getPgPool().query(
+      await this.db.query(
         `UPDATE pgonly.jobs SET status = 'pending', last_error = $3,
            run_at = now() + ($4::double precision * interval '1 millisecond'),
            locked_until = NULL, updated_at = now()
@@ -360,7 +436,7 @@ export class JobWorker {
       return;
     }
 
-    const res = await getPgPool().query(
+    const res = await this.db.query(
       `UPDATE pgonly.jobs SET status = 'failed', last_error = $3,
          locked_until = NULL, updated_at = now()
        WHERE id = $1 AND attempts = $2 AND status = 'running'`,
@@ -411,7 +487,7 @@ export class JobWorker {
     try {
       // A row that is not updated was cancelled or reclaimed; its handler
       // finishes anyway and the guarded completion is ignored.
-      await getPgPool().query(
+      await this.db.query(
         `UPDATE pgonly.jobs j
            SET locked_until = now() + ($4::int * interval '1 millisecond'),
                progress = COALESCE(h.progress, j.progress)
@@ -442,7 +518,7 @@ export class JobWorker {
       return;
     }
     try {
-      const res = await getPgPool().query(
+      const res = await this.db.query(
         `UPDATE pgonly.jobs SET
            status = CASE WHEN started_at IS NOT NULL OR attempts >= max_attempts
                          THEN 'failed' ELSE 'pending' END,

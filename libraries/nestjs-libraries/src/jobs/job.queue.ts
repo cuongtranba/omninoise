@@ -65,6 +65,11 @@ const PRUNE_SQL = `DELETE FROM pgonly.jobs
 
 const ACTIVE = `('pending','running')`;
 
+// A running job whose provider call has begun cannot be interrupted, and its
+// outcome is unknown: cancelling it would only hide it, and a replacement
+// would publish the post a second time.
+const IN_FLIGHT = `(status = 'running' AND started_at IS NOT NULL)`;
+
 export const mapRow = (row: any): Job => ({
   id: Number(row.id),
   kind: row.kind,
@@ -137,10 +142,12 @@ export async function insertJob(
     return { id: Number(res.rows[0].id), created: true };
   }
 
+  // 'replace' leaves a job that is mid-publish alone; the insert below then
+  // finds it holding the key and creates nothing.
   if (opts.mode === 'replace') {
     await db.query(
       `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
-       WHERE dedupe_key = $1 AND status IN ${ACTIVE}`,
+       WHERE dedupe_key = $1 AND status IN ${ACTIVE} AND NOT ${IN_FLIGHT}`,
       [opts.dedupeKey]
     );
   }
@@ -232,6 +239,69 @@ export class JobQueueService {
       [postId]
     );
     return res.rowCount ?? 0;
+  }
+
+  /**
+   * Replaces everything scheduled for a post in one transaction: its pending
+   * and not-yet-started running jobs are cancelled and, unless `next` is
+   * omitted (a draft), `next` takes their place. There is no instant at which
+   * the post has no job, or two.
+   *
+   * A job that is mid-publish (running, `started_at` set) is left alone: it
+   * cannot be stopped and its outcome is unknown, so a replacement would
+   * publish the post twice. Nothing new is created in that case either; the
+   * edit is saved on the post and the publish already in flight finishes.
+   */
+  async reschedulePost(
+    postId: string,
+    next?: FollowUp
+  ): Promise<{ cancelled: number; created: boolean }> {
+    await this.ready();
+    const client = await getPgPool().connect();
+    try {
+      await client.query('BEGIN');
+      const cancelled = await client.query(
+        `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
+         WHERE post_id = $1 AND status IN ${ACTIVE} AND NOT ${IN_FLIGHT}`,
+        [postId]
+      );
+      let created = false;
+      if (next) {
+        const opts = { ...next.opts, postId, mode: 'keep' as const };
+        created = (await insertJob(client, next.kind, next.payload, opts))
+          .created;
+        await client.query('SELECT pg_notify($1, $2)', [
+          JOBS_CHANNEL,
+          opts.queue ?? 'main',
+        ]);
+      }
+      await client.query('COMMIT');
+      return { cancelled: cancelled.rowCount ?? 0, created };
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Which of these posts had a publish begin, in any job status. A post whose
+   * publish ever started has an unknown outcome and must never be published
+   * again automatically (the sweep and the boot seeder use this).
+   */
+  async startedPublishPostIds(postIds: string[]): Promise<Set<string>> {
+    if (!postIds.length) {
+      return new Set();
+    }
+    await this.ready();
+    const res = await getPgPool().query(
+      `SELECT DISTINCT post_id FROM pgonly.jobs
+       WHERE post_id = ANY($1::text[]) AND started_at IS NOT NULL
+         AND kind LIKE 'post.%'`,
+      [postIds]
+    );
+    return new Set(res.rows.map((r) => r.post_id as string));
   }
 
   async cancelByKey(key: string): Promise<number> {

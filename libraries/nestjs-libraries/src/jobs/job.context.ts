@@ -11,6 +11,12 @@ export type JobContext = {
    * publish twice. Before it, a lost lease simply re-queues the job.
    */
   markStarted(): Promise<void>;
+  /**
+   * Throws JobNotOwned when the job was cancelled or reclaimed. Call before a
+   * write that must not come from a stale handler (an ERROR state, a
+   * notification). A cheap read; `markStarted` does the same check atomically.
+   */
+  assertOwned(): Promise<void>;
   /** What the handler is waiting on; shown on the job if it stalls. */
   setProgress(details: string): void;
 };
@@ -25,6 +31,11 @@ export const currentJobContext = () => storage.getStore();
 /** No-op outside a job (API requests, analytics). */
 export const markStarted = async () => {
   await currentJobContext()?.markStarted();
+};
+
+/** No-op outside a job. */
+export const assertOwned = async () => {
+  await currentJobContext()?.assertOwned();
 };
 
 /** No-op outside a job. Kept under its old name so providers need no change. */

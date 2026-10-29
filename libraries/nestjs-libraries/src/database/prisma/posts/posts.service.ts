@@ -916,27 +916,25 @@ export class PostsService {
     orgId: string,
     state: State
   ) {
-    // Cancels the post's jobs: its publish, and the repeat posts it spawned.
+    // One transaction: the post's jobs (its publish, the repeat posts it
+    // spawned) are cancelled and, unless it is a draft, the new schedule takes
+    // their place. A publish already in flight is left alone and nothing is
+    // created beside it, so editing a post that is being published never
+    // publishes it twice; the edit is saved and the publish finishes.
     try {
-      await this._jobQueue.cancelByPost(postId);
-    } catch (err) {}
-
-    if (state === 'DRAFT') {
-      return;
-    }
-
-    try {
-      // 'replace': the new schedule takes the place of the cancelled one
-      await this._jobQueue.enqueue(
-        'post.publish',
-        { taskQueue, postId, organizationId: orgId },
-        {
-          queue: taskQueue,
-          dedupeKey: `post:${postId}`,
-          mode: 'replace',
-          postId,
-          organizationId: orgId,
-        }
+      await this._jobQueue.reschedulePost(
+        postId,
+        state === 'DRAFT'
+          ? undefined
+          : {
+              kind: 'post.publish',
+              payload: { taskQueue, postId, organizationId: orgId },
+              opts: {
+                queue: taskQueue,
+                dedupeKey: `post:${postId}`,
+                organizationId: orgId,
+              },
+            }
       );
     } catch (err) {}
   }

@@ -35,7 +35,8 @@ export type EnqueueOptions = {
   /**
    * 'keep' (default): the existing job stays, the existing job wins.
    * 'replace': the existing job is cancelled and this one takes its place,
-   * the new job wins.
+   * the new job wins. A running job whose handler already called
+   * `markStarted` is never cancelled; it keeps the key and nothing is created.
    */
   mode?: 'keep' | 'replace';
   postId?: string;
