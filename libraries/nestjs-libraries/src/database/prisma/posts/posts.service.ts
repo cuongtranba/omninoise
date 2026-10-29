@@ -1,7 +1,10 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
+  ConflictException,
+  ServiceUnavailableException,
   ValidationPipe,
 } from '@nestjs/common';
 import { PostsRepository } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.repository';
@@ -39,12 +42,10 @@ import { resolve, sep } from 'path';
 import { OpenaiService } from '@gitroom/nestjs-libraries/openai/openai.service';
 dayjs.extend(utc);
 import * as Sentry from '@sentry/nestjs';
-import { TemporalService } from 'nestjs-temporal-core';
-import { TypedSearchAttributes } from '@temporalio/common';
 import {
-  organizationId,
-  postId as postIdSearchParam,
-} from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+  JobQueueService,
+  REPEAT_SUFFIX,
+} from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
@@ -67,6 +68,8 @@ type PostWithConditionals = Post & {
 @Injectable()
 export class PostsService {
   private storage = UploadFactory.createStorage();
+  private readonly _logger = new Logger(PostsService.name);
+
   constructor(
     private _postRepository: PostsRepository,
     private _integrationManager: IntegrationManager,
@@ -74,12 +77,16 @@ export class PostsService {
     private _mediaService: MediaService,
     private _shortLinkService: ShortLinkService,
     private _openaiService: OpenaiService,
-    private _temporalService: TemporalService,
+    private _jobQueue: JobQueueService,
     private _refreshIntegrationService: RefreshIntegrationService
   ) {}
 
   searchForMissingThreeHoursPosts() {
     return this._postRepository.searchForMissingThreeHoursPosts();
+  }
+
+  setError(id: string, error: string) {
+    return this._postRepository.setError(id, error);
   }
 
   updatePost(id: string, postId: string, releaseURL: string) {
@@ -613,9 +620,7 @@ export class PostsService {
 
       return getImageList;
     } catch (err: any) {
-      return (imagesList || []).filter((m) =>
-        this.isAllowedMediaPath(m?.path)
-      );
+      return (imagesList || []).filter((m) => this.isAllowedMediaPath(m?.path));
     }
   }
 
@@ -898,26 +903,7 @@ export class PostsService {
 
     if (post?.id) {
       try {
-        const workflows = this._temporalService.client
-          .getRawClient()
-          ?.workflow.list({
-            query: `postId="${post.id}" AND ExecutionStatus="Running"`,
-          });
-
-        for await (const executionInfo of workflows) {
-          try {
-            const workflow =
-              await this._temporalService.client.getWorkflowHandle(
-                executionInfo.workflowId
-              );
-            if (
-              workflow &&
-              (await workflow.describe()).status.name !== 'TERMINATED'
-            ) {
-              await workflow.terminate();
-            }
-          } catch (err) {}
-        }
+        await this._jobQueue.cancelByPost(post.id);
       } catch (err) {}
 
       return { id: post.id };
@@ -940,58 +926,70 @@ export class PostsService {
     orgId: string,
     state: State
   ) {
+    // One transaction: the post's jobs (its publish, the repeat posts it
+    // spawned) are cancelled and, unless it is a draft, the new schedule takes
+    // their place. A publish already in flight is left alone; the new publish
+    // is queued behind it (`post:<id>:next`) and runs once that chain has
+    // ended, so editing a post that is being published never publishes it
+    // twice and never drops the edit.
+    // The post is already QUEUE with its new date, so a failure here must not
+    // pass silently: nothing would ever publish it. It is logged, the post is
+    // set to ERROR where the owner sees it, and the caller gets an error too,
+    // so the API, the public API and the MCP tool do not report a schedule
+    // that does not exist. The reschedule was rolled back, so the repeat job of
+    // the old schedule survives it; it is cancelled so that an errored post
+    // does not go on publishing.
     try {
-      const workflows = this._temporalService.client
-        .getRawClient()
-        ?.workflow.list({
-          query: `postId="${postId}" AND ExecutionStatus="Running"`,
-        });
-
-      for await (const executionInfo of workflows) {
+      await this._jobQueue.reschedulePost(
+        postId,
+        state === 'DRAFT'
+          ? undefined
+          : {
+              kind: 'post.publish',
+              payload: { taskQueue, postId, organizationId: orgId },
+              opts: {
+                queue: taskQueue,
+                dedupeKey: `post:${postId}`,
+                organizationId: orgId,
+              },
+            }
+      );
+    } catch (err) {
+      const message = (err as Error)?.message ?? String(err);
+      this._logger.error(
+        `Could not schedule post ${postId}: ${message}`,
+        (err as Error)?.stack
+      );
+      if (state !== 'DRAFT') {
         try {
-          const workflow = await this._temporalService.client.getWorkflowHandle(
-            executionInfo.workflowId
+          await this._postRepository.changeState(
+            postId,
+            'ERROR',
+            `Could not schedule the post: ${message}`
           );
-          if (
-            workflow &&
-            (await workflow.describe()).status.name !== 'TERMINATED'
-          ) {
-            await workflow.terminate();
-          }
-        } catch (err) {}
+        } catch (stateErr) {
+          this._logger.error(
+            `Could not mark post ${postId} as errored: ${
+              (stateErr as Error)?.message
+            }`
+          );
+        }
       }
-    } catch (err) {}
-
-    if (state === 'DRAFT') {
-      return;
+      try {
+        await this._jobQueue.cancelByKey(`post:${postId}${REPEAT_SUFFIX}`);
+      } catch (cancelErr) {
+        this._logger.error(
+          `Could not cancel the repeat of post ${postId}: ${
+            (cancelErr as Error)?.message
+          }`
+        );
+      }
+      throw new ServiceUnavailableException(
+        state === 'DRAFT'
+          ? `The post ${postId} was saved but its schedule could not be cancelled. Please try again.`
+          : `The post ${postId} was saved but could not be scheduled, and is marked as errored. Please schedule it again.`
+      );
     }
-
-    try {
-      await this._temporalService.client
-        .getRawClient()
-        ?.workflow.start('postWorkflowV112', {
-          workflowId: `post_${postId}`,
-          taskQueue: 'main',
-          workflowIdConflictPolicy: 'TERMINATE_EXISTING',
-          args: [
-            {
-              taskQueue: taskQueue,
-              postId: postId,
-              organizationId: orgId,
-            },
-          ],
-          typedSearchAttributes: new TypedSearchAttributes([
-            {
-              key: postIdSearchParam,
-              value: postId,
-            },
-            {
-              key: organizationId,
-              value: orgId,
-            },
-          ]),
-        });
-    } catch (err) {}
   }
 
   /**
@@ -1153,6 +1151,7 @@ export class PostsService {
   ): Promise<any[]> {
     const postList = [];
     const batchId = uuidv4();
+    let scheduleError: unknown;
     for (const post of body.posts) {
       if (
         (body.type === 'schedule' || body.type === 'now') &&
@@ -1208,12 +1207,18 @@ export class PostsService {
       );
 
       if (body.type !== 'update') {
-        this.startWorkflow(
-          post.settings.__type.split('-')[0].toLowerCase(),
-          posts[0].id,
-          orgId,
-          posts[0].state
-        ).catch((err) => {});
+        // the other posts of the request are still saved and scheduled; the
+        // caller hears about the one that could not be
+        try {
+          await this.startWorkflow(
+            post.settings.__type.split('-')[0].toLowerCase(),
+            posts[0].id,
+            orgId,
+            posts[0].state
+          );
+        } catch (err) {
+          scheduleError ??= err;
+        }
       }
 
       Sentry.metrics.count('post_created', 1);
@@ -1223,6 +1228,16 @@ export class PostsService {
       });
     }
 
+    if (scheduleError) {
+      // Not a 503: the other posts of the request were saved and scheduled,
+      // so a client that retries would create them a second time.
+      throw new ConflictException({
+        message: `${
+          (scheduleError as Error)?.message ?? 'A post could not be scheduled.'
+        } The other posts in this request were saved and scheduled; do not resend the request, or they will be created again.`,
+        posts: postList,
+      });
+    }
     return postList;
   }
 
@@ -1394,14 +1409,12 @@ export class PostsService {
     const state: State = status === 'draft' ? 'DRAFT' : 'QUEUE';
     await this._postRepository.changeState(id, state);
 
-    try {
-      await this.startWorkflow(
-        getPostById.integration.providerIdentifier.split('-')[0].toLowerCase(),
-        getPostById.id,
-        orgId,
-        state
-      );
-    } catch (err) {}
+    await this.startWorkflow(
+      getPostById.integration.providerIdentifier.split('-')[0].toLowerCase(),
+      getPostById.id,
+      orgId,
+      state
+    );
 
     return { id, state };
   }
@@ -1430,16 +1443,12 @@ export class PostsService {
     );
 
     if (action === 'schedule') {
-      try {
-        await this.startWorkflow(
-          getPostById.integration.providerIdentifier
-            .split('-')[0]
-            .toLowerCase(),
-          getPostById.id,
-          orgId,
-          getPostById.state === 'DRAFT' ? 'DRAFT' : 'QUEUE'
-        );
-      } catch (err) {}
+      await this.startWorkflow(
+        getPostById.integration.providerIdentifier.split('-')[0].toLowerCase(),
+        getPostById.id,
+        orgId,
+        getPostById.state === 'DRAFT' ? 'DRAFT' : 'QUEUE'
+      );
     }
 
     return newDate;

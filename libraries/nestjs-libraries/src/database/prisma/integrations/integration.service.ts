@@ -27,7 +27,7 @@ import { difference, uniq } from 'lodash';
 import utc from 'dayjs/plugin/utc';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
-import { TemporalService } from 'nestjs-temporal-core';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 
 dayjs.extend(utc);
 
@@ -41,7 +41,7 @@ export class IntegrationService {
     private _notificationService: NotificationService,
     @Inject(forwardRef(() => RefreshIntegrationService))
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _temporalService: TemporalService
+    private _jobQueue: JobQueueService
   ) {}
 
   async changeActiveCron(orgId: string) {
@@ -49,7 +49,7 @@ export class IntegrationService {
 
     for (const item of data.filter((f) => f.active)) {
       try {
-        await this._temporalService.terminateWorkflow(`autopost-${item.id}`);
+        await this._jobQueue.cancelByKey(`autopost:${item.id}`);
       } catch (err) {}
     }
 

@@ -6,7 +6,7 @@ import {
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
-import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/temporal/temporal.heartbeat';
+import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/jobs/job.context';
 import {
   BadBody,
   RefreshToken,

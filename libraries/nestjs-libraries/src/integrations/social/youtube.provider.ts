@@ -23,7 +23,7 @@ import * as process from 'node:process';
 import dayjs from 'dayjs';
 import { createReadStream, statSync } from 'fs';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
-import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/temporal/temporal.heartbeat';
+import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/jobs/job.context';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { DashboardFunction } from '@gitroom/nestjs-libraries/integrations/dashboard.function.decorator';
 

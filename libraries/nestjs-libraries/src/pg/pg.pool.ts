@@ -24,7 +24,8 @@ let pool: Pool | undefined;
 const ensured = new Map<string, Promise<void>>();
 const sweepers = new Set<string>();
 
-function connectionString() {
+/** The plain `pg` connection string, for clients that must not be pooled (LISTEN). */
+export function pgConnectionString() {
   const raw = process.env.DATABASE_URL;
   if (!raw) {
     throw new Error('DATABASE_URL is not set');
@@ -38,7 +39,7 @@ function connectionString() {
 
 export function getPgPool() {
   if (!pool) {
-    pool = new Pool({ connectionString: connectionString(), max: 5 });
+    pool = new Pool({ connectionString: pgConnectionString(), max: 5 });
     // An idle client dies when Postgres restarts; without a listener the
     // 'error' event would crash the process. The pool replaces the client.
     pool.on('error', (err) => {

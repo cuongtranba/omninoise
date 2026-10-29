@@ -12,9 +12,7 @@ import { VideoModule } from '@gitroom/nestjs-libraries/videos/video.module';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { FILTER } from '@gitroom/nestjs-libraries/sentry/sentry.exception';
 import { ChatModule } from '@gitroom/nestjs-libraries/chat/chat.module';
-import { getTemporalModule } from '@gitroom/nestjs-libraries/temporal/temporal.module';
-import { TemporalRegisterMissingSearchAttributesModule } from '@gitroom/nestjs-libraries/temporal/temporal.register';
-import { InfiniteWorkflowRegisterModule } from '@gitroom/nestjs-libraries/temporal/infinite.workflow.register';
+import { JobsModule } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { PgThrottlerStorage } from '@gitroom/nestjs-libraries/throttler/pg.throttler.storage';
 
 @Global()
@@ -28,9 +26,7 @@ import { PgThrottlerStorage } from '@gitroom/nestjs-libraries/throttler/pg.throt
     ThirdPartyModule,
     VideoModule,
     ChatModule,
-    getTemporalModule(false),
-    TemporalRegisterMissingSearchAttributesModule,
-    InfiniteWorkflowRegisterModule,
+    JobsModule,
     ThrottlerModule.forRoot({
       throttlers: [
         {

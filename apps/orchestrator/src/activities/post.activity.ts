@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Activity,
-  ActivityMethod,
-  TemporalService,
-} from 'nestjs-temporal-core';
+import { capitalize } from 'lodash';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import {
   NotificationService,
@@ -18,16 +14,12 @@ import { timer } from '@gitroom/helpers/utils/timer';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
-import { TypedSearchAttributes } from '@temporalio/common';
-import {
-  organizationId,
-  postId as postIdSearchParam,
-} from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
+import { markStarted } from '@gitroom/nestjs-libraries/jobs/job.context';
+import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
-import {
-  setHeartbeatDetails,
-  withHeartbeat,
-} from '@gitroom/nestjs-libraries/temporal/temporal.heartbeat';
+import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/jobs/job.context';
 import {
   BadBody,
   Disconnect,
@@ -93,8 +85,9 @@ function reanchorInterval(post: any) {
   return { ...post, publishDate: new Date(next) };
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
 @Injectable()
-@Activity()
 export class PostActivity {
   constructor(
     private _postService: PostsService,
@@ -103,56 +96,98 @@ export class PostActivity {
     private _integrationService: IntegrationService,
     private _refreshIntegrationService: RefreshIntegrationService,
     private _webhookService: WebhooksService,
-    private _temporalService: TemporalService,
-    private _subscriptionService: SubscriptionService
+    private _queue: JobQueueService,
+    private _subscriptionService: SubscriptionService,
+    private _organizationService: OrganizationService
   ) {}
 
-  @ActivityMethod()
   async getIntegrationById(orgId: string, id: string) {
     return this._integrationService.getIntegrationById(orgId, id);
   }
 
-  @ActivityMethod()
   async searchForMissingThreeHoursPosts() {
     const list = await this._postService.searchForMissingThreeHoursPosts();
+    // A post whose publish ever began has an unknown outcome (it may be live
+    // although the flow never recorded it): publishing it again could
+    // duplicate it, so it is never picked up automatically. One that is past
+    // due with nothing left alive is reported to its owner instead.
+    const { publish, unconfirmed } = await this._queue.classifyQueuedPosts(
+      list
+    );
+    await this.markUnconfirmedPosts(
+      list.filter((post) => unconfirmed.includes(post.id))
+    );
+    let enqueued = 0;
     for (const post of list) {
-      await this._temporalService.client
-        .getRawClient()
-        .workflow.signalWithStart('postWorkflowV112', {
-          workflowId: `post_${post.id}`,
-          taskQueue: 'main',
-          signal: 'poke',
-          workflowIdConflictPolicy: 'USE_EXISTING',
-          signalArgs: [],
-          args: [
-            {
-              taskQueue: post.integration.providerIdentifier
-                .split('-')[0]
-                .toLowerCase(),
-              postId: post.id,
-              organizationId: post.organizationId,
-            },
-          ],
-          typedSearchAttributes: new TypedSearchAttributes([
-            {
-              key: postIdSearchParam,
-              value: post.id,
-            },
-            {
-              key: organizationId,
-              value: post.organizationId,
-            },
-          ]),
-        });
+      if (!publish.includes(post.id)) {
+        continue;
+      }
+      enqueued++;
+      // 'keep': a post that already has a live job is left alone
+      await this._queue.enqueue(
+        'post.publish',
+        {
+          taskQueue: providerQueue(post.integration.providerIdentifier),
+          postId: post.id,
+          organizationId: post.organizationId,
+        },
+        {
+          queue: providerQueue(post.integration.providerIdentifier),
+          dedupeKey: `post:${post.id}`,
+          mode: 'keep',
+          postId: post.id,
+          organizationId: post.organizationId,
+        }
+      );
+    }
+    return enqueued;
+  }
+
+  /**
+   * Posts that are still QUEUE although a publish of theirs began and nothing
+   * is alive any more: the outcome was never written (the database was out
+   * while the flow settled). They may be live, so they leave QUEUE with the
+   * usual "check the account before posting again" error and notification.
+   * One post failing does not stop the others.
+   */
+  async markUnconfirmedPosts(
+    posts: {
+      id: string;
+      organizationId: string;
+      integration: { providerIdentifier: string; name?: string | null };
+    }[]
+  ) {
+    for (const post of posts) {
+      try {
+        await this._postService.changeState(
+          post.id,
+          'ERROR',
+          'The outcome of the publish was never recorded'
+        );
+        const provider = capitalize(post.integration.providerIdentifier);
+        await this._notificationService.inAppNotification(
+          post.organizationId,
+          `We couldn't confirm your post on ${provider}`,
+          `Your post was sent to ${provider}, but we couldn't confirm it was published. Please check your ${
+            post.integration.name ?? provider
+          } account before posting again to avoid duplicates.`,
+          true,
+          false,
+          'fail'
+        );
+      } catch (err) {
+        console.error(
+          `post activity: could not mark post ${post.id} unconfirmed`,
+          (err as Error)?.message
+        );
+      }
     }
   }
 
-  @ActivityMethod()
   async updatePost(id: string, postId: string, releaseURL: string) {
     await this._postService.updatePost(id, postId, releaseURL);
   }
 
-  @ActivityMethod()
   async getPost(orgId: string, postId: string) {
     if (process.env.STRIPE_SECRET_KEY) {
       const subscription = await this._subscriptionService.getSubscription(
@@ -170,7 +205,16 @@ export class PostActivity {
     return reanchorInterval(post);
   }
 
-  @ActivityMethod()
+  /** One comment of a post's chain by id; undefined once it was deleted. */
+  async getComment(orgId: string, id: string) {
+    const [comment] = await this._postService.getPostsRecursively(
+      id,
+      false,
+      orgId
+    );
+    return comment ? slimPost(comment) : undefined;
+  }
+
   async getPostsList(orgId: string, postId: string) {
     if (process.env.STRIPE_SECRET_KEY) {
       const subscription = await this._subscriptionService.getSubscription(
@@ -196,7 +240,6 @@ export class PostActivity {
     return [reanchorInterval(root), ...comments];
   }
 
-  @ActivityMethod()
   async isCommentable(integration: Integration) {
     const getIntegration = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
@@ -205,68 +248,61 @@ export class PostActivity {
     return !!getIntegration.comment;
   }
 
-  @ActivityMethod()
   async postComment(
     postId: string,
     lastPostId: string | undefined,
     integration: Integration,
     posts: Post[]
   ) {
-    // kept only for in-flight postWorkflowV108 runs, which set a
-    // heartbeatTimeout on this activity - removing the sender would kill
-    // them. Under V109+ (no heartbeatTimeout) this is a no-op and can be
-    // dropped once all V108 executions have drained
-    return withHeartbeat(() =>
-      this.handleDisconnect(integration, async () => {
-        const getIntegration = this._integrationManager.getSocialIntegration(
-          integration.providerIdentifier
-        );
+    return this.handleDisconnect(integration, async () => {
+      const getIntegration = this._integrationManager.getSocialIntegration(
+        integration.providerIdentifier
+      );
 
-        const newPosts = await this._postService.updateTags(
-          integration.organizationId,
-          posts
-        );
+      const newPosts = await this._postService.updateTags(
+        integration.organizationId,
+        posts
+      );
 
-        return getIntegration.comment(
-          integration.internalId,
-          postId,
-          lastPostId,
-          integration.token,
-          await Promise.all(
-            (newPosts || []).map(async (p) => ({
-              id: p.id,
-              message: stripHtmlValidation(
-                getIntegration.editor,
-                p.content,
-                true,
-                false,
-                !/<\/?[a-z][\s\S]*>/i.test(p.content),
-                getIntegration.mentionFormat
-              ),
-              settings: JSON.parse(p.settings || '{}'),
-              media: await this._postService.updateMedia(
-                p.id,
-                JSON.parse(p.image || '[]'),
-                getIntegration?.convertToJPEG || false
-              ),
-            }))
+      const mappedPosts = await Promise.all(
+        (newPosts || []).map(async (p) => ({
+          id: p.id,
+          message: stripHtmlValidation(
+            getIntegration.editor,
+            p.content,
+            true,
+            false,
+            !/<\/?[a-z][\s\S]*>/i.test(p.content),
+            getIntegration.mentionFormat
           ),
-          integration
-        );
-      })
-    );
+          settings: JSON.parse(p.settings || '{}'),
+          media: await this._postService.updateMedia(
+            p.id,
+            JSON.parse(p.image || '[]'),
+            getIntegration?.convertToJPEG || false
+          ),
+        }))
+      );
+
+      // everything before this line can be run again; the comment cannot
+      await markStarted();
+      return getIntegration.comment(
+        integration.internalId,
+        postId,
+        lastPostId,
+        integration.token,
+        mappedPosts,
+        integration
+      );
+    });
   }
 
-  @ActivityMethod()
   async postSocial(integration: Integration, posts: Post[]) {
     return this.postSocialInternal(integration, posts, false);
   }
 
-  // Used by postWorkflowV106 and up: providers that implement `postPending`
-  // return a `pending` response the workflow resolves via checkPostStatus /
-  // finalizePost. Older workflow versions keep calling `postSocial` and get
-  // the old blocking behavior.
-  @ActivityMethod()
+  // Providers that implement `postPending` return a `pending` response the
+  // post flow resolves via checkPostStatus / finalizePost.
   async postSocialPending(integration: Integration, posts: Post[]) {
     return this.postSocialInternal(integration, posts, true);
   }
@@ -274,8 +310,7 @@ export class PostActivity {
   // A Disconnect error means the platform will keep rejecting this channel no
   // matter how many token refreshes (e.g. TikTok's daily active user cap):
   // mark the channel as needing a re-connect and notify the user, then rethrow
-  // as BadBody so every workflow version - frozen once on main - treats it as
-  // a terminal error without needing a new workflow.
+  // as BadBody so the post flow treats it as a terminal error.
   private async handleDisconnect<T>(
     integration: Integration,
     func: () => Promise<T>
@@ -333,15 +368,27 @@ export class PostActivity {
     posts: Post[],
     allowPending: boolean
   ) {
-    // kept only for in-flight postWorkflowV108 runs, which set a
-    // heartbeatTimeout on this activity - removing the sender would kill
-    // them. Under V109+ (no heartbeatTimeout) this is a no-op and can be
-    // dropped once all V108 executions have drained
-    return withHeartbeat(() =>
-      this.handleDisconnect(integration, () =>
-        this.postSocialBody(integration, posts, allowPending)
-      )
+    return this.handleDisconnect(integration, () =>
+      this.postSocialBody(integration, posts, allowPending)
     );
+  }
+
+  // A publish starts the organization's streak unless one is already running;
+  // the running one checks for newer posts before it ends.
+  private async startStreak(organizationId: string) {
+    const { created } = await this._queue.enqueue(
+      'streak',
+      { organizationId, lastPost: Date.now() },
+      {
+        dedupeKey: `streak:${organizationId}`,
+        mode: 'keep',
+        organizationId,
+        runAt: new Date(Date.now() + DAY),
+      }
+    );
+    if (created) {
+      await this._organizationService.setStreak(organizationId, 'start');
+    }
   }
 
   private async postSocialBody(
@@ -397,6 +444,8 @@ export class PostActivity {
     );
 
     setHeartbeatDetails(`${integration.providerIdentifier}: publish`);
+    // everything before this line can be run again; the publish cannot
+    await markStarted();
     const postNow =
       allowPending && getIntegration.postPending
         ? await getIntegration.postPending(
@@ -416,21 +465,7 @@ export class PostActivity {
     // failing the activity here would retry it and publish again.
     setHeartbeatDetails(`${integration.providerIdentifier}: published, streak`);
     try {
-      await this._temporalService.client
-        .getRawClient()
-        .workflow.start('streakWorkflowV2', {
-          args: [{ organizationId: integration.organizationId }],
-          workflowId: `streak_${integration.organizationId}`,
-          taskQueue: 'main',
-          // Keep a running streak, it checks for newer posts before it ends
-          workflowIdConflictPolicy: 'USE_EXISTING',
-          typedSearchAttributes: new TypedSearchAttributes([
-            {
-              key: organizationId,
-              value: integration.organizationId,
-            },
-          ]),
-        });
+      await this.startStreak(integration.organizationId);
     } catch (err) {
       /**empty**/
     }
@@ -438,31 +473,32 @@ export class PostActivity {
     return postNow;
   }
 
-  @ActivityMethod()
   async checkPostStatus(integration: Integration, pendingData: any) {
     const getIntegration = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
 
     return this.handleDisconnect(integration, () =>
-      getIntegration.checkPostStatus(integration.token, pendingData, integration)
+      getIntegration.checkPostStatus(
+        integration.token,
+        pendingData,
+        integration
+      )
     );
   }
 
-  @ActivityMethod()
   async finalizePost(integration: Integration, pendingData: any) {
     const getIntegration = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
 
-    return withHeartbeat(() =>
-      this.handleDisconnect(integration, () =>
-        getIntegration.finalizePost(integration.token, pendingData, integration)
-      )
+    // finalize runs provider mutations: it cannot be repeated after this line
+    await markStarted();
+    return this.handleDisconnect(integration, () =>
+      getIntegration.finalizePost(integration.token, pendingData, integration)
     );
   }
 
-  @ActivityMethod()
   async inAppNotification(
     orgId: string,
     subject: string,
@@ -481,7 +517,6 @@ export class PostActivity {
     );
   }
 
-  @ActivityMethod()
   async globalPlugs(integration: Integration) {
     return this._postService.checkPlugs(
       integration.organizationId,
@@ -490,12 +525,15 @@ export class PostActivity {
     );
   }
 
-  @ActivityMethod()
+  /** Notes a failure on the post without changing its state. */
+  async recordPostError(id: string, error: string) {
+    await this._postService.setError(id, error);
+  }
+
   async changeState(id: string, state: State, err?: any, body?: any) {
     await this._postService.changeState(id, state, err, body);
   }
 
-  @ActivityMethod()
   async internalPlugs(integration: Integration, settings: any) {
     return this._postService.checkInternalPlug(
       integration,
@@ -505,7 +543,6 @@ export class PostActivity {
     );
   }
 
-  @ActivityMethod()
   async sendWebhooks(postId: string, orgId: string, integrationId: string) {
     // Webhooks are best-effort and run after the post already published, so a
     // failure here must not fail the workflow.
@@ -551,7 +588,6 @@ export class PostActivity {
       /**empty**/
     }
   }
-  @ActivityMethod()
   async processPlug(data: {
     plugId: string;
     postId: string;
@@ -562,7 +598,6 @@ export class PostActivity {
     return this._integrationService.processPlugs(data);
   }
 
-  @ActivityMethod()
   async processInternalPlug(data: {
     post: string;
     originalIntegration: string;
@@ -575,7 +610,6 @@ export class PostActivity {
     await this._integrationService.processInternalPlug(data);
   }
 
-  @ActivityMethod()
   async refreshToken(
     integration: Integration
   ): Promise<false | AuthTokenDetails> {
@@ -605,7 +639,6 @@ export class PostActivity {
     }
   }
 
-  @ActivityMethod()
   async refreshTokenWithCause(
     integration: Integration,
     cause: string

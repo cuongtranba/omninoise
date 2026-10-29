@@ -6,7 +6,7 @@ import {
   AuthTokenDetails,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
-import { TemporalService } from 'nestjs-temporal-core';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 
 @Injectable()
 export class RefreshIntegrationService {
@@ -14,7 +14,7 @@ export class RefreshIntegrationService {
     private _integrationManager: IntegrationManager,
     @Inject(forwardRef(() => IntegrationService))
     private _integrationService: IntegrationService,
-    private _temporalService: TemporalService
+    private _jobQueue: JobQueueService
   ) {}
   async refresh(integration: Integration, cause = ''): Promise<false | AuthTokenDetails> {
     const socialProvider = this._integrationManager.getSocialIntegration(
@@ -58,14 +58,16 @@ export class RefreshIntegrationService {
       return false;
     }
 
-    return this._temporalService.client
-      .getRawClient()
-      ?.workflow.start(`refreshTokenWorkflow`, {
-        workflowId: `refresh_${id}`,
-        args: [{integrationId: id, organizationId: orgId}],
-        taskQueue: 'main',
-        workflowIdConflictPolicy: 'TERMINATE_EXISTING',
-      });
+    // 'replace': a fresh token has a new expiry, the old schedule is void
+    return this._jobQueue.enqueue(
+      'integration.refresh',
+      { integrationId: id, organizationId: orgId },
+      {
+        dedupeKey: `refresh:${id}`,
+        mode: 'replace',
+        organizationId: orgId,
+      }
+    );
   }
 
   private async refreshProcess(

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Activity, ActivityMethod } from 'nestjs-temporal-core';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import {
   NotificationService,
@@ -16,12 +15,10 @@ import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webho
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
 @Injectable()
-@Activity()
 export class AutopostActivity {
   constructor(private _autoPostService: AutopostService) {}
 
-  @ActivityMethod()
   async autoPost(id: string) {
-    return this._autoPostService.startAutopost(id)
+    return this._autoPostService.startAutopost(id);
   }
 }

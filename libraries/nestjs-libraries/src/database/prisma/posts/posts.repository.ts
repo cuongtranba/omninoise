@@ -56,6 +56,7 @@ export class PostsRepository {
         integration: {
           select: {
             providerIdentifier: true,
+            name: true,
           },
         },
         publishDate: true,
@@ -126,24 +127,31 @@ export class PostsRepository {
     });
   }
 
-  // Post.error persists the raw serialized workflow failure; only curated
-  // provider messages are surfaced to the calendar and the public API —
-  // bad_body failures whose message came from a provider handleErrors
-  // mapping or a hand-written provider throw (unmapped API responses carry
-  // the 'Unknown Error' placeholder instead). Internal debug strings (e.g.
-  // 'Refresh channel needed') and unmapped failures come out as null.
+  // Post.error persists the serialized failure; only curated provider messages
+  // are surfaced to the calendar and the public API: bad_body failures whose
+  // message came from a provider handleErrors mapping or a hand-written
+  // provider throw (unmapped API responses carry the 'Unknown Error'
+  // placeholder instead). Internal debug strings (e.g. 'Refresh channel
+  // needed'), untyped errors and unmapped failures come out as null.
+  //
+  // Two shapes exist: the job queue stores NonRetryable.toJSON(), that is
+  // {name, message, type, details}; rows written while Temporal ran the
+  // workflows hold its serialized ActivityFailure.
   private curatedError(error?: string | null): string | null {
     if (!error) {
       return null;
     }
     try {
       const parsed = JSON.parse(error);
-      const [type, message] = parsed?.cause?.failure?.message
-        ? [parsed?.cause?.type, parsed?.cause?.failure?.message]
-        : [
-            parsed?.failure?.cause?.applicationFailureInfo?.type,
-            parsed?.failure?.cause?.message,
-          ];
+      const [type, message] =
+        typeof parsed?.type === 'string'
+          ? [parsed.type, parsed.message]
+          : parsed?.cause?.failure?.message
+          ? [parsed?.cause?.type, parsed?.cause?.failure?.message]
+          : [
+              parsed?.failure?.cause?.applicationFailureInfo?.type,
+              parsed?.failure?.cause?.message,
+            ];
       return type === 'bad_body' && message && message !== 'Unknown Error'
         ? message
         : null;
@@ -455,6 +463,14 @@ export class PostsRepository {
           : {}),
         childrenPost: true,
       },
+    });
+  }
+
+  // Only the error text; the state of the post is left as it is.
+  setError(id: string, error: string) {
+    return this._post.model.post.update({
+      where: { id },
+      data: { error },
     });
   }
 

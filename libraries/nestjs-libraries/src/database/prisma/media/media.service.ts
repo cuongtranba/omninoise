@@ -13,9 +13,7 @@ import {
   Sections,
   SubscriptionException,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
-import { TemporalService } from 'nestjs-temporal-core';
-import { TypedSearchAttributes } from '@temporalio/common';
-import { organizationId } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { MediaProcessorJob } from '@gitroom/nestjs-libraries/upload/media.processor.interface';
 import { extname } from 'path';
@@ -91,7 +89,7 @@ export class MediaService {
     private _openAi: OpenaiService,
     private _subscriptionService: SubscriptionService,
     private _videoManager: VideoManager,
-    private _temporalService: TemporalService
+    private _jobQueue: JobQueueService
   ) {}
 
   async deleteMedia(org: string, id: string) {
@@ -180,7 +178,7 @@ export class MediaService {
   }
 
   // Saves an upload and, when a normalizer is configured, hands it to the
-  // processing workflow; the caller polls getMediaStatus until it is ready
+  // processing job; the caller polls getMediaStatus until it is ready
   async saveUploadedFile(
     org: string,
     fileName: string,
@@ -188,30 +186,25 @@ export class MediaService {
     originalName?: string
   ) {
     const media = await this.saveFile(org, fileName, filePath, originalName);
-    const client = this._temporalService.client.getRawClient();
-    if (
-      !this.processor ||
-      !PROCESSABLE[extname(fileName).toLowerCase()] ||
-      !client
-    ) {
+    if (!this.processor || !PROCESSABLE[extname(fileName).toLowerCase()]) {
       return media;
     }
 
     await this._mediaRepository.startProcessing(org, media.id);
     try {
-      await client.workflow.start('processMediaWorkflow', {
-        workflowId: `media_${media.id}`,
-        taskQueue: 'main',
-        args: [{ mediaId: media.id }],
-        typedSearchAttributes: new TypedSearchAttributes([
-          {
-            key: organizationId,
-            value: org,
-          },
-        ]),
-      });
+      await this._jobQueue.enqueue(
+        'media.process',
+        { mediaId: media.id },
+        {
+          dedupeKey: `media_${media.id}`,
+          organizationId: org,
+          // one attempt: submitting has no idempotency key, a failure
+          // releases the media instead
+          maxAttempts: 1,
+        }
+      );
     } catch (err) {
-      // no workflow means nothing will ever flip the status
+      // no job means nothing will ever flip the status
       return this.releaseUnprocessed(org, media.id, media.name);
     }
 
@@ -571,7 +564,7 @@ export class MediaService {
   }
 
   // Generating a video takes minutes, longer than an MCP request can stay open,
-  // so the generation runs in a workflow and the caller polls its status by job id
+  // so the generation runs as a job and the caller polls its status by job id
   async startGenerateVideo(org: Organization, body: VideoDto) {
     // validated here as well as in the workflow so bad input fails before a job exists
     try {
@@ -580,28 +573,17 @@ export class MediaService {
       throw generationError(err);
     }
 
-    const client = this._temporalService.client.getRawClient();
-    if (!client) {
-      throw new HttpException('Video generation is not available', 503);
-    }
-
     const jobId = `video_${org.id}_${makeId(10)}`;
-    await client.workflow.start('generateVideoWorkflow', {
-      workflowId: jobId,
-      taskQueue: 'main',
-      args: [
-        {
-          organizationId: org.id,
-          body,
-        },
-      ],
-      typedSearchAttributes: new TypedSearchAttributes([
-        {
-          key: organizationId,
-          value: org.id,
-        },
-      ]),
-    });
+    await this._jobQueue.enqueue(
+      'video.generate',
+      { organizationId: org.id, body },
+      {
+        dedupeKey: jobId,
+        organizationId: org.id,
+        // generating a video consumes a credit, so a failed attempt is never retried
+        maxAttempts: 1,
+      }
+    );
 
     return { jobId };
   }
@@ -620,34 +602,24 @@ export class MediaService {
       throw new HttpException('Video job not found', 404);
     }
 
-    const handle = await this._temporalService.client.getWorkflowHandle(jobId);
-    let status: string;
-    try {
-      status = (await handle.describe()).status.name;
-    } catch (err) {
+    const job = await this._jobQueue.get(jobId);
+    if (!job) {
       throw new HttpException('Video job not found', 404);
     }
 
-    if (status === 'RUNNING') {
+    if (job.legacyStatus === 'RUNNING') {
       return { status: 'pending' };
     }
 
-    try {
-      const media = (await handle.result()) as Awaited<
-        ReturnType<MediaService['saveFile']>
-      >;
+    if (job.legacyStatus === 'COMPLETED') {
+      const media = job.result as Awaited<ReturnType<MediaService['saveFile']>>;
       return { status: 'completed', id: media.id, path: media.path };
-    } catch (err) {
-      // the workflow failure wraps the activity failure which wraps the actual error
-      let cause: any = err;
-      while (cause?.cause && cause.cause !== cause) {
-        cause = cause.cause;
-      }
-      return {
-        status: 'failed',
-        error: cause?.message || String(err),
-      };
     }
+
+    return {
+      status: 'failed',
+      error: job.error || 'Video generation failed',
+    };
   }
 
   async videoFunction(identifier: string, functionName: string, body: any) {

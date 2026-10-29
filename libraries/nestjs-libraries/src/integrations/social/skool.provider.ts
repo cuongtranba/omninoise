@@ -222,7 +222,7 @@ export class SkoolProvider extends SocialAbstract implements SocialProvider {
         headResponse.headers.get('content-length') || 0
       );
       if (!headResponse.ok || !contentLength) {
-        // A permanent condition - fail fast instead of letting Temporal retry
+        // A permanent condition - fail fast instead of letting the job retry
         throw new BadBody(
           this.identifier,
           '{}',

@@ -205,10 +205,10 @@ export class WordpressProvider
   }
 
   // Custom provider functions below are invoked from the backend HTTP endpoint
-  // (`/integrations/function`) - which is NOT a Temporal activity - so they must
-  // use a plain `fetch` (with the SSRF guard) rather than `this.fetch`, which
-  // calls `Context.current()` and throws outside an activity. This mirrors how
-  // `authenticate` issues its request.
+  // (`/integrations/function`) - which is NOT a job handler - so they use a
+  // plain `fetch` (with the SSRF guard) rather than `this.fetch`, which records
+  // progress on the running job. This mirrors how `authenticate` issues its
+  // request.
   private async wpGet(token: string, path: string) {
     const body = JSON.parse(Buffer.from(token, 'base64').toString()) as {
       domain: string;

@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { NotificationsRepository } from '@gitroom/nestjs-libraries/database/prisma/notifications/notifications.repository';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
-import { TemporalService } from 'nestjs-temporal-core';
-import { TypedSearchAttributes } from '@temporalio/common';
-import { organizationId } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { addDigestItem } from '@gitroom/nestjs-libraries/jobs/digest.queue';
 
 export type NotificationType = 'success' | 'fail' | 'info';
 
@@ -14,7 +13,7 @@ export class NotificationService {
     private _notificationRepository: NotificationsRepository,
     private _emailService: EmailService,
     private _organizationRepository: OrganizationRepository,
-    private _temporalService: TemporalService
+    private _jobQueue: JobQueueService
   ) {}
 
   getMainPageCount(organizationId: string, userId: string) {
@@ -53,30 +52,11 @@ export class NotificationService {
 
     if (digest) {
       try {
-        await this._temporalService.client
-          .getRawClient()
-          ?.workflow.signalWithStart('digestEmailWorkflow', {
-            workflowId: 'digest_email_workflow_' + orgId,
-            signal: 'email',
-            signalArgs: [
-              [
-                {
-                  title: subject,
-                  message,
-                  type,
-                },
-              ],
-            ],
-            taskQueue: 'main',
-            workflowIdConflictPolicy: 'USE_EXISTING',
-            args: [{ organizationId: orgId }],
-            typedSearchAttributes: new TypedSearchAttributes([
-              {
-                key: organizationId,
-                value: orgId,
-              },
-            ]),
-          });
+        await addDigestItem(this._jobQueue, orgId, {
+          title: subject,
+          message,
+          type,
+        });
       } catch (err) {}
 
       return;

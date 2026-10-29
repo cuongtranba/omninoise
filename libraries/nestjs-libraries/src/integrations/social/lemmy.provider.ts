@@ -228,7 +228,7 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
       login = await this.fetch(body.service + '/api/v3/user/login', options);
     } catch (err) {
       // The request body holds the stored password, so the failure is rebuilt
-      // without it before it reaches the Temporal history and the Errors table.
+      // without it before it reaches the job error and the Errors table.
       const json = (err as any).details?.[0]?.json || '{}';
       if (err instanceof BadBody) {
         throw new BadBody(
