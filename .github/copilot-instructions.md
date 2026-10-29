@@ -5,7 +5,7 @@
 - Monorepo managed by NX, with apps in `apps/` and shared code in `libraries/`.
 - Main services: `frontend` (Next.js), `backend` (NestJS), `cron`, `commands`, `extension`, `sdk`, and `workers`.
 - Data layer uses Prisma ORM (`libraries/nestjs-libraries/src/database/prisma/schema.prisma`) with PostgreSQL as the default database.
-- Redis (BullMQ) is used for queues and caching.
+- Caches, one-shot state and rate limiting live in UNLOGGED tables in the `pgonly` Postgres schema (no Redis).
 - Email notifications via Resend.
 - Social login integrations (Instagram, Facebook) and Make.com/N8N integrations.
 

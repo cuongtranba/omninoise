@@ -154,7 +154,7 @@ The main difference is the infrastructure you need to own, approval from social 
 | Area | Postiz Cloud | Postiz Open-source (self-hosted) |
 |---|---|---|
 | **Cost** | Subscription per plan, 7-day free trial | Free forever (AGPL-3.0); you pay only for your own infra |
-| **Setup time** | Sign up and connect channels in minutes | Deploy with Docker / Coolify / Railway / any VPS; you configure Postgres, Redis, storage and env vars |
+| **Setup time** | Sign up and connect channels in minutes | Deploy with Docker / Coolify / Railway / any VPS; you configure Postgres, storage and env vars |
 | **Hosting & data** | Hosted by Postiz; data stored in our infrastructure | Runs on your own server; data never leaves your environment |
 | **Social platform apps** | Pre-approved apps for every channel, ready to use | You create your own developer apps on each platform and go through their approval (Meta, YouTube, TikTok can take weeks) |
 | **Channels** | Limited by plan tier | Unlimited, every supported provider |
