@@ -4,8 +4,8 @@ import {
   AuthTokenDetails,
   PendingCheckResponse,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
-import { ApplicationFailure } from '@temporalio/activity';
-import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/temporal/temporal.heartbeat';
+import { NonRetryable } from '@gitroom/nestjs-libraries/jobs/job.errors';
+import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/jobs/job.context';
 import {
   getSsrfSafeAxios,
   getSsrfSafeDispatcher,
@@ -41,15 +41,14 @@ export type ValidityMedia = {
   thumbnail?: string;
 };
 
-// Temporal serializes the whole ApplicationFailure (message + details) into the
-// workflow history and ships it over gRPC, which has a hard frame limit (4MB by
-// default). Provider error messages/bodies can be huge (full HTML error pages,
-// base64 media echoed back, stack traces), so we cap every string that goes into
-// the failure to keep the history small and avoid "GRPC Message too large".
+// The failure message ends up in the job row, the post's error log and
+// notifications. Provider error messages/bodies can be huge (full HTML error
+// pages, base64 media echoed back, stack traces), so we cap every string that
+// goes into the failure.
 const MAX_FAILURE_MESSAGE = 2_000;
 const MAX_FAILURE_FIELD = 4_000;
 
-export function truncateForTemporal(value: any, max: number): string {
+export function truncateFailureText(value: any, max: number): string {
   if (value === null || value === undefined) {
     return '';
   }
@@ -62,17 +61,16 @@ export function truncateForTemporal(value: any, max: number): string {
   return `${str.slice(0, max)}… [truncated ${str.length - max} chars]`;
 }
 
-export class RefreshToken extends ApplicationFailure {
+export class RefreshToken extends NonRetryable {
   constructor(identifier: string, json: string, body: BodyInit, message = '') {
     super(
-      truncateForTemporal(message, MAX_FAILURE_MESSAGE),
+      truncateFailureText(message, MAX_FAILURE_MESSAGE),
       'refresh_token',
-      true,
       [
         {
           identifier,
-          json: truncateForTemporal(json, MAX_FAILURE_FIELD),
-          body: truncateForTemporal(body, MAX_FAILURE_FIELD),
+          json: truncateFailureText(json, MAX_FAILURE_FIELD),
+          body: truncateFailureText(body, MAX_FAILURE_FIELD),
         },
       ]
     );
@@ -83,17 +81,16 @@ export class RefreshToken extends ApplicationFailure {
 // matter how many times the token is refreshed (e.g. TikTok's daily active
 // user cap): the channel must be disconnected so the user re-connects it,
 // possibly through another provider (see MIGRATE_PROVIDERS).
-export class Disconnect extends ApplicationFailure {
+export class Disconnect extends NonRetryable {
   constructor(identifier: string, json: string, body: BodyInit, message = '') {
     super(
-      truncateForTemporal(message, MAX_FAILURE_MESSAGE),
+      truncateFailureText(message, MAX_FAILURE_MESSAGE),
       'disconnect',
-      true,
       [
         {
           identifier,
-          json: truncateForTemporal(json, MAX_FAILURE_FIELD),
-          body: truncateForTemporal(body, MAX_FAILURE_FIELD),
+          json: truncateFailureText(json, MAX_FAILURE_FIELD),
+          body: truncateFailureText(body, MAX_FAILURE_FIELD),
         },
       ]
     );
@@ -105,7 +102,7 @@ export class Disconnect extends ApplicationFailure {
 // still ends in ERROR, yet its platform id / URL must survive so the user can
 // reach the live post instead of re-publishing it. The post activity records
 // them and rethrows as BadBody, like Disconnect.
-export class PublishedWithError extends ApplicationFailure {
+export class PublishedWithError extends NonRetryable {
   constructor(
     identifier: string,
     public readonly postDbId: string,
@@ -114,21 +111,20 @@ export class PublishedWithError extends ApplicationFailure {
     message = ''
   ) {
     super(
-      truncateForTemporal(message, MAX_FAILURE_MESSAGE),
+      truncateFailureText(message, MAX_FAILURE_MESSAGE),
       'published_with_error',
-      true,
       [{ identifier, postDbId, releaseId, releaseURL }]
     );
   }
 }
 
-export class BadBody extends ApplicationFailure {
+export class BadBody extends NonRetryable {
   constructor(identifier: string, json: string, body: BodyInit, message = '') {
-    super(truncateForTemporal(message, MAX_FAILURE_MESSAGE), 'bad_body', true, [
+    super(truncateFailureText(message, MAX_FAILURE_MESSAGE), 'bad_body', [
       {
         identifier,
-        json: truncateForTemporal(json, MAX_FAILURE_FIELD),
-        body: truncateForTemporal(body, MAX_FAILURE_FIELD),
+        json: truncateFailureText(json, MAX_FAILURE_FIELD),
+        body: truncateFailureText(body, MAX_FAILURE_FIELD),
       },
     ]);
   }
@@ -476,7 +472,7 @@ export abstract class SocialAbstract {
   // (re-opening its source streams) on every attempt. Errors carrying a
   // `response` (axios errors, or a thrown { response: { status, data } })
   // go through the same retry and handleErrors classification rules as
-  // this.fetch; anything else is rethrown untouched so Temporal keeps its
+  // this.fetch; anything else is rethrown untouched so the job keeps its
   // usual retry behavior.
   protected async runStreamedUpload<T>(
     func: () => Promise<T>,
@@ -597,7 +593,7 @@ export abstract class SocialAbstract {
     // A platform that accepts the connection and then goes silent leaves the
     // activity with nothing logged until startToCloseTimeout. Record the call
     // first so the timeout failure names it. Query string is dropped - some
-    // providers carry access_token there and details are stored by Temporal.
+    // providers carry access_token there and details are stored on the job.
     setHeartbeatDetails(`fetch ${stripQuery(url)}`);
 
     const request = await fetch(url, {

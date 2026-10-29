@@ -3,14 +3,14 @@ import { EmailInterface } from '@gitroom/nestjs-libraries/emails/email.interface
 import { ResendProvider } from '@gitroom/nestjs-libraries/emails/resend.provider';
 import { EmptyProvider } from '@gitroom/nestjs-libraries/emails/empty.provider';
 import { NodeMailerProvider } from '@gitroom/nestjs-libraries/emails/node.mailer.provider';
-import { TemporalService } from 'nestjs-temporal-core';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { emailQueues } from '@gitroom/nestjs-libraries/jobs/job.queues';
 import { timer } from '@gitroom/helpers/utils/timer';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class EmailService {
   emailService: EmailInterface;
-  constructor(private _temporalService: TemporalService) {
+  constructor(private _jobQueue: JobQueueService) {
     this.emailService = this.selectProvider(process.env.EMAIL_PROVIDER!);
     console.log('Email service provider:', this.emailService.name);
     for (const key of this.emailService.validateEnvKeys) {
@@ -46,13 +46,21 @@ export class EmailService {
       return;
     }
 
-    return this._temporalService.client
-      .getRawClient()
-      ?.workflow.start('sendSingleEmailWorkflow', {
-        taskQueue: 'main',
-        workflowId: `send_email_${randomUUID()}`,
-        args: [{ to, subject, html, replyTo, addTo }],
-      });
+    // One job per email; the Resend rate limit is the email queue's. A send
+    // is repeated a few times, with growing waits.
+    return this._jobQueue.enqueue(
+      'email.send',
+      { to, subject, html, replyTo },
+      {
+        queue:
+          addTo === 'top'
+            ? emailQueues.priority.taskQueue
+            : emailQueues.bulk.taskQueue,
+        maxAttempts: 5,
+        retryDelayMs: 10_000,
+        backoff: 2,
+      }
+    );
   }
 
   async sendEmailSync(

@@ -1,7 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { Organization } from '@prisma/client';
-import { ApplicationFailure, TypedSearchAttributes } from '@temporalio/common';
-import { TemporalService } from 'nestjs-temporal-core';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { NonRetryable } from '@gitroom/nestjs-libraries/jobs/job.errors';
 import { ClippingRepository } from '@gitroom/nestjs-libraries/database/prisma/clipping/clipping.repository';
 import { ClippingDto } from '@gitroom/nestjs-libraries/dtos/clipping/clipping.dto';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
@@ -17,8 +17,7 @@ import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/po
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { OpenaiService } from '@gitroom/nestjs-libraries/openai/openai.service';
 import { DeepgramService } from '@gitroom/nestjs-libraries/deepgram/deepgram.service';
-import { organizationId } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
-import { truncateForTemporal } from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import { truncateFailureText } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { randomBytes } from 'crypto';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
@@ -32,9 +31,9 @@ import {
 
 // A reason retrying can't change (private video, no minutes left, no speech):
 // the workflow stops and the message is what the customer reads
-export class ClippingStop extends ApplicationFailure {
+export class ClippingStop extends NonRetryable {
   constructor(message: string) {
-    super(truncateForTemporal(message, 2000), 'clipping_stop', true);
+    super(truncateFailureText(message, 2000), 'clipping_stop');
   }
 }
 
@@ -77,7 +76,7 @@ export class ClippingService {
     private _mediaService: MediaService,
     private _openAi: OpenaiService,
     private _deepgram: DeepgramService,
-    private _temporalService: TemporalService
+    private _jobQueue: JobQueueService
   ) {}
 
   // Every intermediate file is a flat key, because removeFile only keeps the
@@ -216,18 +215,13 @@ export class ClippingService {
       }
     }
 
-    const client = this._temporalService.client.getRawClient();
-    if (!client) {
-      throw new HttpException('Clipping is not available', 503);
-    }
-
     // two starts at the same moment would both see nothing running
     if (!(await ioRedis.set(`clippingStart:${org.id}`, '1', 'EX', 15, 'NX'))) {
       throw new HttpException('Another clipping is being started', 429);
     }
 
     try {
-      return await this.createClipping(org.id, body, integrations, client);
+      return await this.createClipping(org.id, body, integrations);
     } finally {
       await ioRedis.del(`clippingStart:${org.id}`);
     }
@@ -236,8 +230,7 @@ export class ClippingService {
   private async createClipping(
     org: string,
     body: ClippingDto,
-    integrations: string[],
-    client: NonNullable<ReturnType<TemporalService['client']['getRawClient']>>
+    integrations: string[]
   ) {
     const running = await this._clippingRepository.getRunningClippings(org);
     for (const clipping of running.filter((p) => this.isStale(p))) {
@@ -272,19 +265,20 @@ export class ClippingService {
     );
 
     try {
-      await client.workflow.start('clippingWorkflow', {
-        workflowId: `clipping_${clipping.id}`,
-        taskQueue: 'main',
-        args: [{ clippingId: clipping.id }],
-        typedSearchAttributes: new TypedSearchAttributes([
-          {
-            key: organizationId,
-            value: org,
-          },
-        ]),
-      });
+      await this._jobQueue.enqueue(
+        'clipping',
+        { clippingId: clipping.id, step: 'analyse' },
+        {
+          dedupeKey: `clipping_${clipping.id}`,
+          organizationId: org,
+          // submitting is retried; see the clipping jobs
+          maxAttempts: 3,
+          retryDelayMs: 10_000,
+          backoff: 2,
+        }
+      );
     } catch (err) {
-      // no workflow means nothing will ever flip the status
+      // no job means nothing will ever flip the status
       await this._clippingRepository.updateClipping(org, clipping.id, {
         status: 'failed',
         error: 'Could not start clipping',
