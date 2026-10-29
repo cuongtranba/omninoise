@@ -1050,6 +1050,48 @@ test('an edit is not applied when the earlier publish never wrote its outcome', 
   expect(await queue.findActive(`post:${postId}`)).toBeUndefined();
 });
 
+test('an edit queued behind a started comment is applied once the comment ends', async () => {
+  // Regression: a republish of a PUBLISHED post waiting behind its delayed
+  // comment was refused as "outcome lost" and the post ended in ERROR.
+  const q = uniqueName('behindcomment');
+  const postId = `post-${q}`;
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let inFlight = false;
+  let answer: unknown;
+
+  await startWorker(q, (w) =>
+    w
+      .register('post.comment', async () => {
+        await markStarted();
+        inFlight = true;
+        await hold;
+      })
+      .register('post.publish', async (job) => {
+        if (await queue.isPostBusy(job, 0)) {
+          return { retryAt: new Date(Date.now() + 20) };
+        }
+        answer = await queue.takeOverPost(job, 0);
+      })
+  );
+  await queue.enqueue(
+    'post.comment',
+    {},
+    { queue: q, postId, dedupeKey: `post:${postId}` }
+  );
+  await vi.waitFor(() => expect(inFlight).toBe(true));
+  await queue.reschedulePost(postId, {
+    kind: 'post.publish',
+    payload: {},
+    opts: { queue: q, dedupeKey: `post:${postId}` },
+  });
+
+  release();
+  await vi.waitFor(() =>
+    expect(answer).toEqual({ taken: true, dedupeKey: `post:${postId}` })
+  );
+});
+
 test('taking a post over marks its finished rows superseded', async () => {
   const q = uniqueName('takesupersede');
   const postId = `post-${q}`;

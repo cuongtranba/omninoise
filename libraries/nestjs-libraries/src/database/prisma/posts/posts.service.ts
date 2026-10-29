@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ConflictException,
   ServiceUnavailableException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -1228,7 +1229,14 @@ export class PostsService {
     }
 
     if (scheduleError) {
-      throw scheduleError;
+      // Not a 503: the other posts of the request were saved and scheduled,
+      // so a client that retries would create them a second time.
+      throw new ConflictException({
+        message: `${
+          (scheduleError as Error)?.message ?? 'A post could not be scheduled.'
+        } The other posts in this request were saved and scheduled; do not resend the request, or they will be created again.`,
+        posts: postList,
+      });
     }
     return postList;
   }

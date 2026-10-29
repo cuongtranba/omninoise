@@ -471,7 +471,12 @@ export class JobQueueService {
       const unfinished = await client.query(
         `SELECT 1 FROM pgonly.jobs
          WHERE post_id = $1 AND id <> $2 AND started_at IS NOT NULL
-           AND kind LIKE 'post.%' AND NOT superseded
+           -- only the root's own publish can lose its outcome; a comment or
+           -- webhook job of a post that is already PUBLISHED proves nothing
+           AND (kind = 'post.publish'
+                OR (kind = 'post.checkStatus'
+                    AND COALESCE((payload->>'index')::int, 0) = 0))
+           AND NOT superseded
            AND status IN ('done','failed') AND updated_at > $3
          LIMIT 1`,
         [postId, job.id, own.rows[0].created_at]
