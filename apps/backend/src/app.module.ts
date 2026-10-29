@@ -15,8 +15,7 @@ import { ChatModule } from '@gitroom/nestjs-libraries/chat/chat.module';
 import { getTemporalModule } from '@gitroom/nestjs-libraries/temporal/temporal.module';
 import { TemporalRegisterMissingSearchAttributesModule } from '@gitroom/nestjs-libraries/temporal/temporal.register';
 import { InfiniteWorkflowRegisterModule } from '@gitroom/nestjs-libraries/temporal/infinite.workflow.register';
-import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
+import { PgThrottlerStorage } from '@gitroom/nestjs-libraries/throttler/pg.throttler.storage';
 
 @Global()
 @Module({
@@ -39,7 +38,7 @@ import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
           limit: process.env.API_LIMIT ? Number(process.env.API_LIMIT) : 90,
         },
       ],
-      storage: new ThrottlerStorageRedisService(ioRedis),
+      storage: new PgThrottlerStorage(),
     }),
   ],
   controllers: [],
