@@ -57,6 +57,13 @@ export type JobOutcome = {
   result?: unknown;
   /** Inserted in the same transaction that marks the job done. */
   next?: FollowUp[];
+  /**
+   * Run this same job again at that time instead of finishing: the row goes
+   * back to pending with its attempts as they were before this run, so a wait
+   * neither writes a row per look nor uses up attempts. `result` and `next`
+   * are ignored.
+   */
+  retryAt?: Date;
 };
 
 /** Status names of the previous scheduler, kept for the video status tool. */

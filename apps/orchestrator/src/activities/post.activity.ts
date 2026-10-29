@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { capitalize } from 'lodash';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import {
   NotificationService,
@@ -108,13 +109,17 @@ export class PostActivity {
     const list = await this._postService.searchForMissingThreeHoursPosts();
     // A post whose publish ever began has an unknown outcome (it may be live
     // although the flow never recorded it): publishing it again could
-    // duplicate it, so it is never picked up automatically.
-    const started = await this._queue.startedPublishPostIds(
-      list.map((post) => post.id)
+    // duplicate it, so it is never picked up automatically. One that is past
+    // due with nothing left alive is reported to its owner instead.
+    const { publish, unconfirmed } = await this._queue.classifyQueuedPosts(
+      list
+    );
+    await this.markUnconfirmedPosts(
+      list.filter((post) => unconfirmed.includes(post.id))
     );
     let enqueued = 0;
     for (const post of list) {
-      if (started.has(post.id)) {
+      if (!publish.includes(post.id)) {
         continue;
       }
       enqueued++;
@@ -136,6 +141,47 @@ export class PostActivity {
       );
     }
     return enqueued;
+  }
+
+  /**
+   * Posts that are still QUEUE although a publish of theirs began and nothing
+   * is alive any more: the outcome was never written (the database was out
+   * while the flow settled). They may be live, so they leave QUEUE with the
+   * usual "check the account before posting again" error and notification.
+   * One post failing does not stop the others.
+   */
+  async markUnconfirmedPosts(
+    posts: {
+      id: string;
+      organizationId: string;
+      integration: { providerIdentifier: string; name?: string | null };
+    }[]
+  ) {
+    for (const post of posts) {
+      try {
+        await this._postService.changeState(
+          post.id,
+          'ERROR',
+          'The outcome of the publish was never recorded'
+        );
+        const provider = capitalize(post.integration.providerIdentifier);
+        await this._notificationService.inAppNotification(
+          post.organizationId,
+          `We couldn't confirm your post on ${provider}`,
+          `Your post was sent to ${provider}, but we couldn't confirm it was published. Please check your ${
+            post.integration.name ?? provider
+          } account before posting again to avoid duplicates.`,
+          true,
+          false,
+          'fail'
+        );
+      } catch (err) {
+        console.error(
+          `post activity: could not mark post ${post.id} unconfirmed`,
+          (err as Error)?.message
+        );
+      }
+    }
   }
 
   async updatePost(id: string, postId: string, releaseURL: string) {

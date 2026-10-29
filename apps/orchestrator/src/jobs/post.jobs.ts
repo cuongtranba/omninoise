@@ -14,6 +14,7 @@ import { JobWorker } from '@gitroom/nestjs-libraries/jobs/job.worker';
 import {
   JobQueueService,
   NEXT_SUFFIX,
+  REPEAT_SUFFIX,
 } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import {
   assertOwned,
@@ -227,7 +228,7 @@ export class PostJobs {
     // publishing: it must not touch the post until that chain has ended.
     const deferred = job.dedupeKey === `post:${postId}${NEXT_SUFFIX}`;
     if (deferred && (await this._queue.isPostBusy(job))) {
-      return this.deferAgain(job);
+      return this.deferAgain();
     }
 
     const firstPost = await withRetry(() =>
@@ -244,12 +245,16 @@ export class PostJobs {
     if (!postNow && firstPost.state !== 'QUEUE') {
       await assertOwned();
       if (deferred) {
-        // the chain in flight published (or failed) the version from before
-        // the edit; publishing again would duplicate it
+        // The chain in flight ended and left the post as it is: say which
+        // way it went. Publishing the edit now would duplicate a live post.
         await this.notify(
           organizationId,
           `Your edit of a post was not published`,
-          `This post was edited while it was being published; the earlier version was published. Check it and reschedule if needed.`,
+          firstPost.state === 'PUBLISHED'
+            ? `This post was edited while it was being published; the earlier version was published. Check it and reschedule if needed.`
+            : firstPost.state === 'ERROR'
+            ? `This post was edited while it was being published, but that publish failed; your edit was not applied. Check the account and reschedule if needed.`
+            : `This post was edited while it was being published and is no longer scheduled; your edit was not applied. Check it and reschedule if needed.`,
           true,
           false,
           'info'
@@ -268,7 +273,20 @@ export class PostJobs {
       // the only job of the post from here on, under its normal key
       const took = await this._queue.takeOverPost(job);
       if (!took.taken) {
-        return this.deferAgain(job);
+        if ('unconfirmed' in took && took.unconfirmed) {
+          // the chain in flight ended without its outcome reaching the post
+          const [root] = await withRetry(() =>
+            this._act.getPostsList(organizationId, postId)
+          );
+          if (root) {
+            await this.markUnconfirmed(
+              { post: root, postsList: [root] },
+              'The earlier publish of this post ended without a recorded outcome'
+            );
+          }
+          return;
+        }
+        return this.deferAgain();
       }
       job.dedupeKey = took.dedupeKey;
     }
@@ -306,20 +324,10 @@ export class PostJobs {
     return this.runItem(job, s, flow);
   }
 
-  // The same publish, looked at again in a while, under the same key.
-  private deferAgain(job: Job<PostFlowState>): JobOutcome {
-    return {
-      next: [
-        {
-          kind: 'post.publish',
-          payload: job.payload,
-          opts: chain(job, {
-            queue: job.queue,
-            runAt: new Date(Date.now() + DEFER_MS),
-          }),
-        },
-      ],
-    };
+  // The same job, looked at again in a while: one row, however long it waits,
+  // and the waits use up none of its attempts.
+  private deferAgain(): JobOutcome {
+    return { retryAt: new Date(Date.now() + DEFER_MS) };
   }
 
   // ---- post.comment -----------------------------------------------------
@@ -1220,7 +1228,7 @@ export class PostJobs {
       } satisfies PlugState,
       opts: {
         queue: s.taskQueue,
-        dedupeKey: `post:${s.postId}:repeat`,
+        dedupeKey: `post:${s.postId}${REPEAT_SUFFIX}`,
         postId: s.postId,
         organizationId: s.organizationId,
         runAt: new Date(Date.now() + delay),

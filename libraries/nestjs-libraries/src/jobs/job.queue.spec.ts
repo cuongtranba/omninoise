@@ -482,9 +482,8 @@ test('an edit while a job of the post is in flight is queued behind it and runs 
 
   await startWorker(q, (w) =>
     w
-      // the chain in flight: a comment being published
+      // the chain in flight: a comment that has not reached the platform yet
       .register('post.comment', async () => {
-        await markStarted();
         inFlight = true;
         await hold;
       })
@@ -537,9 +536,6 @@ test('an edit while a job of the post is in flight is queued behind it and runs 
     `post:${postId}:next`,
   ]);
   expect(active[1].run_at.getTime()).toBe(runAt.getTime());
-  // the publish in flight still counts: the sweep must not touch the post
-  expect([...(await queue.startedPublishPostIds([postId]))]).toEqual([postId]);
-
   // the new publish looks at the post again and again, and does nothing
   await vi.waitFor(() => expect(looks.length).toBeGreaterThanOrEqual(3));
   expect(published).toEqual([]);
@@ -722,15 +718,17 @@ test('a follow-up never survives a reschedule that races its completion', async 
   }
 });
 
-test('startedPublishPostIds reports the posts whose publish began, in any status', async () => {
-  const q = uniqueName('startedpub');
+test('classifyQueuedPosts publishes only posts whose publish never began', async () => {
+  const q = uniqueName('classify');
   const begun = `post-${q}-begun`;
   const waiting = `post-${q}-waiting`;
+  const past = new Date(Date.now() - 3_600_000);
 
   await startWorker(q, (w) =>
     w.register('post.publish', async (job) => {
       if (job.postId === begun) {
         await markStarted();
+        // the outcome is never written to the post
       }
     })
   );
@@ -746,15 +744,78 @@ test('startedPublishPostIds reports the posts whose publish began, in any status
     { queue: q, postId: waiting, runAt: new Date(Date.now() + 3_600_000) }
   );
 
-  const started = await queue.startedPublishPostIds([begun, waiting, 'none']);
+  // the begun publish ended long ago: the 30 s settle window is not at issue
+  await getPgPool().query(
+    `UPDATE pgonly.jobs SET updated_at = now() - interval '5 minutes'
+     WHERE id = $1`,
+    [done.id]
+  );
+  const sorted = await queue.classifyQueuedPosts([
+    { id: begun, publishDate: past },
+    { id: waiting, publishDate: past },
+    { id: 'none', publishDate: past },
+  ]);
 
-  expect([...started]).toEqual([begun]);
+  expect(sorted.publish.sort()).toEqual([waiting, 'none'].sort());
+  expect(sorted.unconfirmed).toEqual([begun]);
 });
 
-test('startedPublishPostIds ignores publishes that an owner reschedule superseded', async () => {
+test('classifyQueuedPosts leaves a post whose publish is alive, settling or not due alone', async () => {
+  const q = uniqueName('classifyalive');
+  const alive = `post-${q}-alive`;
+  const settling = `post-${q}-settling`;
+  const notDue = `post-${q}-notdue`;
+  const past = new Date(Date.now() - 3_600_000);
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let running = false;
+
+  await startWorker(q, (w) =>
+    w.register('post.publish', async (job) => {
+      await markStarted();
+      if (job.postId === alive) {
+        running = true;
+        await hold;
+      }
+    })
+  );
+  await queue.enqueue('post.publish', {}, { queue: q, postId: alive });
+  const ended = await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId: settling }
+  );
+  const later = await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId: notDue }
+  );
+  await vi.waitFor(async () => {
+    expect(running).toBe(true);
+    expect(await status(ended.id)).toBe('done');
+    expect(await status(later.id)).toBe('done');
+  });
+  await getPgPool().query(
+    `UPDATE pgonly.jobs SET updated_at = now() - interval '5 minutes'
+     WHERE id = $1`,
+    [later.id]
+  );
+
+  const sorted = await queue.classifyQueuedPosts([
+    { id: alive, publishDate: past },
+    { id: settling, publishDate: past },
+    { id: notDue, publishDate: new Date(Date.now() + 3_600_000) },
+  ]);
+
+  expect(sorted).toEqual({ publish: [], unconfirmed: [] });
+  release();
+});
+
+test('classifyQueuedPosts ignores publishes that an owner reschedule superseded', async () => {
   const q = uniqueName('superseded');
   const failedBefore = `post-${q}-failed`;
   const stillRunning = `post-${q}-running`;
+  const past = new Date(Date.now() - 3_600_000);
   let release!: () => void;
   const hold = new Promise<void>((resolve) => (release = resolve));
   let running = false;
@@ -778,11 +839,19 @@ test('startedPublishPostIds ignores publishes that an owner reschedule supersede
   await queue.enqueue('post.publish', {}, { queue: q, postId: stillRunning });
   await vi.waitFor(async () => expect(await status(failed.id)).toBe('failed'));
   await vi.waitFor(() => expect(running).toBe(true));
-  expect(
-    [
-      ...(await queue.startedPublishPostIds([failedBefore, stillRunning])),
-    ].sort()
-  ).toEqual([failedBefore, stillRunning].sort());
+  await getPgPool().query(
+    `UPDATE pgonly.jobs SET updated_at = now() - interval '5 minutes'
+     WHERE id = $1`,
+    [failed.id]
+  );
+  const both = [
+    { id: failedBefore, publishDate: past },
+    { id: stillRunning, publishDate: past },
+  ];
+  expect(await queue.classifyQueuedPosts(both)).toEqual({
+    publish: [],
+    unconfirmed: [failedBefore],
+  });
 
   // the owner fixes both posts and schedules them again
   await queue.reschedulePost(failedBefore);
@@ -790,8 +859,228 @@ test('startedPublishPostIds ignores publishes that an owner reschedule supersede
 
   // the failed publish no longer hides its post from the sweep; the one that
   // is still running keeps counting
-  expect([
-    ...(await queue.startedPublishPostIds([failedBefore, stillRunning])),
-  ]).toEqual([stillRunning]);
+  expect(await queue.classifyQueuedPosts(both)).toEqual({
+    publish: [failedBefore],
+    unconfirmed: [],
+  });
   release();
+});
+
+test('an edit while a status check is pending leaves the check alone and publishes nothing beside it', async () => {
+  const q = uniqueName('pendingcheck');
+  const postId = `post-${q}`;
+  const published: number[] = [];
+  const checks: number[] = [];
+  let activeAtPublish: string[] = [];
+
+  await startWorker(q, (w) =>
+    w
+      // polls every 50 ms, like the real check every 20 s
+      .register('post.checkStatus', async (job) => {
+        checks.push(job.id);
+        return checks.length < 6
+          ? {
+              next: [
+                {
+                  kind: 'post.checkStatus',
+                  payload: {},
+                  opts: {
+                    queue: q,
+                    postId,
+                    dedupeKey: job.dedupeKey!,
+                    runAt: new Date(Date.now() + 50),
+                  },
+                },
+              ],
+            }
+          : undefined;
+      })
+      .register('post.publish', async (job) => {
+        if (await queue.isPostBusy(job, 0)) {
+          return { retryAt: new Date(Date.now() + 30) };
+        }
+        activeAtPublish = (await activeOf(postId))
+          .filter((r) => r.id !== String(job.id))
+          .map((r) => r.kind);
+        const took = await queue.takeOverPost(job, 0);
+        if (took.taken) {
+          published.push(job.id);
+        }
+      })
+  );
+  // a check that waits for its next poll, hours in the future
+  await queue.enqueue(
+    'post.checkStatus',
+    {},
+    {
+      queue: q,
+      postId,
+      dedupeKey: `post:${postId}`,
+      runAt: new Date(Date.now() + 3_600_000),
+    }
+  );
+
+  // a draft switch must not cancel the check
+  expect(await queue.reschedulePost(postId)).toEqual({
+    cancelled: 0,
+    created: false,
+    deferred: false,
+  });
+  expect((await activeOf(postId)).map((r) => r.kind)).toEqual([
+    'post.checkStatus',
+  ]);
+
+  const res = await queue.reschedulePost(postId, {
+    kind: 'post.publish',
+    payload: {},
+    opts: { queue: q, dedupeKey: `post:${postId}` },
+  });
+
+  // the check is not cancelled; the edit waits behind it under its own key
+  expect(res).toEqual({ cancelled: 0, created: true, deferred: true });
+  expect((await activeOf(postId)).map((r) => r.dedupe_key)).toEqual([
+    `post:${postId}`,
+    `post:${postId}:next`,
+  ]);
+  expect(await queue.isPostBusy({ id: 0, postId })).toBe(true);
+
+  // the check is due: it polls through to its end while the edit waits
+  await getPgPool().query(
+    `UPDATE pgonly.jobs SET run_at = now() WHERE post_id = $1 AND kind = 'post.checkStatus'`,
+    [postId]
+  );
+  await vi.waitFor(() => expect(checks).toHaveLength(6));
+  await vi.waitFor(() => expect(published).toHaveLength(1));
+  // no second publish was runnable while the check was alive
+  expect(activeAtPublish).toEqual([]);
+});
+
+test('an edit that waits behind a busy post stays one row and uses no attempts', async () => {
+  const q = uniqueName('onerow');
+  const postId = `post-${q}`;
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let inFlight = false;
+  const looks: number[] = [];
+  let took = false;
+
+  await startWorker(q, (w) =>
+    w
+      .register('post.comment', async () => {
+        inFlight = true;
+        await hold;
+      })
+      .register('post.publish', async (job) => {
+        if (await queue.isPostBusy(job, 0)) {
+          looks.push(job.attempts);
+          return { retryAt: new Date(Date.now() + 20) };
+        }
+        took = (await queue.takeOverPost(job, 0)).taken;
+      })
+  );
+  await queue.enqueue(
+    'post.comment',
+    {},
+    { queue: q, postId, dedupeKey: `post:${postId}` }
+  );
+  await vi.waitFor(() => expect(inFlight).toBe(true));
+  await queue.reschedulePost(postId, {
+    kind: 'post.publish',
+    payload: {},
+    opts: { queue: q, dedupeKey: `post:${postId}` },
+  });
+
+  await vi.waitFor(() => expect(looks.length).toBeGreaterThanOrEqual(8));
+  const rows = await getPgPool().query(
+    `SELECT id, attempts, status FROM pgonly.jobs
+     WHERE post_id = $1 AND kind = 'post.publish'`,
+    [postId]
+  );
+  expect(rows.rows).toHaveLength(1);
+  expect(rows.rows[0].status).toMatch(/pending|running/);
+  expect(new Set(looks)).toEqual(new Set([1]));
+
+  release();
+  await vi.waitFor(() => expect(took).toBe(true));
+  expect((await row(rows.rows[0].id)).attempts).toBe(1);
+});
+
+test('an edit is not applied when the earlier publish never wrote its outcome', async () => {
+  const q = uniqueName('unconfirmed');
+  const postId = `post-${q}`;
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let inFlight = false;
+  let answer: unknown;
+
+  await startWorker(q, (w) =>
+    w
+      // the publish in flight: its provider call began, and its end leaves the
+      // post as it was (the write of the outcome was lost)
+      .register('post.publish', async (job) => {
+        if (job.dedupeKey === `post:${postId}:next`) {
+          if (await queue.isPostBusy(job, 0)) {
+            return { retryAt: new Date(Date.now() + 20) };
+          }
+          answer = await queue.takeOverPost(job, 0);
+          return;
+        }
+        await markStarted();
+        inFlight = true;
+        await hold;
+      })
+  );
+  await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId, dedupeKey: `post:${postId}` }
+  );
+  await vi.waitFor(() => expect(inFlight).toBe(true));
+  await queue.reschedulePost(postId, {
+    kind: 'post.publish',
+    payload: {},
+    opts: { queue: q, dedupeKey: `post:${postId}` },
+  });
+
+  release();
+  await vi.waitFor(() =>
+    expect(answer).toEqual({ taken: false, unconfirmed: true })
+  );
+  // nothing was taken over: no job holds the post's key
+  expect(await queue.findActive(`post:${postId}`)).toBeUndefined();
+});
+
+test('taking a post over marks its finished rows superseded', async () => {
+  const q = uniqueName('takesupersede');
+  const postId = `post-${q}`;
+  let answer: unknown;
+
+  await startWorker(q, (w) =>
+    w
+      .register('post.comment', async () => undefined)
+      .register('post.publish', async (job) => {
+        answer = await queue.takeOverPost(job, 0);
+      })
+  );
+  const comment = await queue.enqueue(
+    'post.comment',
+    {},
+    { queue: q, postId, dedupeKey: `post:${postId}` }
+  );
+  await vi.waitFor(async () => expect(await status(comment.id)).toBe('done'));
+  await getPgPool().query(
+    'UPDATE pgonly.jobs SET started_at = now() WHERE id = $1',
+    [comment.id]
+  );
+  // created after the comment ended, so the comment is not "newer" than it
+  await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId, dedupeKey: `post:${postId}:next` }
+  );
+
+  await vi.waitFor(() =>
+    expect(answer).toEqual({ taken: true, dedupeKey: `post:${postId}` })
+  );
+  expect((await row(comment.id)).superseded).toBe(true);
 });

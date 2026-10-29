@@ -70,17 +70,59 @@ const PRUNE_SQL = `DELETE FROM pgonly.jobs
 
 const ACTIVE = `('pending','running')`;
 
-// A running job whose provider call has begun cannot be interrupted, and its
-// outcome is unknown: cancelling it would only hide it, and a replacement
-// would publish the post a second time.
-const IN_FLIGHT = `(status = 'running' AND started_at IS NOT NULL)`;
-
 // The steps between the platform accepting a post and the chain being done.
-// While one of these is alive the root may still change state.
+// A status check may wait for minutes between two polls, a comment for days.
 const MID_PUBLISH_KINDS = `('post.comment','post.checkStatus','post.finish')`;
+
+// THE rule for "this job of the post cannot be cancelled, and the post must
+// not be touched until it has ended". Everything that decides it (reschedule,
+// replace, take-over, `postBusy`) uses this one fragment:
+//  - a running job whose provider call has begun cannot be interrupted and its
+//    outcome is unknown: cancelling it would only hide it, and a replacement
+//    would publish the post a second time;
+//  - a job of a mid-publish kind, pending or running: the platform already
+//    accepted the post and the job is what records it (a status check waits
+//    between two polls with `started_at` unset). Cancelling it loses the
+//    record of a live post, and the edit queued instead would publish it again.
+export const IN_FLIGHT = `(status IN ${ACTIVE} AND (
+  kind IN ${MID_PUBLISH_KINDS} OR (status = 'running' AND started_at IS NOT NULL)))`;
+
+// Cancels the matching active jobs, locking the rows in id order: two
+// statements that touch several rows of one post (a reschedule, the reaper,
+// a lease extension) then queue up behind each other instead of deadlocking.
+const cancelActive = (where: string) => `UPDATE pgonly.jobs
+  SET status = 'cancelled', updated_at = now()
+  WHERE id IN (
+    SELECT id FROM pgonly.jobs WHERE ${where} AND status IN ${ACTIVE}
+    ORDER BY id FOR UPDATE)`;
+
+// Finished rows of a post stop counting as "a publish began" once the owner
+// (or a take-over) re-armed the post.
+const supersedeFinished = `UPDATE pgonly.jobs SET superseded = true
+  WHERE id IN (
+    SELECT id FROM pgonly.jobs
+    WHERE post_id = $1 AND status IN ('done','failed','cancelled')
+      AND NOT superseded
+    ORDER BY id FOR UPDATE)`;
+
+const RETRYABLE_SQLSTATES = new Set(['40P01', '40001']);
+
+/** Runs a whole transaction again, once, when Postgres aborted it as a deadlock victim. */
+async function retryOnConflict<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (!RETRYABLE_SQLSTATES.has((err as { code?: string })?.code ?? '')) {
+      throw err;
+    }
+    return fn();
+  }
+}
 
 /** The key of a publish that waits for the chain in flight to end. */
 export const NEXT_SUFFIX = ':next';
+/** The key of a post's repeat job. */
+export const REPEAT_SUFFIX = ':repeat';
 
 /**
  * Serialises everything that decides what is scheduled for one post: a
@@ -106,7 +148,7 @@ const postBusy = async (
   const res = await db.query(
     `SELECT 1 FROM pgonly.jobs
      WHERE post_id = $1 AND id <> $2 AND (
-       (status IN ${ACTIVE} AND (${IN_FLIGHT} OR kind IN ${MID_PUBLISH_KINDS}))
+       ${IN_FLIGHT}
        OR (started_at IS NOT NULL AND status IN ('done','failed')
            AND updated_at > now() - ($3::double precision * interval '1 millisecond'))
      ) LIMIT 1`,
@@ -193,11 +235,9 @@ export async function insertJob(
     if (opts.postId) {
       await lockPost(db, opts.postId);
     }
-    await db.query(
-      `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
-       WHERE dedupe_key = $1 AND status IN ${ACTIVE} AND NOT ${IN_FLIGHT}`,
-      [opts.dedupeKey]
-    );
+    await db.query(cancelActive(`dedupe_key = $1 AND NOT ${IN_FLIGHT}`), [
+      opts.dedupeKey,
+    ]);
   }
 
   // The job holding the key can finish between the conflict and the lookup,
@@ -279,43 +319,45 @@ export class JobQueueService {
 
   /**
    * Cancels every pending or running job of a post, the repeat children
-   * included. A running handler is not interrupted; its completion is
-   * ignored, so it cannot schedule anything after the cancel.
+   * included, whatever it is doing (a delete: the post is gone, and a job that
+   * still finds it - a status check between two polls - reads a post with
+   * `deletedAt` set and ends). A running handler is not interrupted; its
+   * completion is ignored, so it cannot schedule anything after the cancel.
    */
   async cancelByPost(postId: string): Promise<number> {
     await this.ready();
-    const client = await getPgPool().connect();
-    try {
-      await client.query('BEGIN');
-      await lockPost(client, postId);
-      const res = await client.query(
-        `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
-         WHERE post_id = $1 AND status IN ${ACTIVE}`,
-        [postId]
-      );
-      await client.query('COMMIT');
-      return res.rowCount ?? 0;
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => undefined);
-      throw err;
-    } finally {
-      client.release();
-    }
+    return retryOnConflict(async () => {
+      const client = await getPgPool().connect();
+      try {
+        await client.query('BEGIN');
+        await lockPost(client, postId);
+        const res = await client.query(cancelActive('post_id = $1'), [postId]);
+        await client.query('COMMIT');
+        return res.rowCount ?? 0;
+      } catch (err) {
+        await client.query('ROLLBACK').catch(() => undefined);
+        throw err;
+      } finally {
+        client.release();
+      }
+    });
   }
 
   /**
    * Replaces everything scheduled for a post in one transaction: its pending
-   * and not-yet-started running jobs are cancelled and, unless `next` is
-   * omitted (a draft), `next` takes their place. There is no instant at which
-   * the post has no job, or two.
+   * and not-yet-started jobs are cancelled and, unless `next` is omitted (a
+   * draft), `next` takes their place. There is no instant at which the post
+   * has no job, or two.
    *
-   * A job that is mid-publish (running, `started_at` set) is left alone: it
-   * cannot be stopped and its outcome is unknown, so a replacement started
-   * beside it could publish the post twice. `next` is then inserted under the
-   * key `<dedupeKey>:next` (replacing an earlier edit's) and `deferred` is
-   * true: its handler waits for the chain in flight to end (`isPostBusy`),
-   * then takes the post over (`takeOverPost`). The edit is never dropped and
-   * the post never has two publishes running.
+   * A job that is in flight (`IN_FLIGHT`: mid-publish, running with
+   * `started_at` set, or any pending or running comment, status check or
+   * finish) is left alone: it cannot be stopped, its outcome is unknown or it
+   * is what records the outcome, so a replacement started beside it could
+   * publish the post twice. `next` is then inserted under the key
+   * `<dedupeKey>:next` (replacing an earlier edit's) and `deferred` is true:
+   * its handler waits for the chain in flight to end (`isPostBusy`), then
+   * takes the post over (`takeOverPost`). The edit is never dropped and the
+   * post never has two publishes running.
    *
    * Every finished row of the post is marked `superseded`: the owner re-armed
    * the post, so a publish that failed earlier no longer keeps the sweep from
@@ -326,60 +368,55 @@ export class JobQueueService {
     next?: FollowUp
   ): Promise<{ cancelled: number; created: boolean; deferred: boolean }> {
     await this.ready();
-    const client = await getPgPool().connect();
-    try {
-      await client.query('BEGIN');
-      await lockPost(client, postId);
-      const cancelled = await client.query(
-        `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
-         WHERE post_id = $1 AND status IN ${ACTIVE} AND NOT ${IN_FLIGHT}`,
-        [postId]
-      );
-      await client.query(
-        `UPDATE pgonly.jobs SET superseded = true
-         WHERE post_id = $1 AND status IN ('done','failed','cancelled')
-           AND NOT superseded`,
-        [postId]
-      );
-      let created = false;
-      let deferred = false;
-      if (next) {
-        const inFlight = await client.query(
-          `SELECT 1 FROM pgonly.jobs WHERE post_id = $1 AND ${IN_FLIGHT} LIMIT 1`,
+    return retryOnConflict(async () => {
+      const client = await getPgPool().connect();
+      try {
+        await client.query('BEGIN');
+        await lockPost(client, postId);
+        const cancelled = await client.query(
+          cancelActive(`post_id = $1 AND NOT ${IN_FLIGHT}`),
           [postId]
         );
-        deferred = !!inFlight.rowCount && !!next.opts?.dedupeKey;
-        const opts: EnqueueOptions = deferred
-          ? {
-              ...next.opts,
-              postId,
-              dedupeKey: `${next.opts!.dedupeKey}${NEXT_SUFFIX}`,
-              mode: 'replace',
-            }
-          : { ...next.opts, postId, mode: 'keep' };
-        created = (await insertJob(client, next.kind, next.payload, opts))
-          .created;
-        await client.query('SELECT pg_notify($1, $2)', [
-          JOBS_CHANNEL,
-          opts.queue ?? 'main',
-        ]);
+        await client.query(supersedeFinished, [postId]);
+        let created = false;
+        let deferred = false;
+        if (next) {
+          const inFlight = await client.query(
+            `SELECT 1 FROM pgonly.jobs WHERE post_id = $1 AND ${IN_FLIGHT} LIMIT 1`,
+            [postId]
+          );
+          deferred = !!inFlight.rowCount && !!next.opts?.dedupeKey;
+          const opts: EnqueueOptions = deferred
+            ? {
+                ...next.opts,
+                postId,
+                dedupeKey: `${next.opts!.dedupeKey}${NEXT_SUFFIX}`,
+                mode: 'replace',
+              }
+            : { ...next.opts, postId, mode: 'keep' };
+          created = (await insertJob(client, next.kind, next.payload, opts))
+            .created;
+          await client.query('SELECT pg_notify($1, $2)', [
+            JOBS_CHANNEL,
+            opts.queue ?? 'main',
+          ]);
+        }
+        await client.query('COMMIT');
+        return { cancelled: cancelled.rowCount ?? 0, created, deferred };
+      } catch (err) {
+        await client.query('ROLLBACK').catch(() => undefined);
+        throw err;
+      } finally {
+        client.release();
       }
-      await client.query('COMMIT');
-      return { cancelled: cancelled.rowCount ?? 0, created, deferred };
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => undefined);
-      throw err;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   /**
    * True while another job of the post could still change what the post
-   * looks like: one that is mid-publish, one of the steps between the
-   * platform accepting the post and the chain ending, or one that finished
-   * (or failed) after beginning less than `cooldownMs` ago (its failure
-   * handler may not have settled the post yet).
+   * looks like: one that is in flight (`IN_FLIGHT`), or one that finished (or
+   * failed) after beginning less than `cooldownMs` ago (its failure handler
+   * may not have settled the post yet).
    */
   async isPostBusy(
     job: Pick<Job, 'id' | 'postId'>,
@@ -393,14 +430,25 @@ export class JobQueueService {
    * Makes `job` the only job of its post, atomically: while the post is not
    * busy (`isPostBusy`) every other pending or not-yet-started job of the post
    * is cancelled (the remains of the chain that was in flight: its plugs and
-   * repeat) and the job takes over the post's normal dedupe key. Answers
-   * `taken: false` when the post is busy or the key is held: try again later.
-   * Throws JobNotOwned when the job itself was cancelled meanwhile.
+   * repeat), the post's finished rows are marked superseded and the job takes
+   * over the post's normal dedupe key. Answers `taken: false` when the post is
+   * busy or the key is held: try again later. Throws JobNotOwned when the job
+   * itself was cancelled meanwhile.
+   *
+   * Answers `unconfirmed: true` (and takes nothing over) when a publish of the
+   * post began, was not superseded and ended after `job` was created: the
+   * edit waited for it, and the caller has just seen the post still waiting to
+   * be published. Either the publish never wrote its outcome to the post (a
+   * database outage swallowed the write) or this is a republish; in both cases
+   * the post may be live, so publishing again could duplicate it. The caller
+   * marks the post unconfirmed and ends `job`.
    */
   async takeOverPost(
     job: Pick<Job, 'id' | 'postId' | 'attempts'>,
     cooldownMs = SETTLE_COOLDOWN_MS
-  ): Promise<{ taken: true; dedupeKey: string } | { taken: false }> {
+  ): Promise<
+    { taken: true; dedupeKey: string } | { taken: false; unconfirmed?: boolean }
+  > {
     await this.ready();
     const postId = job.postId!;
     const dedupeKey = `post:${postId}`;
@@ -409,7 +457,7 @@ export class JobQueueService {
       await client.query('BEGIN');
       await lockPost(client, postId);
       const own = await client.query(
-        `SELECT 1 FROM pgonly.jobs
+        `SELECT created_at FROM pgonly.jobs
          WHERE id = $1 AND attempts = $2 AND status = 'running'`,
         [job.id, job.attempts]
       );
@@ -420,12 +468,23 @@ export class JobQueueService {
         await client.query('ROLLBACK');
         return { taken: false };
       }
-      await client.query(
-        `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
-         WHERE post_id = $1 AND id <> $2 AND status IN ${ACTIVE}
-           AND NOT ${IN_FLIGHT}`,
-        [postId, job.id]
+      const unfinished = await client.query(
+        `SELECT 1 FROM pgonly.jobs
+         WHERE post_id = $1 AND id <> $2 AND started_at IS NOT NULL
+           AND kind LIKE 'post.%' AND NOT superseded
+           AND status IN ('done','failed') AND updated_at > $3
+         LIMIT 1`,
+        [postId, job.id, own.rows[0].created_at]
       );
+      if (unfinished.rowCount) {
+        await client.query('ROLLBACK');
+        return { taken: false, unconfirmed: true };
+      }
+      await client.query(cancelActive('post_id = $1 AND id <> $2'), [
+        postId,
+        job.id,
+      ]);
+      await client.query(supersedeFinished, [postId]);
       await client.query(
         `UPDATE pgonly.jobs SET dedupe_key = $2, updated_at = now()
          WHERE id = $1`,
@@ -446,32 +505,55 @@ export class JobQueueService {
   }
 
   /**
-   * Which of these posts had a publish begin, in any job status. A post whose
-   * publish ever started has an unknown outcome and must never be published
-   * again automatically (the sweep and the boot seeder use this). Rows that an
-   * owner reschedule superseded do not count: the owner re-armed the post.
+   * Sorts posts that are waiting to be published (state QUEUE) by what the
+   * job table knows of them. The sweep and the boot seeder use this.
+   *  - `publish`: no publish ever began; safe to enqueue (`keep` leaves a post
+   *    that has a live job alone);
+   *  - `unconfirmed`: past due, a publish began (not superseded by an owner
+   *    reschedule) and no job of the post is alive any more (or settling:
+   *    one that ended less than `SETTLE_COOLDOWN_MS` ago still may), yet the post is
+   *    still QUEUE: its outcome was never written. It may be live, so it must
+   *    not be published again; the caller marks it unconfirmed;
+   *  - every other post is left alone (its publish is in flight, or it is not
+   *    due yet).
    */
-  async startedPublishPostIds(postIds: string[]): Promise<Set<string>> {
-    if (!postIds.length) {
-      return new Set();
+  async classifyQueuedPosts(
+    posts: { id: string; publishDate: Date }[],
+    now = Date.now()
+  ): Promise<{ publish: string[]; unconfirmed: string[] }> {
+    const out = { publish: [] as string[], unconfirmed: [] as string[] };
+    if (!posts.length) {
+      return out;
     }
     await this.ready();
     const res = await getPgPool().query(
-      `SELECT DISTINCT post_id FROM pgonly.jobs
-       WHERE post_id = ANY($1::text[]) AND started_at IS NOT NULL
-         AND kind LIKE 'post.%' AND NOT superseded`,
-      [postIds]
+      `SELECT p.id,
+         EXISTS (SELECT 1 FROM pgonly.jobs j WHERE j.post_id = p.id
+                 AND j.started_at IS NOT NULL AND j.kind LIKE 'post.%'
+                 AND NOT j.superseded) AS started,
+         EXISTS (SELECT 1 FROM pgonly.jobs j WHERE j.post_id = p.id
+                 AND (j.status IN ${ACTIVE}
+                      OR (j.started_at IS NOT NULL AND j.updated_at >
+                          now() - ($2::double precision * interval '1 millisecond')))
+                ) AS alive
+       FROM unnest($1::text[]) AS p(id)`,
+      [posts.map((p) => p.id), SETTLE_COOLDOWN_MS]
     );
-    return new Set(res.rows.map((r) => r.post_id as string));
+    const info = new Map(res.rows.map((r) => [r.id as string, r]));
+    for (const post of posts) {
+      const { started, alive } = info.get(post.id) ?? {};
+      if (!started) {
+        out.publish.push(post.id);
+      } else if (!alive && new Date(post.publishDate).getTime() <= now) {
+        out.unconfirmed.push(post.id);
+      }
+    }
+    return out;
   }
 
   async cancelByKey(key: string): Promise<number> {
     await this.ready();
-    const res = await getPgPool().query(
-      `UPDATE pgonly.jobs SET status = 'cancelled', updated_at = now()
-       WHERE dedupe_key = $1 AND status IN ${ACTIVE}`,
-      [key]
-    );
+    const res = await getPgPool().query(cancelActive('dedupe_key = $1'), [key]);
     return res.rowCount ?? 0;
   }
 

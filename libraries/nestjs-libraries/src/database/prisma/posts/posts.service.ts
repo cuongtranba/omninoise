@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
   ValidationPipe,
 } from '@nestjs/common';
 import { PostsRepository } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.repository';
@@ -40,7 +41,10 @@ import { resolve, sep } from 'path';
 import { OpenaiService } from '@gitroom/nestjs-libraries/openai/openai.service';
 dayjs.extend(utc);
 import * as Sentry from '@sentry/nestjs';
-import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import {
+  JobQueueService,
+  REPEAT_SUFFIX,
+} from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
@@ -615,9 +619,7 @@ export class PostsService {
 
       return getImageList;
     } catch (err: any) {
-      return (imagesList || []).filter((m) =>
-        this.isAllowedMediaPath(m?.path)
-      );
+      return (imagesList || []).filter((m) => this.isAllowedMediaPath(m?.path));
     }
   }
 
@@ -930,8 +932,12 @@ export class PostsService {
     // ended, so editing a post that is being published never publishes it
     // twice and never drops the edit.
     // The post is already QUEUE with its new date, so a failure here must not
-    // pass silently: nothing would ever publish it. It is logged and the post
-    // is set to ERROR, where the owner sees it.
+    // pass silently: nothing would ever publish it. It is logged, the post is
+    // set to ERROR where the owner sees it, and the caller gets an error too,
+    // so the API, the public API and the MCP tool do not report a schedule
+    // that does not exist. The reschedule was rolled back, so the repeat job of
+    // the old schedule survives it; it is cancelled so that an errored post
+    // does not go on publishing.
     try {
       await this._jobQueue.reschedulePost(
         postId,
@@ -953,22 +959,35 @@ export class PostsService {
         `Could not schedule post ${postId}: ${message}`,
         (err as Error)?.stack
       );
-      if (state === 'DRAFT') {
-        return;
+      if (state !== 'DRAFT') {
+        try {
+          await this._postRepository.changeState(
+            postId,
+            'ERROR',
+            `Could not schedule the post: ${message}`
+          );
+        } catch (stateErr) {
+          this._logger.error(
+            `Could not mark post ${postId} as errored: ${
+              (stateErr as Error)?.message
+            }`
+          );
+        }
       }
       try {
-        await this._postRepository.changeState(
-          postId,
-          'ERROR',
-          `Could not schedule the post: ${message}`
-        );
-      } catch (stateErr) {
+        await this._jobQueue.cancelByKey(`post:${postId}${REPEAT_SUFFIX}`);
+      } catch (cancelErr) {
         this._logger.error(
-          `Could not mark post ${postId} as errored: ${
-            (stateErr as Error)?.message
+          `Could not cancel the repeat of post ${postId}: ${
+            (cancelErr as Error)?.message
           }`
         );
       }
+      throw new ServiceUnavailableException(
+        state === 'DRAFT'
+          ? `The post ${postId} was saved but its schedule could not be cancelled. Please try again.`
+          : `The post ${postId} was saved but could not be scheduled, and is marked as errored. Please schedule it again.`
+      );
     }
   }
 
@@ -1131,6 +1150,7 @@ export class PostsService {
   ): Promise<any[]> {
     const postList = [];
     const batchId = uuidv4();
+    let scheduleError: unknown;
     for (const post of body.posts) {
       if (
         (body.type === 'schedule' || body.type === 'now') &&
@@ -1186,12 +1206,18 @@ export class PostsService {
       );
 
       if (body.type !== 'update') {
-        await this.startWorkflow(
-          post.settings.__type.split('-')[0].toLowerCase(),
-          posts[0].id,
-          orgId,
-          posts[0].state
-        );
+        // the other posts of the request are still saved and scheduled; the
+        // caller hears about the one that could not be
+        try {
+          await this.startWorkflow(
+            post.settings.__type.split('-')[0].toLowerCase(),
+            posts[0].id,
+            orgId,
+            posts[0].state
+          );
+        } catch (err) {
+          scheduleError ??= err;
+        }
       }
 
       Sentry.metrics.count('post_created', 1);
@@ -1201,6 +1227,9 @@ export class PostsService {
       });
     }
 
+    if (scheduleError) {
+      throw scheduleError;
+    }
     return postList;
   }
 
@@ -1372,14 +1401,12 @@ export class PostsService {
     const state: State = status === 'draft' ? 'DRAFT' : 'QUEUE';
     await this._postRepository.changeState(id, state);
 
-    try {
-      await this.startWorkflow(
-        getPostById.integration.providerIdentifier.split('-')[0].toLowerCase(),
-        getPostById.id,
-        orgId,
-        state
-      );
-    } catch (err) {}
+    await this.startWorkflow(
+      getPostById.integration.providerIdentifier.split('-')[0].toLowerCase(),
+      getPostById.id,
+      orgId,
+      state
+    );
 
     return { id, state };
   }
@@ -1408,16 +1435,12 @@ export class PostsService {
     );
 
     if (action === 'schedule') {
-      try {
-        await this.startWorkflow(
-          getPostById.integration.providerIdentifier
-            .split('-')[0]
-            .toLowerCase(),
-          getPostById.id,
-          orgId,
-          getPostById.state === 'DRAFT' ? 'DRAFT' : 'QUEUE'
-        );
-      } catch (err) {}
+      await this.startWorkflow(
+        getPostById.integration.providerIdentifier.split('-')[0].toLowerCase(),
+        getPostById.id,
+        orgId,
+        getPostById.state === 'DRAFT' ? 'DRAFT' : 'QUEUE'
+      );
     }
 
     return newDate;

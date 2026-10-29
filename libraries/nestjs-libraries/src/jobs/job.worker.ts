@@ -419,6 +419,17 @@ export class JobWorker {
     await this.inTransaction(job, async (client) => {
       // Guarded by status and attempt: a job that was cancelled or reclaimed
       // while the handler ran must not complete, nor schedule its follow-ups.
+      if (outcome.retryAt) {
+        // the same row, looked at again later; this run does not count
+        await client.query(
+          `UPDATE pgonly.jobs SET status = 'pending', attempts = attempts - 1,
+             run_at = $3, locked_until = NULL, started_at = NULL,
+             updated_at = now()
+           WHERE id = $1 AND attempts = $2 AND status = 'running'`,
+          [job.id, job.attempts, outcome.retryAt]
+        );
+        return;
+      }
       const res = await client.query(
         `UPDATE pgonly.jobs SET status = 'done', result = $3,
            locked_until = NULL, updated_at = now()
@@ -516,7 +527,10 @@ export class JobWorker {
            SET locked_until = now() + ($4::int * interval '1 millisecond'),
                progress = COALESCE(h.progress, j.progress)
          FROM unnest($1::bigint[], $2::int[], $3::text[]) AS h(id, attempts, progress)
-         WHERE j.id = h.id AND j.attempts = h.attempts AND j.status = 'running'`,
+         WHERE j.id = h.id AND j.attempts = h.attempts AND j.status = 'running'
+           AND j.id IN (
+             SELECT id FROM pgonly.jobs WHERE id = ANY($1::bigint[])
+             ORDER BY id FOR UPDATE)`,
         [
           held.map((h) => h.id),
           held.map((h) => h.attempts),
@@ -552,6 +566,10 @@ export class JobWorker {
              ELSE last_error END,
            locked_until = NULL, updated_at = now()
          WHERE status = 'running' AND locked_until < now()
+           AND id IN (
+             SELECT id FROM pgonly.jobs
+             WHERE status = 'running' AND locked_until < now()
+             ORDER BY id FOR UPDATE)
          RETURNING *`
       );
       for (const row of res.rows) {

@@ -56,6 +56,7 @@ export class PostsRepository {
         integration: {
           select: {
             providerIdentifier: true,
+            name: true,
           },
         },
         publishDate: true,

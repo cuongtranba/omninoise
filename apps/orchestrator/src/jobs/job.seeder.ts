@@ -4,6 +4,7 @@ import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
 import { socialIntegrationList } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { MISSING_POSTS_KEY } from '@gitroom/orchestrator/jobs/system.jobs';
+import { PostActivity } from '@gitroom/orchestrator/activities/post.activity';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -19,7 +20,8 @@ export class JobSeeder {
   constructor(
     private _queue: JobQueueService,
     private _prisma: PrismaService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _act: PostActivity
   ) {}
 
   async seed() {
@@ -54,16 +56,20 @@ export class JobSeeder {
         id: true,
         organizationId: true,
         publishDate: true,
-        integration: { select: { providerIdentifier: true } },
+        integration: { select: { providerIdentifier: true, name: true } },
       },
     });
     // A post whose publish ever began is not re-published on boot: it may be
-    // live although the flow never recorded it.
-    const started = await this._queue.startedPublishPostIds(
-      posts.map((post) => post.id)
+    // live although the flow never recorded it. One that is past due with no
+    // job alive is reported to its owner instead of being skipped silently.
+    const { publish, unconfirmed } = await this._queue.classifyQueuedPosts(
+      posts
+    );
+    await this._act.markUnconfirmedPosts(
+      posts.filter((post) => unconfirmed.includes(post.id))
     );
     for (const post of posts) {
-      if (started.has(post.id)) {
+      if (!publish.includes(post.id)) {
         continue;
       }
       const queue = providerQueue(post.integration.providerIdentifier);
