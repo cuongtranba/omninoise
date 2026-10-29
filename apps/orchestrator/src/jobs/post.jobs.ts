@@ -11,7 +11,10 @@ import {
   JobOutcome,
 } from '@gitroom/nestjs-libraries/jobs/job.types';
 import { JobWorker } from '@gitroom/nestjs-libraries/jobs/job.worker';
-import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import {
+  JobQueueService,
+  NEXT_SUFFIX,
+} from '@gitroom/nestjs-libraries/jobs/job.queue';
 import {
   assertOwned,
   markStarted,
@@ -59,6 +62,11 @@ const DUE_SLACK_MS = 1_000;
 // Waits between the tries of a database call (V112 retried each activity 3x).
 // Bounded to ~21s: a handler holds its lease while it waits.
 const DB_RETRY_DELAYS_MS = [1_000, 4_000, 16_000];
+// A publish that waits for the chain in flight to end looks again this often.
+const DEFER_MS = 30_000;
+// plugPlan that failed for good is scheduled again this many times, a while apart.
+const PLAN_RETRIES = 3;
+const PLAN_RETRY_DELAY_MS = 10 * 60 * 1000;
 // A plug that keeps failing is tried this many times, a while apart.
 const PLUG_ATTEMPTS = 5;
 const PLUG_RETRY_DELAY_MS = 2 * 60 * 1000;
@@ -120,6 +128,8 @@ export type PostFlowState = {
   pending?: PendingState;
   /** The webhooks of this publish went out (or were attempted): never again. */
   webhooksSent?: boolean;
+  /** How often planning the plugs failed for good and was scheduled again. */
+  planRetries?: number;
 };
 
 type PlugTodo = { type: string; delay: number; [key: string]: any };
@@ -174,12 +184,18 @@ export class PostJobs {
     //    sent, and the job was retried);
     //  - checkStatus and comment: always, the platform already accepted the post;
     //  - finish: the rest of the chain still runs.
-    const settle = (job: Job, error: string) => this.settleFailed(job, error);
+    const settle = async (job: Job, error: string) => {
+      // no handler is running to return the recovery: schedule it here
+      const outcome = await this.settleFailed(job, error);
+      for (const f of (outcome as JobOutcome | undefined)?.next ?? []) {
+        await this._queue.enqueue(f.kind, f.payload, f.opts);
+      }
+    };
 
     worker
       .register('post.publish', (job) => this.publish(job), {
         onFailed: (job, error) =>
-          job.startedAt ? this.settleFailed(job, error) : Promise.resolve(),
+          job.startedAt ? settle(job, error) : Promise.resolve(),
       })
       .register('post.comment', (job) => this.comment(job), {
         onFailed: settle,
@@ -196,7 +212,9 @@ export class PostJobs {
             chain(job, { queue: 'main' })
           ),
       })
-      .register('post.plugPlan', (job) => this.plugPlan(job))
+      .register('post.plugPlan', (job) => this.plugPlan(job), {
+        onFailed: (job, error) => this.planFailed(job, error),
+      })
       .register('post.plug', (job) => this.plug(job));
   }
 
@@ -204,6 +222,13 @@ export class PostJobs {
   private async publish(job: Job<PostFlowState>): Promise<JobOutcome | void> {
     const s: PostFlowState = { ...job.payload };
     const { postId, organizationId, postNow = false } = s;
+
+    // Inserted by an edit that arrived while another job of the post was
+    // publishing: it must not touch the post until that chain has ended.
+    const deferred = job.dedupeKey === `post:${postId}${NEXT_SUFFIX}`;
+    if (deferred && (await this._queue.isPostBusy(job))) {
+      return this.deferAgain(job);
+    }
 
     const firstPost = await withRetry(() =>
       this._act.getPost(organizationId, postId)
@@ -218,12 +243,34 @@ export class PostJobs {
 
     if (!postNow && firstPost.state !== 'QUEUE') {
       await assertOwned();
+      if (deferred) {
+        // the chain in flight published (or failed) the version from before
+        // the edit; publishing again would duplicate it
+        await this.notify(
+          organizationId,
+          `Your edit of a post was not published`,
+          `This post was edited while it was being published; the earlier version was published. Check it and reschedule if needed.`,
+          true,
+          false,
+          'info'
+        );
+        return;
+      }
       await withRetry(() =>
         this._act.changeState(firstPost.id, 'ERROR', 'Already posted', [
           firstPost,
         ])
       );
       return;
+    }
+
+    if (deferred) {
+      // the only job of the post from here on, under its normal key
+      const took = await this._queue.takeOverPost(job);
+      if (!took.taken) {
+        return this.deferAgain(job);
+      }
+      job.dedupeKey = took.dedupeKey;
     }
 
     // wait for the scheduled publish date: the same job, due at that date
@@ -259,6 +306,22 @@ export class PostJobs {
     return this.runItem(job, s, flow);
   }
 
+  // The same publish, looked at again in a while, under the same key.
+  private deferAgain(job: Job<PostFlowState>): JobOutcome {
+    return {
+      next: [
+        {
+          kind: 'post.publish',
+          payload: job.payload,
+          opts: chain(job, {
+            queue: job.queue,
+            runAt: new Date(Date.now() + DEFER_MS),
+          }),
+        },
+      ],
+    };
+  }
+
   // ---- post.comment -----------------------------------------------------
   private async comment(job: Job<PostFlowState>): Promise<JobOutcome | void> {
     const s: PostFlowState = { ...job.payload };
@@ -292,7 +355,8 @@ export class PostJobs {
       if (isJobNotOwned(err)) {
         throw err;
       }
-      await this.settleFailed(job, errorValue(err));
+      // still running, so the recovery is this job's own follow-up
+      return this.settleFailed(job, errorValue(err));
     }
   }
 
@@ -300,12 +364,22 @@ export class PostJobs {
     job: Job<PostFlowState>
   ): Promise<JobOutcome | void> {
     const s: PostFlowState = { ...job.payload };
-    const flow = await this.loadFlow(s, false);
-    if (!flow) {
+    const root = await this.loadFlow(s, false);
+    if (!root) {
       return;
     }
-    const { post } = flow;
     const i = s.index!;
+    // a comment is read by id, as the comment job reads it
+    const ref = i > 0 ? s.comments?.[i - 1] : undefined;
+    const item = ref
+      ? await withRetry(() => this._act.getComment(s.organizationId, ref.id))
+      : undefined;
+    if (i > 0 && !item) {
+      // deleted while the platform was processing it: nothing to record
+      return this.afterStep(job, s, root, 'continue');
+    }
+    const flow: Flow = { ...root, item };
+    const { post } = flow;
     const pending = s.pending!;
     const accepted = s.results![s.results!.length - 1];
     let retryNow = false;
@@ -369,17 +443,15 @@ export class PostJobs {
             flow.postsList
           )
         );
-        await withRetry(() =>
-          this._act.inAppNotification(
-            post.organizationId,
-            `Error posting on ${post.integration?.providerIdentifier} for ${post?.integration?.name}`,
-            `An error occurred while posting on ${
-              post.integration?.providerIdentifier
-            }${handle.message ? `: ${handle.message}` : ``}`,
-            true,
-            false,
-            'fail'
-          )
+        await this.notify(
+          post.organizationId,
+          `Error posting on ${post.integration?.providerIdentifier} for ${post?.integration?.name}`,
+          `An error occurred while posting on ${
+            post.integration?.providerIdentifier
+          }${handle.message ? `: ${handle.message}` : ``}`,
+          true,
+          false,
+          'fail'
         );
         return;
       }
@@ -481,21 +553,10 @@ export class PostJobs {
       return all;
     }, []);
 
-    // Check if the post is repeatable
-    const repeatPost: PlugTodo[] = !post.intervalInDays
-      ? []
-      : [
-          {
-            type: 'repeat-post',
-            delay:
-              post.intervalInDays * 24 * 60 * 60 * 1000 -
-              (Date.now() - (s.startTime ?? Date.now())),
-          },
-        ];
-
-    // Sort all the actions by delay, so we can process them in order
+    // Sort all the actions by delay, so we can process them in order. (The
+    // repeat is not one of them: `afterStep` schedules it as a job of its own.)
     const list = sortBy(
-      [...internalPlugsList, ...globalPlugsList, ...repeatPost],
+      [...internalPlugsList, ...globalPlugsList],
       'delay'
     ) as PlugTodo[];
 
@@ -510,6 +571,28 @@ export class PostJobs {
         list,
       },
       []
+    );
+  }
+
+  // Planning the plugs failed for good (loading them is database work, it was
+  // retried). Try again a few times; after that the post says so on its error
+  // field. Its PUBLISHED state is never touched: the post is live.
+  private async planFailed(job: Job<PostFlowState>, error: string) {
+    const tries = job.payload.planRetries ?? 0;
+    if (tries < PLAN_RETRIES) {
+      await this._queue.enqueue(
+        'post.plugPlan',
+        { ...job.payload, planRetries: tries + 1 },
+        chain(job, {
+          queue: 'main',
+          runAt: new Date(Date.now() + PLAN_RETRY_DELAY_MS),
+        })
+      );
+      return;
+    }
+    await this._act.recordPostError(
+      job.payload.postId,
+      `The plugs of this post could not be planned: ${error}`
     );
   }
 
@@ -635,6 +718,21 @@ export class PostJobs {
   // ---- shared -----------------------------------------------------------
 
   /**
+   * Best effort, and once: a retry after a send that failed late would email
+   * the owner twice, and a missed notification is not worth a failed job.
+   */
+  private async notify(...args: Parameters<PostActivity['inAppNotification']>) {
+    try {
+      await this._act.inAppNotification(...args);
+    } catch (err) {
+      console.error(
+        `post jobs: could not notify "${args[1]}"`,
+        (err as Error)?.message
+      );
+    }
+  }
+
+  /**
    * Loads the root post the way the workflow did after its sleep. The first
    * stage also returns the comments to publish; later stages work with the
    * root only (the comments are in the payload, and read by id).
@@ -660,15 +758,13 @@ export class PostJobs {
       // if refresh is needed from last time, let's inform the user
       if (post.integration?.refreshNeeded) {
         await assertOwned();
-        await withRetry(() =>
-          this._act.inAppNotification(
-            post.organizationId,
-            `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name}`,
-            `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name} because you need to reconnect it. Please enable it and try again.`,
-            true,
-            false,
-            'info'
-          )
+        await this.notify(
+          post.organizationId,
+          `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name}`,
+          `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name} because you need to reconnect it. Please enable it and try again.`,
+          true,
+          false,
+          'info'
         );
 
         await withRetry(() =>
@@ -685,15 +781,13 @@ export class PostJobs {
       // if it's disabled, inform the user
       if (post.integration?.disabled) {
         await assertOwned();
-        await withRetry(() =>
-          this._act.inAppNotification(
-            post.organizationId,
-            `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name}`,
-            `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name} because it's disabled. Please enable it and try again.`,
-            true,
-            false,
-            'info'
-          )
+        await this.notify(
+          post.organizationId,
+          `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name}`,
+          `We couldn't post to ${post.integration?.providerIdentifier} for ${post?.integration?.name} because it's disabled. Please enable it and try again.`,
+          true,
+          false,
+          'info'
         );
 
         await withRetry(() =>
@@ -773,49 +867,59 @@ export class PostJobs {
         postsList
       )
     );
-    await withRetry(() =>
-      this._act.inAppNotification(
-        post.organizationId,
-        `We couldn't confirm your post on ${capitalize(
-          post.integration?.providerIdentifier
-        )}`,
-        `Your post was sent to ${capitalize(
-          post.integration?.providerIdentifier
-        )}, but we couldn't confirm it was published. Please check your ${
-          post?.integration?.name
-        } account before posting again to avoid duplicates.`,
-        true,
-        false,
-        'fail'
-      )
+    await this.notify(
+      post.organizationId,
+      `We couldn't confirm your post on ${capitalize(
+        post.integration?.providerIdentifier
+      )}`,
+      `Your post was sent to ${capitalize(
+        post.integration?.providerIdentifier
+      )}, but we couldn't confirm it was published. Please check your ${
+        post?.integration?.name
+      } account before posting again to avoid duplicates.`,
+      true,
+      false,
+      'fail'
     );
   }
 
   /**
    * The flow of a post cannot go on and its outcome is unknown. The post must
    * leave QUEUE, otherwise the sweep publishes it again:
-   *  - if the root is already live (the crash came after `updatePost`) it
-   *    stays PUBLISHED and the rest of the chain is scheduled again (comments,
-   *    webhooks, plugs, repeat);
-   *  - otherwise, or when a comment failed, it is marked unconfirmed, as
-   *    V112 did. A comment failure drops the remaining comments, like V112.
+   *  - if the root is live (PUBLISHED with its platform id: the crash came
+   *    after `updatePost`) it stays PUBLISHED and the rest of the chain is
+   *    returned to be scheduled again (comments, webhooks, plugs, repeat);
+   *  - otherwise, or when a comment failed, it is marked unconfirmed (ERROR),
+   *    as V112 did. A comment failure therefore still sets the root to ERROR
+   *    and drops the remaining comments, like V112.
+   * The state alone is not proof, nor is a platform id alone: an edit leaves
+   * the id of the previous publish on the row and sets the state back to
+   * QUEUE, so a crash during the republish must not read as "live".
    * A repeat run (`postNow`) starts from a PUBLISHED post, so a live root says
    * nothing about that run and is treated like any other failure.
    */
-  private async settleFailed(job: Job, error: string) {
+  private async settleFailed(
+    job: Job,
+    error: string
+  ): Promise<JobOutcome | void> {
     const s = job.payload as PostFlowState;
     const list = await withRetry(() =>
       this._act.getPostsList(s.organizationId, s.postId)
     );
     const [root] = list;
     if (!root) {
+      // deleted, or its subscription lapsed: a QUEUE post nothing will run
+      await withRetry(() =>
+        this._act.changeState(s.postId, 'ERROR', 'No Post')
+      );
       return;
     }
 
     const live =
       !s.postNow &&
       (s.index ?? 0) === 0 &&
-      (root.state === 'PUBLISHED' || !!root.releaseId || !!root.releaseURL);
+      root.state === 'PUBLISHED' &&
+      !!root.releaseId;
     if (!live) {
       await this.markUnconfirmed({ post: root, postsList: [root] }, error);
       return;
@@ -846,15 +950,12 @@ export class PostJobs {
         } as PostResponse,
       ],
     };
-    const outcome = this.afterStep(
+    return this.afterStep(
       job,
       rebuilt,
       { post: root, postsList: [root] },
       'continue'
     );
-    for (const f of (outcome as JobOutcome | undefined)?.next ?? []) {
-      await this._queue.enqueue(f.kind, f.payload, f.opts);
-    }
   }
 
   // Publishes the current item (the root, or the comment of `flow.item`),
@@ -938,21 +1039,17 @@ export class PostJobs {
 
         // specific case for bad body errors
         if (handle.type === 'bad-body') {
-          await withRetry(() =>
-            this._act.inAppNotification(
-              post.organizationId,
-              `Error posting${i === 0 ? ' ' : ' comments '}on ${
-                post.integration?.providerIdentifier
-              } for ${post?.integration?.name}`,
-              `An error occurred while posting${
-                i === 0 ? ' ' : ' comments '
-              }on ${post.integration?.providerIdentifier}${
-                handle.message ? `: ${handle.message}` : ``
-              }`,
-              true,
-              false,
-              'fail'
-            )
+          await this.notify(
+            post.organizationId,
+            `Error posting${i === 0 ? ' ' : ' comments '}on ${
+              post.integration?.providerIdentifier
+            } for ${post?.integration?.name}`,
+            `An error occurred while posting${i === 0 ? ' ' : ' comments '}on ${
+              post.integration?.providerIdentifier
+            }${handle.message ? `: ${handle.message}` : ``}`,
+            true,
+            false,
+            'fail'
           );
           return;
         }
@@ -1011,18 +1108,16 @@ export class PostJobs {
 
       if (i === 0) {
         // send notification on a successful post
-        await withRetry(() =>
-          this._act.inAppNotification(
-            post.integration.organizationId,
-            `Your post has been published on ${capitalize(
-              post.integration.providerIdentifier
-            )}`,
-            `Your post has been published on ${capitalize(
-              post.integration.providerIdentifier
-            )} at ${result.releaseURL}`,
-            true,
-            true
-          )
+        await this.notify(
+          post.integration.organizationId,
+          `Your post has been published on ${capitalize(
+            post.integration.providerIdentifier
+          )}`,
+          `Your post has been published on ${capitalize(
+            post.integration.providerIdentifier
+          )} at ${result.releaseURL}`,
+          true,
+          true
         );
       }
     } catch (err) {
@@ -1085,14 +1180,51 @@ export class PostJobs {
       };
     }
 
+    // The repeat is a job of its own, scheduled here and not by the plug
+    // planning: a plug that cannot be loaded must not end a series.
+    const next: FollowUp[] = [
+      {
+        kind: 'post.finish',
+        payload: { ...s, pending: undefined },
+        opts: chain(job, { queue: 'main' }),
+      },
+    ];
+    const repeat = this.repeatOf(s, flow);
+    if (repeat) {
+      next.push(repeat);
+    }
+    return { next };
+  }
+
+  // A post with an interval publishes again after it, counted from when this
+  // publish began. A fresh flow of its own, so the other plugs keep running.
+  private repeatOf(s: PostFlowState, flow: Flow): FollowUp | undefined {
+    const { post } = flow;
+    if (!post.intervalInDays) {
+      return;
+    }
+    const delay = Math.max(
+      0,
+      post.intervalInDays * 24 * 60 * 60 * 1000 -
+        (Date.now() - (s.startTime ?? Date.now()))
+    );
     return {
-      next: [
-        {
-          kind: 'post.finish',
-          payload: { ...s, pending: undefined },
-          opts: chain(job, { queue: 'main' }),
-        },
-      ],
+      kind: 'post.plug',
+      payload: {
+        taskQueue: s.taskQueue,
+        postId: s.postId,
+        organizationId: s.organizationId,
+        integrationId: post.integration.id,
+        platformPostId: s.results![0].postId,
+        list: [{ type: 'repeat-post', delay }],
+      } satisfies PlugState,
+      opts: {
+        queue: s.taskQueue,
+        dedupeKey: `post:${s.postId}:repeat`,
+        postId: s.postId,
+        organizationId: s.organizationId,
+        runAt: new Date(Date.now() + delay),
+      },
     };
   }
 }

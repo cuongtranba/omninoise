@@ -479,6 +479,11 @@ export class PostActivity {
     );
   }
 
+  /** Notes a failure on the post without changing its state. */
+  async recordPostError(id: string, error: string) {
+    await this._postService.setError(id, error);
+  }
+
   async changeState(id: string, state: State, err?: any, body?: any) {
     await this._postService.changeState(id, state, err, body);
   }

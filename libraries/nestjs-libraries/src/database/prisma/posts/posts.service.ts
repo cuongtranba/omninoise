@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -62,6 +63,8 @@ type PostWithConditionals = Post & {
 @Injectable()
 export class PostsService {
   private storage = UploadFactory.createStorage();
+  private readonly _logger = new Logger(PostsService.name);
+
   constructor(
     private _postRepository: PostsRepository,
     private _integrationManager: IntegrationManager,
@@ -75,6 +78,10 @@ export class PostsService {
 
   searchForMissingThreeHoursPosts() {
     return this._postRepository.searchForMissingThreeHoursPosts();
+  }
+
+  setError(id: string, error: string) {
+    return this._postRepository.setError(id, error);
   }
 
   updatePost(id: string, postId: string, releaseURL: string) {
@@ -918,9 +925,13 @@ export class PostsService {
   ) {
     // One transaction: the post's jobs (its publish, the repeat posts it
     // spawned) are cancelled and, unless it is a draft, the new schedule takes
-    // their place. A publish already in flight is left alone and nothing is
-    // created beside it, so editing a post that is being published never
-    // publishes it twice; the edit is saved and the publish finishes.
+    // their place. A publish already in flight is left alone; the new publish
+    // is queued behind it (`post:<id>:next`) and runs once that chain has
+    // ended, so editing a post that is being published never publishes it
+    // twice and never drops the edit.
+    // The post is already QUEUE with its new date, so a failure here must not
+    // pass silently: nothing would ever publish it. It is logged and the post
+    // is set to ERROR, where the owner sees it.
     try {
       await this._jobQueue.reschedulePost(
         postId,
@@ -936,7 +947,29 @@ export class PostsService {
               },
             }
       );
-    } catch (err) {}
+    } catch (err) {
+      const message = (err as Error)?.message ?? String(err);
+      this._logger.error(
+        `Could not schedule post ${postId}: ${message}`,
+        (err as Error)?.stack
+      );
+      if (state === 'DRAFT') {
+        return;
+      }
+      try {
+        await this._postRepository.changeState(
+          postId,
+          'ERROR',
+          `Could not schedule the post: ${message}`
+        );
+      } catch (stateErr) {
+        this._logger.error(
+          `Could not mark post ${postId} as errored: ${
+            (stateErr as Error)?.message
+          }`
+        );
+      }
+    }
   }
 
   /**
@@ -1153,12 +1186,12 @@ export class PostsService {
       );
 
       if (body.type !== 'update') {
-        this.startWorkflow(
+        await this.startWorkflow(
           post.settings.__type.split('-')[0].toLowerCase(),
           posts[0].id,
           orgId,
           posts[0].state
-        ).catch((err) => {});
+        );
       }
 
       Sentry.metrics.count('post_created', 1);

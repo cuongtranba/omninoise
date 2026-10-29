@@ -427,7 +427,7 @@ test('reschedulePost leaves exactly one active job for the post', async () => {
   const second = new Date(Date.now() + 10_800_000);
   const res = await queue.reschedulePost(postId, publish(second));
 
-  expect(res).toEqual({ cancelled: 2, created: true });
+  expect(res).toEqual({ cancelled: 2, created: true, deferred: false });
   expect(await status(old.id)).toBe('cancelled');
   expect(await status(child.id)).toBe('cancelled');
   const active = await getPgPool().query(
@@ -439,44 +439,287 @@ test('reschedulePost leaves exactly one active job for the post', async () => {
   expect(active.rows[0].run_at.getTime()).toBe(second.getTime());
 });
 
-test('reschedulePost does not cancel a publish in flight nor create a second one', async () => {
+// The post's state lives in a table of the test, as the post row does in the app.
+const stateTable = async () => {
+  await getPgPool().query(
+    `CREATE TABLE IF NOT EXISTS pgonly.test_post_state (
+       post_id text PRIMARY KEY, state text NOT NULL)`
+  );
+};
+const setState = (postId: string, state: string) =>
+  getPgPool().query(
+    `INSERT INTO pgonly.test_post_state (post_id, state) VALUES ($1, $2)
+     ON CONFLICT (post_id) DO UPDATE SET state = $2`,
+    [postId, state]
+  );
+const stateOf = async (postId: string) =>
+  (
+    await getPgPool().query(
+      'SELECT state FROM pgonly.test_post_state WHERE post_id = $1',
+      [postId]
+    )
+  ).rows[0]?.state as string;
+
+const activeOf = async (postId: string) =>
+  (
+    await getPgPool().query(
+      `SELECT id, kind, dedupe_key, run_at FROM pgonly.jobs
+       WHERE post_id = $1 AND status IN ('pending','running') ORDER BY id`,
+      [postId]
+    )
+  ).rows;
+
+test('an edit while a job of the post is in flight is queued behind it and runs once it ends', async () => {
   const q = uniqueName('inflight');
   const postId = `post-${q}`;
+  await stateTable();
+  await setState(postId, 'QUEUE');
   let release!: () => void;
   const hold = new Promise<void>((resolve) => (release = resolve));
-  let started = false;
+  let inFlight = false;
+  const published: number[] = [];
+  const looks: number[] = [];
 
   await startWorker(q, (w) =>
-    w.register('inflight', async () => {
-      await markStarted();
-      started = true;
-      await hold;
-    })
+    w
+      // the chain in flight: a comment being published
+      .register('post.comment', async () => {
+        await markStarted();
+        inFlight = true;
+        await hold;
+      })
+      // the new publish, written the way the real handler uses the queue
+      .register('post.publish', async (job) => {
+        const again = {
+          kind: 'post.publish',
+          payload: {},
+          opts: {
+            queue: q,
+            postId,
+            dedupeKey: job.dedupeKey!,
+            runAt: new Date(Date.now() + 100),
+          },
+        };
+        if (await queue.isPostBusy(job, 0)) {
+          looks.push(job.id);
+          return { next: [again] };
+        }
+        if ((await stateOf(postId)) !== 'QUEUE') {
+          return;
+        }
+        const took = await queue.takeOverPost(job, 0);
+        if (!took.taken) {
+          return { next: [again] };
+        }
+        await markStarted();
+        published.push(job.id);
+        await setState(postId, 'PUBLISHED');
+      })
   );
-  const { id } = await queue.enqueue(
-    'inflight',
+  const flying = await queue.enqueue(
+    'post.comment',
     {},
     { queue: q, postId, dedupeKey: `post:${postId}` }
   );
-  await vi.waitFor(() => expect(started).toBe(true));
+  await vi.waitFor(() => expect(inFlight).toBe(true));
 
+  const runAt = new Date(Date.now() + 50);
   const res = await queue.reschedulePost(postId, {
-    kind: 'inflight',
+    kind: 'post.publish',
     payload: {},
-    opts: { queue: q, dedupeKey: `post:${postId}` },
+    opts: { queue: q, dedupeKey: `post:${postId}`, runAt },
   });
 
-  expect(res).toEqual({ cancelled: 0, created: false });
-  expect(await status(id)).toBe('running');
-  const active = await getPgPool().query(
-    `SELECT id FROM pgonly.jobs
-     WHERE post_id = $1 AND status IN ('pending','running')`,
-    [postId]
-  );
-  expect(active.rows.map((r) => Number(r.id))).toEqual([id]);
+  expect(res).toEqual({ cancelled: 0, created: true, deferred: true });
+  const active = await activeOf(postId);
+  expect(active.map((r) => r.dedupe_key)).toEqual([
+    `post:${postId}`,
+    `post:${postId}:next`,
+  ]);
+  expect(active[1].run_at.getTime()).toBe(runAt.getTime());
+  // the publish in flight still counts: the sweep must not touch the post
+  expect([...(await queue.startedPublishPostIds([postId]))]).toEqual([postId]);
+
+  // the new publish looks at the post again and again, and does nothing
+  await vi.waitFor(() => expect(looks.length).toBeGreaterThanOrEqual(3));
+  expect(published).toEqual([]);
+  expect(await status(flying.id)).toBe('running');
 
   release();
-  await vi.waitFor(async () => expect(await status(id)).toBe('done'));
+  await vi.waitFor(() => expect(published).toHaveLength(1));
+  expect(await stateOf(postId)).toBe('PUBLISHED');
+  // it took the post's normal key over, so everything that looks for the
+  // post's job finds it
+  expect((await row(published[0])).dedupe_key).toBe(`post:${postId}`);
+});
+
+const advisoryWaiters = async (postId: string) =>
+  (
+    await getPgPool().query(
+      `SELECT count(*)::int AS n FROM pg_locks
+       WHERE locktype = 'advisory' AND NOT granted
+         AND objid::bigint = (hashtext($1)::bigint & 4294967295)`,
+      [`post:${postId}`]
+    )
+  ).rows[0].n as number;
+
+// A job of a post completes with a follow-up at the old date while the owner
+// reschedules the post. Both wait on the post's lock, held here, so that both
+// orders can be driven; whichever goes first, the post ends with one job, at
+// the new date.
+test.each([
+  ['the completion first', true],
+  ['the reschedule first', false],
+])(
+  '%s: a follow-up never survives a reschedule',
+  async (_name, completeFirst) => {
+    const q = uniqueName('racecomplete');
+    const postId = `post-${q}`;
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => (release = resolve));
+    let running = false;
+    const oldDate = new Date(Date.now() + 3_600_000);
+    const newDate = new Date(Date.now() + 7_200_000);
+
+    await startWorker(q, (w) =>
+      w
+        .register('post.publish', async () => {
+          running = true;
+          await hold;
+          // waits for its date: the same job, due at the old date
+          return {
+            next: [
+              {
+                kind: 'post.noop',
+                payload: {},
+                opts: {
+                  queue: q,
+                  postId,
+                  dedupeKey: `post:${postId}`,
+                  runAt: oldDate,
+                },
+              },
+            ],
+          };
+        })
+        .register('post.noop', async () => undefined)
+    );
+    const first = await queue.enqueue(
+      'post.publish',
+      {},
+      { queue: q, postId, dedupeKey: `post:${postId}` }
+    );
+    await vi.waitFor(() => expect(running).toBe(true));
+
+    const locker = await getPgPool().connect();
+    try {
+      await locker.query('BEGIN');
+      await locker.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `post:${postId}`,
+      ]);
+
+      const reschedule = () =>
+        queue.reschedulePost(postId, {
+          kind: 'post.noop',
+          payload: {},
+          opts: { queue: q, dedupeKey: `post:${postId}`, runAt: newDate },
+        });
+      const finish = async () => {
+        release();
+        await vi.waitFor(async () =>
+          expect(await advisoryWaiters(postId)).toBeGreaterThanOrEqual(1)
+        );
+      };
+
+      let rescheduled: Promise<unknown>;
+      if (completeFirst) {
+        await finish();
+        rescheduled = reschedule();
+        await vi.waitFor(async () =>
+          expect(await advisoryWaiters(postId)).toBe(2)
+        );
+      } else {
+        rescheduled = reschedule();
+        await vi.waitFor(async () =>
+          expect(await advisoryWaiters(postId)).toBe(1)
+        );
+        await finish();
+        await vi.waitFor(async () =>
+          expect(await advisoryWaiters(postId)).toBe(2)
+        );
+      }
+      await locker.query('COMMIT');
+      await rescheduled;
+    } finally {
+      locker.release();
+    }
+
+    await vi.waitFor(async () =>
+      expect(['done', 'cancelled']).toContain(await status(first.id))
+    );
+    const active = await activeOf(postId);
+    expect(active).toHaveLength(1);
+    expect(active[0].run_at.getTime()).toBe(newDate.getTime());
+  }
+);
+
+test('a follow-up never survives a reschedule that races its completion', async () => {
+  const q = uniqueName('racing');
+  const oldDate = new Date(Date.now() + 3_600_000);
+  const newDate = new Date(Date.now() + 7_200_000);
+  const gates = new Map<string, () => void>();
+  const running = new Set<string>();
+
+  await startWorker(q, (w) =>
+    w
+      .register('post.publish', async (job) => {
+        running.add(job.postId!);
+        await new Promise<void>((resolve) => gates.set(job.postId!, resolve));
+        return {
+          next: [
+            {
+              kind: 'post.noop',
+              payload: {},
+              opts: {
+                queue: q,
+                postId: job.postId!,
+                dedupeKey: `post:${job.postId}`,
+                runAt: oldDate,
+              },
+            },
+          ],
+        };
+      })
+      .register('post.noop', async () => undefined)
+  );
+
+  for (let i = 0; i < 50; i++) {
+    const postId = `post-${q}-${i}`;
+    const first = await queue.enqueue(
+      'post.publish',
+      {},
+      { queue: q, postId, dedupeKey: `post:${postId}` }
+    );
+    await vi.waitFor(() => expect(running.has(postId)).toBe(true));
+
+    await Promise.all([
+      Promise.resolve().then(() => gates.get(postId)!()),
+      queue.reschedulePost(postId, {
+        kind: 'post.noop',
+        payload: {},
+        opts: { queue: q, dedupeKey: `post:${postId}`, runAt: newDate },
+      }),
+    ]);
+    await vi.waitFor(async () =>
+      expect(['done', 'cancelled']).toContain(await status(first.id))
+    );
+
+    const active = await activeOf(postId);
+    expect(active, `iteration ${i}`).toHaveLength(1);
+    expect(active[0].run_at.getTime(), `iteration ${i}`).toBe(
+      newDate.getTime()
+    );
+  }
 });
 
 test('startedPublishPostIds reports the posts whose publish began, in any status', async () => {
@@ -506,4 +749,49 @@ test('startedPublishPostIds reports the posts whose publish began, in any status
   const started = await queue.startedPublishPostIds([begun, waiting, 'none']);
 
   expect([...started]).toEqual([begun]);
+});
+
+test('startedPublishPostIds ignores publishes that an owner reschedule superseded', async () => {
+  const q = uniqueName('superseded');
+  const failedBefore = `post-${q}-failed`;
+  const stillRunning = `post-${q}-running`;
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let running = false;
+
+  await startWorker(q, (w) =>
+    w.register('post.publish', async (job) => {
+      await markStarted();
+      if (job.postId === stillRunning) {
+        running = true;
+        await hold;
+        return;
+      }
+      throw new NonRetryable('the platform refused the post');
+    })
+  );
+  const failed = await queue.enqueue(
+    'post.publish',
+    {},
+    { queue: q, postId: failedBefore }
+  );
+  await queue.enqueue('post.publish', {}, { queue: q, postId: stillRunning });
+  await vi.waitFor(async () => expect(await status(failed.id)).toBe('failed'));
+  await vi.waitFor(() => expect(running).toBe(true));
+  expect(
+    [
+      ...(await queue.startedPublishPostIds([failedBefore, stillRunning])),
+    ].sort()
+  ).toEqual([failedBefore, stillRunning].sort());
+
+  // the owner fixes both posts and schedules them again
+  await queue.reschedulePost(failedBefore);
+  await queue.reschedulePost(stillRunning);
+
+  // the failed publish no longer hides its post from the sweep; the one that
+  // is still running keeps counting
+  expect([
+    ...(await queue.startedPublishPostIds([failedBefore, stillRunning])),
+  ]).toEqual([stillRunning]);
+  release();
 });

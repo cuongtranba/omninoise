@@ -1,8 +1,9 @@
-import { Client, Pool } from 'pg';
+import { Client, Pool, PoolClient } from 'pg';
 import { pgConnectionString } from '@gitroom/nestjs-libraries/pg/pg.pool';
 import {
   insertFollowUps,
   JOBS_CHANNEL,
+  lockPost,
   mapRow,
   ensureJobsSchema,
 } from '@gitroom/nestjs-libraries/jobs/job.queue';
@@ -388,10 +389,34 @@ export class JobWorker {
     }
   }
 
-  private async complete(job: Job, outcome: JobOutcome) {
+  /**
+   * One transaction on a worker connection. A job of a post takes the post's
+   * lock first, so that what it writes (its end, its follow-ups, its retry)
+   * and a reschedule or cancel of the post never interleave.
+   */
+  private async inTransaction<T>(
+    job: Job,
+    fn: (client: PoolClient) => Promise<T>
+  ): Promise<T> {
     const client = await this.db.connect();
     try {
       await client.query('BEGIN');
+      if (job.postId) {
+        await lockPost(client, job.postId);
+      }
+      const result = await fn(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  private async complete(job: Job, outcome: JobOutcome) {
+    await this.inTransaction(job, async (client) => {
       // Guarded by status and attempt: a job that was cancelled or reclaimed
       // while the handler ran must not complete, nor schedule its follow-ups.
       const res = await client.query(
@@ -403,13 +428,7 @@ export class JobWorker {
       if (res.rowCount && outcome.next?.length) {
         await insertFollowUps(client, outcome.next);
       }
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => undefined);
-      throw err;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   private async fail(job: Job, err: unknown, opts?: HandlerOptions) {
@@ -424,25 +443,30 @@ export class JobWorker {
     const retry =
       !isNonRetryable(err) && !job.startedAt && job.attempts < job.maxAttempts;
 
-    if (retry) {
-      const delay = job.retryDelayMs * Math.pow(job.backoff, job.attempts - 1);
-      await this.db.query(
-        `UPDATE pgonly.jobs SET status = 'pending', last_error = $3,
-           run_at = now() + ($4::double precision * interval '1 millisecond'),
+    // Committed before onFailed runs: that handler enqueues, and takes the
+    // same post lock on another connection.
+    const recorded = await this.inTransaction(job, async (client) => {
+      if (retry) {
+        const delay =
+          job.retryDelayMs * Math.pow(job.backoff, job.attempts - 1);
+        await client.query(
+          `UPDATE pgonly.jobs SET status = 'pending', last_error = $3,
+             run_at = now() + ($4::double precision * interval '1 millisecond'),
+             locked_until = NULL, updated_at = now()
+           WHERE id = $1 AND attempts = $2 AND status = 'running'`,
+          [job.id, job.attempts, message, delay]
+        );
+        return false;
+      }
+      const res = await client.query(
+        `UPDATE pgonly.jobs SET status = 'failed', last_error = $3,
            locked_until = NULL, updated_at = now()
          WHERE id = $1 AND attempts = $2 AND status = 'running'`,
-        [job.id, job.attempts, message, delay]
+        [job.id, job.attempts, message]
       );
-      return;
-    }
-
-    const res = await this.db.query(
-      `UPDATE pgonly.jobs SET status = 'failed', last_error = $3,
-         locked_until = NULL, updated_at = now()
-       WHERE id = $1 AND attempts = $2 AND status = 'running'`,
-      [job.id, job.attempts, message]
-    );
-    if (res.rowCount) {
+      return !!res.rowCount;
+    });
+    if (recorded) {
       await this.runOnFailed(job, message, (err as any)?.type, opts);
     }
   }

@@ -465,6 +465,14 @@ export class PostsRepository {
     });
   }
 
+  // Only the error text; the state of the post is left as it is.
+  setError(id: string, error: string) {
+    return this._post.model.post.update({
+      where: { id },
+      data: { error },
+    });
+  }
+
   updatePost(id: string, postId: string, releaseURL: string) {
     return this._post.model.post.update({
       where: {
