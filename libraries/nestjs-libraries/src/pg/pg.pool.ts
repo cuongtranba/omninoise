@@ -37,7 +37,14 @@ function connectionString() {
 }
 
 export function getPgPool() {
-  pool ??= new Pool({ connectionString: connectionString(), max: 5 });
+  if (!pool) {
+    pool = new Pool({ connectionString: connectionString(), max: 5 });
+    // An idle client dies when Postgres restarts; without a listener the
+    // 'error' event would crash the process. The pool replaces the client.
+    pool.on('error', (err) => {
+      console.error('pg pool: idle client error', err.message);
+    });
+  }
   return pool;
 }
 

@@ -52,6 +52,7 @@ export class PgThrottlerStorage implements ThrottlerStorage {
     blockDuration: number,
     throttlerName: string
   ): ReturnType<ThrottlerStorage['increment']> {
+    // A failed setup is not cached, so the next call retries it.
     this.ready ??= ensurePgOnlySchema(...DDL).then(() =>
       sweepHourly(
         `DELETE FROM pgonly.throttle_hits
@@ -59,7 +60,10 @@ export class PgThrottlerStorage implements ThrottlerStorage {
            AND (blocked_until IS NULL OR blocked_until <= now())`
       )
     );
-    await this.ready;
+    await this.ready.catch((err) => {
+      this.ready = undefined;
+      throw err;
+    });
     const { rows } = await getPgPool().query(INCREMENT, [
       `${key}:${throttlerName}`,
       ttl,

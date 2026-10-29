@@ -26,10 +26,14 @@ class PostgresKeyValue {
   private ready?: Promise<void>;
 
   private async query(text: string, values: unknown[]) {
+    // A failed setup is not cached, so the next call retries it.
     this.ready ??= ensurePgOnlySchema(...DDL).then(() =>
       sweepHourly('DELETE FROM pgonly.kv_store WHERE expires_at <= now()')
     );
-    await this.ready;
+    await this.ready.catch((err) => {
+      this.ready = undefined;
+      throw err;
+    });
     return getPgPool().query(text, values);
   }
 

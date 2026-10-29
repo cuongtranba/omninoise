@@ -1,10 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 // Real-Postgres specs for the Redis replacement. The jest setup behind
 // `pnpm test` is unused; these run with `pnpm run test:pg`.
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  resolve: { tsconfigPaths: true },
   test: {
     include: ['libraries/**/*.spec.ts'],
     env: {
@@ -13,6 +12,7 @@ export default defineConfig({
     },
     testTimeout: 60_000,
     hookTimeout: 60_000,
+    // The specs share one database, and one of them runs `prisma db push`.
     fileParallelism: false,
   },
 });
