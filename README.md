@@ -116,10 +116,11 @@ Dokploy environment only. The workflow needs the repository secret
 `DOKPLOY_API_KEY`. To roll back, re-run the Deploy workflow of an earlier commit
 from the Actions tab.
 
-A stop or deploy is graceful: the orchestrator stops taking new jobs and
-finishes the running ones (up to `JOB_WORKER_SHUTDOWN_GRACE_MS`, default 5
-minutes). Compose allows 6 minutes before it kills the container. The site is
-down while a running publish finishes.
+A stop or deploy is graceful: `var/docker/entrypoint.sh` runs `pm2-runtime` as
+PID 1, so `docker stop` reaches the orchestrator, which stops taking new jobs and
+finishes the running ones for up to 5 minutes (`JOB_WORKER_SHUTDOWN_GRACE_MS`;
+keep it below `stop_grace_period: 6m` in `deploy/compose.yaml`). The site is down
+while a running publish finishes; with nothing running, the stop takes seconds.
 
 ## License
 
