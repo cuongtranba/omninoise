@@ -112,13 +112,50 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.image-tag.outputs.tag }}
-      # Cloudflare sits in front of lowbit.link. It blocks curl's default user
-      # agent, and from GitHub's runners it challenges a faked browser one too, so
-      # every call names itself honestly (as undercroft's deploy does).
       DEPLOY_UA: omninoise-deploy/1.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Cloudflare in front of lowbit.link challenges curl and Node's fetch from
+      # GitHub's runners (it scores the TLS fingerprint, not just the user agent);
+      # Bun's fetch gets through, as in undercroft's deploy. All HTTP calls below
+      # go through this one Bun helper.
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Write the HTTP helper
+        run: |
+          # bun http.mjs METHOD URL [BODY | @file]: prints the response body and
+          # exits 1 on a non-2xx status. Sends x-api-key when DOKPLOY_API_KEY is
+          # set (only in the deploy step). STATUS_ONLY=1 prints just the status.
+          cat > "$RUNNER_TEMP/http.mjs" <<'JS'
+          const [method, url, body] = process.argv.slice(2);
+          const headers = { 'User-Agent': process.env.DEPLOY_UA, Accept: 'application/json' };
+          if (process.env.DOKPLOY_API_KEY) headers['x-api-key'] = process.env.DOKPLOY_API_KEY;
+          let data;
+          if (body !== undefined) {
+            headers['Content-Type'] = 'application/json';
+            data = body.startsWith('@') ? await Bun.file(body.slice(1)).text() : body;
+          }
+          try {
+            const res = await fetch(url, { method, headers, body: data, signal: AbortSignal.timeout(30_000) });
+            const text = await res.text();
+            if (process.env.STATUS_ONLY) {
+              console.log(res.status);
+            } else if (!res.ok) {
+              console.error(`HTTP ${res.status}: ${text.slice(0, 500)}`);
+              process.exit(1);
+            } else {
+              console.log(text);
+            }
+          } catch (err) {
+            console.error(String(err));
+            process.exit(1);
+          }
+          JS
 
       - name: Pin the image tag in the compose file
         run: |
@@ -134,18 +171,11 @@ jobs:
             echo "::error::Repository secret DOKPLOY_API_KEY is not set; the image $IMAGE:$TAG was published but not deployed."
             exit 1
           fi
-          # The key goes to curl through a header file, not the command line.
-          headers="$RUNNER_TEMP/dokploy-headers"
-          (umask 077; printf 'x-api-key: %s\n' "$DOKPLOY_API_KEY" > "$headers")
-
-          # Prints the JSON body on stdout; errors go to stderr.
+          # Prints the JSON body on stdout; errors go to stderr. The key reaches
+          # the helper through the environment, not the command line.
           api() {
             local method=$1 path=$2 out
-            local args=(-sS --fail-with-body --max-time 30 -X "$method" "$DOKPLOY_URL/$path"
-              -A "$DEPLOY_UA" -H "Accept: application/json" -H "Content-Type: application/json"
-              -H "@$headers")
-            [ $# -ge 3 ] && args+=(-d "$3")
-            out=$(curl "${args[@]}") || { echo "Dokploy $path failed: $(head -c 500 <<<"$out")" >&2; return 1; }
+            out=$(bun "$RUNNER_TEMP/http.mjs" "$method" "$DOKPLOY_URL/$path" "${@:3}") || { echo "Dokploy $path failed" >&2; return 1; }
             jq . > /dev/null <<<"$out" || { echo "Dokploy $path did not return JSON (Cloudflare challenge?): $(head -c 300 <<<"$out")" >&2; return 1; }
             echo "$out"
           }
@@ -178,7 +208,7 @@ jobs:
           # The public API answers 401 without a key once the backend is up; the
           # frontend can return 500 for a few seconds after a deploy.
           for _ in $(seq 1 30); do
-            code=$(curl -s -o /dev/null --max-time 20 -A "$DEPLOY_UA" -w '%{http_code}' "$SITE_URL/api/public/v1/integrations" || true)
+            code=$(STATUS_ONLY=1 bun "$RUNNER_TEMP/http.mjs" GET "$SITE_URL/api/public/v1/integrations" || true)
             echo "public API: $code"
             [ "$code" = "401" ] && exit 0
             sleep 10
