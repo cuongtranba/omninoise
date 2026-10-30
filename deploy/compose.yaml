@@ -4,6 +4,8 @@ services:
     # image (sha-<short sha>) before this file is pushed to Dokploy.
     image: ghcr.io/cuongtranba/omninoise:${IMAGE_TAG}
     restart: always
+    # Must exceed the job worker grace plus pm2's kill_timeout (var/docker/ecosystem.config.js).
+    stop_grace_period: 6m
 
     environment:
       MAIN_URL: "https://${POSTIZ_HOST}"

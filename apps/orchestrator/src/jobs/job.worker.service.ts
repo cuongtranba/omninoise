@@ -36,6 +36,8 @@ export class JobWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.worker.stop();
+    await this.worker.stop(
+      Number(process.env.JOB_WORKER_SHUTDOWN_GRACE_MS) || 300_000
+    );
   }
 }
