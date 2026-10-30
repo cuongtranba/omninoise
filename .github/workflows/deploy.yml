@@ -1,0 +1,169 @@
+name: Deploy
+
+# Every push to main: build and test, publish the image
+# ghcr.io/cuongtranba/omninoise:sha-<short sha>, then deploy that exact tag to
+# Dokploy at https://lowbit.link and wait until the site answers again.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# One deploy at a time; a newer push waits instead of cancelling a running deploy.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/omninoise
+  DOKPLOY_URL: https://lowbit.link/api
+  DOKPLOY_COMPOSE_ID: zKgpTfdzxIcMupkBoEwx5
+  SITE_URL: https://postiz.lowbit.link
+
+jobs:
+  checks:
+    uses: ./.github/workflows/build.yml
+
+  image-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+  build-image:
+    needs: [checks, image-tag]
+    strategy:
+      matrix:
+        include:
+          - runnertags: ubuntu-latest
+            arch: amd64
+          - runnertags: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runnertags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and Push Image
+        env:
+          TAG: ${{ needs.image-tag.outputs.tag }}
+        run: |
+          docker buildx build --platform linux/${{ matrix.arch }} \
+            -f Dockerfile.dev \
+            --build-arg NEXT_PUBLIC_VERSION="$TAG" \
+            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+            --pull \
+            --no-cache \
+            --provenance=false --sbom=false \
+            --output "type=registry,name=$IMAGE:$TAG-${{ matrix.arch }}" .
+
+  image-manifest:
+    needs: [build-image, image-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Create Docker Manifest
+        env:
+          TAG: ${{ needs.image-tag.outputs.tag }}
+        run: |
+          docker buildx imagetools inspect "$IMAGE:$TAG-amd64"
+          docker buildx imagetools inspect "$IMAGE:$TAG-arm64"
+          docker manifest create "$IMAGE:$TAG" --amend "$IMAGE:$TAG-amd64" --amend "$IMAGE:$TAG-arm64"
+          docker manifest push "$IMAGE:$TAG"
+          docker manifest inspect "$IMAGE:$TAG"
+
+  deploy:
+    needs: [image-manifest, image-tag]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.image-tag.outputs.tag }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the Dokploy key is set
+        run: |
+          if [ -z "$DOKPLOY_API_KEY" ]; then
+            echo "::error::Repository secret DOKPLOY_API_KEY is not set; the image $IMAGE:$TAG was published but not deployed."
+            exit 1
+          fi
+
+      - name: Pin the image tag in the compose file
+        run: |
+          sed -i "s|\${IMAGE_TAG}|$TAG|" deploy/compose.yaml
+          grep -q "image: $IMAGE:$TAG$" deploy/compose.yaml
+          POSTIZ_HOST=example.com docker compose -f deploy/compose.yaml --env-file deploy/.env.example config -q
+
+      - name: Push the compose file and deploy
+        run: |
+          # Cloudflare sits in front of lowbit.link and challenges curl's default
+          # user agent, so send a browser one and fail on anything that is not JSON.
+          api() {
+            local method=$1 path=$2 out
+            local args=(-sS --fail-with-body -X "$method" "$DOKPLOY_URL/$path"
+              -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+              -H "Accept: application/json" -H "Content-Type: application/json"
+              -H "x-api-key: $DOKPLOY_API_KEY")
+            [ $# -ge 3 ] && args+=(-d "$3")
+            out=$(curl "${args[@]}") || { echo "$out" | head -c 500; return 1; }
+            echo "$out" | jq -e . > /dev/null || { echo "Not JSON (Cloudflare challenge?): $(echo "$out" | head -c 300)"; return 1; }
+            echo "$out"
+          }
+
+          before=$(api GET "deployment.allByCompose?composeId=$DOKPLOY_COMPOSE_ID" | jq -c '[.[].deploymentId]')
+
+          jq -n --rawfile f deploy/compose.yaml --arg id "$DOKPLOY_COMPOSE_ID" '{composeId: $id, composeFile: $f}' > /tmp/update.json
+          api POST compose.update "@/tmp/update.json" > /dev/null
+
+          title="$TAG: $(git log -1 --format=%s | head -c 150)"
+          api POST compose.deploy "$(jq -nc --arg id "$DOKPLOY_COMPOSE_ID" --arg t "$title" '{composeId: $id, title: $t}')" > /dev/null
+
+          # Wait for the new deployment to finish (15 minutes at most).
+          for _ in $(seq 1 90); do
+            sleep 10
+            status=$(api GET "deployment.allByCompose?composeId=$DOKPLOY_COMPOSE_ID" \
+              | jq -r --argjson before "$before" '[.[] | select(.deploymentId as $d | $before | index($d) | not)][0].status // "pending"')
+            echo "deployment status: $status"
+            case "$status" in
+              done) exit 0 ;;
+              error) echo "::error::Dokploy deployment failed; read its log in Dokploy."; exit 1 ;;
+            esac
+          done
+          echo "::error::Timed out waiting for the Dokploy deployment."
+          exit 1
+
+      - name: Check the site answers
+        run: |
+          # The public API answers 401 without a key once the backend is up; the
+          # frontend can return 500 for a few seconds after a deploy.
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/api/public/v1/integrations" || true)
+            echo "public API: $code"
+            [ "$code" = "401" ] && exit 0
+            sleep 10
+          done
+          echo "::error::$SITE_URL did not come back after the deploy."
+          exit 1

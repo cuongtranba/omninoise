@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: Security Issue
+    url: https://github.com/cuongtranba/omninoise/security/advisories/new
+    about: Report security issues privately through a GitHub Security Advisory.

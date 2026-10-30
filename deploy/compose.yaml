@@ -1,0 +1,80 @@
+services:
+  postiz-app:
+    # IMAGE_TAG is filled in by .github/workflows/deploy.yml with the commit's
+    # image (sha-<short sha>) before this file is pushed to Dokploy.
+    image: ghcr.io/cuongtranba/omninoise:${IMAGE_TAG}
+    restart: always
+
+    environment:
+      MAIN_URL: "https://${POSTIZ_HOST}"
+      FRONTEND_URL: "https://${POSTIZ_HOST}"
+      NEXT_PUBLIC_BACKEND_URL: "https://${POSTIZ_HOST}/api"
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postiz-postgres:5432/${DB_NAME}"
+      # "localhost" resolves to ::1 first, but the backend only listens on IPv4.
+      BACKEND_INTERNAL_URL: "http://127.0.0.1:3000"
+      IS_GENERAL: "true"
+      # Postiz still allows the first signup while this is true, then closes registration.
+      DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-true}
+      API_LIMIT: ${API_LIMIT:-30}
+      RUN_CRON: "true"
+      # Postiz only checks whether NOT_SECURED is set (any value, even "false",
+      # enables insecure mode). The template is served over HTTPS, so keep it
+      # unset to get secure cookies.
+      STORAGE_PROVIDER: "local"
+      UPLOAD_DIRECTORY: "/uploads"
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+      
+      # === Social Media API Settings ===
+      # These variables should be defined in the Dokploy Environment tab.
+      # Every provider Postiz reads must be listed here, otherwise setting it in
+      # the Environment tab has no effect: it never reaches the container.
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
+      INSTAGRAM_APP_ID: ${INSTAGRAM_APP_ID}
+      INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET}
+      X_API_KEY: ${X_API_KEY}
+      X_API_SECRET: ${X_API_SECRET}
+      # YOUTUBE_CLIENT_ID/SECRET also power "Sign in with Google" (Postiz's
+      # Google auth provider reads YOUTUBE_CLIENT_ID).
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET}
+      TIKTOK_CLIENT_ID: ${TIKTOK_CLIENT_ID}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET}
+      THREADS_APP_ID: ${THREADS_APP_ID}
+      THREADS_APP_SECRET: ${THREADS_APP_SECRET}
+
+    volumes:
+      - postiz-config:/config/
+      - postiz-uploads:/uploads/
+      - postiz-backups:/backups
+    depends_on:
+      postiz-postgres:
+        condition: service_healthy
+
+  postiz-postgres:
+    image: postgres:17-alpine
+    restart: always
+
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+      - postiz-backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres-volume:
+  postiz-config:
+  postiz-uploads:
+  # Nightly pg_dump and uploads archives, written by Dokploy schedules (deploy/README.md).
+  postiz-backups:
