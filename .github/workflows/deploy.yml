@@ -112,9 +112,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.image-tag.outputs.tag }}
-      # Cloudflare sits in front of lowbit.link and challenges curl's default
-      # user agent, so every call sends a browser one.
-      BROWSER_UA: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+      # Cloudflare sits in front of lowbit.link. It blocks curl's default user
+      # agent, and from GitHub's runners it challenges a faked browser one too, so
+      # every call names itself honestly (as undercroft's deploy does).
+      DEPLOY_UA: omninoise-deploy/1.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -141,7 +142,7 @@ jobs:
           api() {
             local method=$1 path=$2 out
             local args=(-sS --fail-with-body --max-time 30 -X "$method" "$DOKPLOY_URL/$path"
-              -A "$BROWSER_UA" -H "Accept: application/json" -H "Content-Type: application/json"
+              -A "$DEPLOY_UA" -H "Accept: application/json" -H "Content-Type: application/json"
               -H "@$headers")
             [ $# -ge 3 ] && args+=(-d "$3")
             out=$(curl "${args[@]}") || { echo "Dokploy $path failed: $(head -c 500 <<<"$out")" >&2; return 1; }
@@ -177,7 +178,7 @@ jobs:
           # The public API answers 401 without a key once the backend is up; the
           # frontend can return 500 for a few seconds after a deploy.
           for _ in $(seq 1 30); do
-            code=$(curl -s -o /dev/null --max-time 20 -A "$BROWSER_UA" -w '%{http_code}' "$SITE_URL/api/public/v1/integrations" || true)
+            code=$(curl -s -o /dev/null --max-time 20 -A "$DEPLOY_UA" -w '%{http_code}' "$SITE_URL/api/public/v1/integrations" || true)
             echo "public API: $code"
             [ "$code" = "401" ] && exit 0
             sleep 10
