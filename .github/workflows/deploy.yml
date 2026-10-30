@@ -9,9 +9,14 @@ on:
       - main
   workflow_dispatch:
 
+# Only the image jobs get packages: write; the checks run `pnpm install`.
 permissions:
   contents: read
-  packages: write
+
+# Plain `run:` steps get `bash -e`; this adds pipefail.
+defaults:
+  run:
+    shell: bash
 
 # One deploy at a time; a newer push waits instead of cancelling a running deploy.
 concurrency:
@@ -38,6 +43,9 @@ jobs:
 
   build-image:
     needs: [checks, image-tag]
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         include:
@@ -75,6 +83,9 @@ jobs:
 
   image-manifest:
     needs: [build-image, image-tag]
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
       - name: Login to ghcr
@@ -96,20 +107,17 @@ jobs:
 
   deploy:
     needs: [image-manifest, image-tag]
+    # A manual run from another branch builds its image but never deploys it.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.image-tag.outputs.tag }}
-      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      # Cloudflare sits in front of lowbit.link and challenges curl's default
+      # user agent, so every call sends a browser one.
+      BROWSER_UA: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Check the Dokploy key is set
-        run: |
-          if [ -z "$DOKPLOY_API_KEY" ]; then
-            echo "::error::Repository secret DOKPLOY_API_KEY is not set; the image $IMAGE:$TAG was published but not deployed."
-            exit 1
-          fi
 
       - name: Pin the image tag in the compose file
         run: |
@@ -118,34 +126,43 @@ jobs:
           POSTIZ_HOST=example.com docker compose -f deploy/compose.yaml --env-file deploy/.env.example config -q
 
       - name: Push the compose file and deploy
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
         run: |
-          # Cloudflare sits in front of lowbit.link and challenges curl's default
-          # user agent, so send a browser one and fail on anything that is not JSON.
+          if [ -z "$DOKPLOY_API_KEY" ]; then
+            echo "::error::Repository secret DOKPLOY_API_KEY is not set; the image $IMAGE:$TAG was published but not deployed."
+            exit 1
+          fi
+          # The key goes to curl through a header file, not the command line.
+          headers="$RUNNER_TEMP/dokploy-headers"
+          (umask 077; printf 'x-api-key: %s\n' "$DOKPLOY_API_KEY" > "$headers")
+
+          # Prints the JSON body on stdout; errors go to stderr.
           api() {
             local method=$1 path=$2 out
-            local args=(-sS --fail-with-body -X "$method" "$DOKPLOY_URL/$path"
-              -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
-              -H "Accept: application/json" -H "Content-Type: application/json"
-              -H "x-api-key: $DOKPLOY_API_KEY")
+            local args=(-sS --fail-with-body --max-time 30 -X "$method" "$DOKPLOY_URL/$path"
+              -A "$BROWSER_UA" -H "Accept: application/json" -H "Content-Type: application/json"
+              -H "@$headers")
             [ $# -ge 3 ] && args+=(-d "$3")
-            out=$(curl "${args[@]}") || { echo "$out" | head -c 500; return 1; }
-            echo "$out" | jq -e . > /dev/null || { echo "Not JSON (Cloudflare challenge?): $(echo "$out" | head -c 300)"; return 1; }
+            out=$(curl "${args[@]}") || { echo "Dokploy $path failed: $(head -c 500 <<<"$out")" >&2; return 1; }
+            jq . > /dev/null <<<"$out" || { echo "Dokploy $path did not return JSON (Cloudflare challenge?): $(head -c 300 <<<"$out")" >&2; return 1; }
             echo "$out"
           }
 
           before=$(api GET "deployment.allByCompose?composeId=$DOKPLOY_COMPOSE_ID" | jq -c '[.[].deploymentId]')
 
-          jq -n --rawfile f deploy/compose.yaml --arg id "$DOKPLOY_COMPOSE_ID" '{composeId: $id, composeFile: $f}' > /tmp/update.json
-          api POST compose.update "@/tmp/update.json" > /dev/null
+          jq -n --rawfile f deploy/compose.yaml --arg id "$DOKPLOY_COMPOSE_ID" '{composeId: $id, composeFile: $f}' > "$RUNNER_TEMP/update.json"
+          api POST compose.update "@$RUNNER_TEMP/update.json" > /dev/null
 
           title="$TAG: $(git log -1 --format=%s | head -c 150)"
           api POST compose.deploy "$(jq -nc --arg id "$DOKPLOY_COMPOSE_ID" --arg t "$title" '{composeId: $id, title: $t}')" > /dev/null
 
-          # Wait for the new deployment to finish (15 minutes at most).
+          # Wait for the new deployment to finish (15 minutes at most). A failed
+          # poll is retried: the deployment keeps running on the server.
           for _ in $(seq 1 90); do
             sleep 10
-            status=$(api GET "deployment.allByCompose?composeId=$DOKPLOY_COMPOSE_ID" \
-              | jq -r --argjson before "$before" '[.[] | select(.deploymentId as $d | $before | index($d) | not)][0].status // "pending"')
+            resp=$(api GET "deployment.allByCompose?composeId=$DOKPLOY_COMPOSE_ID") || { echo "poll failed, retrying"; continue; }
+            status=$(jq -r --argjson before "$before" '[.[] | select(.deploymentId as $d | $before | index($d) | not)][0].status // "pending"' <<<"$resp")
             echo "deployment status: $status"
             case "$status" in
               done) exit 0 ;;
@@ -160,7 +177,7 @@ jobs:
           # The public API answers 401 without a key once the backend is up; the
           # frontend can return 500 for a few seconds after a deploy.
           for _ in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/api/public/v1/integrations" || true)
+            code=$(curl -s -o /dev/null --max-time 20 -A "$BROWSER_UA" -w '%{http_code}' "$SITE_URL/api/public/v1/integrations" || true)
             echo "public API: $code"
             [ "$code" = "401" ] && exit 0
             sleep 10
