@@ -22,6 +22,8 @@ dayjs.extend(weekOfYear);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(utc);
 
+const SURFACED_ERROR_TYPES = new Set(['bad_body', 'refresh_token']);
+
 @Injectable()
 export class PostsRepository {
   constructor(
@@ -128,11 +130,15 @@ export class PostsRepository {
   }
 
   // Post.error persists the serialized failure; only curated provider messages
-  // are surfaced to the calendar and the public API: bad_body failures whose
-  // message came from a provider handleErrors mapping or a hand-written
-  // provider throw (unmapped API responses carry the 'Unknown Error'
-  // placeholder instead). Internal debug strings (e.g. 'Refresh channel
-  // needed'), untyped errors and unmapped failures come out as null.
+  // are surfaced to the calendar and the public API. That means failures of a
+  // type in SURFACED_ERROR_TYPES whose message came from a provider
+  // handleErrors mapping or a hand-written provider throw (unmapped API
+  // responses carry the 'Unknown Error' placeholder instead). bad_body
+  // messages describe what the provider rejected, and refresh_token messages
+  // tell the user the channel must be reconnected. Internal debug strings
+  // (e.g. 'Refresh channel needed'), other types, untyped errors and unmapped
+  // failures come out as null; `details` holds raw provider bodies and is
+  // never surfaced.
   //
   // Two shapes exist: the job queue stores NonRetryable.toJSON(), that is
   // {name, message, type, details}; rows written while Temporal ran the
@@ -152,7 +158,9 @@ export class PostsRepository {
               parsed?.failure?.cause?.applicationFailureInfo?.type,
               parsed?.failure?.cause?.message,
             ];
-      return type === 'bad_body' && message && message !== 'Unknown Error'
+      return SURFACED_ERROR_TYPES.has(type) &&
+        message &&
+        message !== 'Unknown Error'
         ? message
         : null;
     } catch (err) {
