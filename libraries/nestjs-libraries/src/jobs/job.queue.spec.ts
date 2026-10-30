@@ -128,6 +128,42 @@ test('a job that called markStarted and lost its lease is not run again', async 
   expect(runs).toBe(1);
 });
 
+test('a job still running when its worker stops is finished, not reaped', async () => {
+  const q = uniqueName('draining');
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  let running = false;
+  const lease = { leaseMs: 300, leaseExtendMs: 50 };
+
+  const a = await startWorker(
+    q,
+    (w) =>
+      w.register('draining', async () => {
+        await markStarted();
+        running = true;
+        await hold;
+      }),
+    lease
+  );
+  const { id } = await queue.enqueue('draining', {}, { queue: q });
+  await vi.waitFor(() => expect(running).toBe(true));
+
+  const stopping = a.stop(5_000);
+  // Another worker's reaper is active and the lease is far shorter than the
+  // drain: only a lease that is still extended keeps the job alive.
+  await startWorker(q, (w) => w.register('draining', async () => {}), lease);
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  release();
+  await stopping;
+
+  await vi.waitFor(async () => {
+    expect(await status(id)).toBe('done');
+  });
+  const finished = await row(id);
+  expect(finished.last_error).toBeNull();
+  expect(finished.attempts).toBe(1);
+});
+
 test('replace leaves one active job with the new run_at, keep leaves the original', async () => {
   const q = uniqueName('dedupe');
   const first = new Date(Date.now() + 3_600_000);

@@ -80,6 +80,8 @@ export class JobWorker {
   >();
   private runners = new Map<string, QueueRunner>();
   private timers: NodeJS.Timeout[] = [];
+  // Kept apart from `timers`: stop() keeps extending leases while it drains.
+  private leaseTimer?: NodeJS.Timeout;
   private listener?: Client;
   private pool?: Pool;
   private polling = false;
@@ -133,8 +135,11 @@ export class JobWorker {
     await this.listen();
     this.timers.push(
       setInterval(() => this.wakeAll(), this.pollIntervalMs),
-      setInterval(() => void this.reap(), this.reapIntervalMs),
-      setInterval(() => void this.extendLeases(), this.leaseExtendMs)
+      setInterval(() => void this.reap(), this.reapIntervalMs)
+    );
+    this.leaseTimer = setInterval(
+      () => void this.extendLeases(),
+      this.leaseExtendMs
     );
     void this.reap();
     this.wakeAll();
@@ -150,9 +155,27 @@ export class JobWorker {
     this.listener = undefined;
     await listener?.end().catch(() => undefined);
 
+    const draining = this.runningCount();
+    if (draining > 0) {
+      console.log(
+        `job worker: stopping, waiting for ${draining} running job(s) (up to ${Math.round(
+          graceMs / 1000
+        )}s)`
+      );
+    }
+    // Leases keep being extended while draining, or the reaper of another
+    // worker fails a started job that is still running.
     const deadline = Date.now() + graceMs;
     while (this.runningCount() > 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    clearInterval(this.leaseTimer);
+    this.leaseTimer = undefined;
+    const left = this.runningCount();
+    if (left > 0) {
+      console.error(
+        `job worker: ${left} job(s) still running after the grace period; the reaper will settle them`
+      );
     }
     // Handlers still running past the grace period get their writes refused
     // (the pool is gone); their jobs are left to the reaper.
