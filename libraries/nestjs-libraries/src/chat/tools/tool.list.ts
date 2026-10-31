@@ -20,6 +20,18 @@ import { DeletePostTool } from '@gitroom/nestjs-libraries/chat/tools/delete.post
 import { UploadWidgetTool } from '@gitroom/nestjs-libraries/chat/tools/upload.widget.tool';
 import { UploadWidgetTicketTool } from '@gitroom/nestjs-libraries/chat/tools/upload.widget.ticket.tool';
 import { UploadWidgetStatusTool } from '@gitroom/nestjs-libraries/chat/tools/upload.widget.status.tool';
+import { PostGetTool } from '@gitroom/nestjs-libraries/chat/tools/post.get.tool';
+import { PostsBrowseTool } from '@gitroom/nestjs-libraries/chat/tools/posts.browse.tool';
+import { PostStatisticsTool } from '@gitroom/nestjs-libraries/chat/tools/post.statistics.tool';
+import { PostReleaseTool } from '@gitroom/nestjs-libraries/chat/tools/post.release.tool';
+import { PostCommentsTool } from '@gitroom/nestjs-libraries/chat/tools/post.comments.tool';
+import { PostTagsTool } from '@gitroom/nestjs-libraries/chat/tools/post.tags.tool';
+import { PostFindSlotTool } from '@gitroom/nestjs-libraries/chat/tools/post.find.slot.tool';
+import { PostValidateTool } from '@gitroom/nestjs-libraries/chat/tools/post.validate.tool';
+import { PostGeneratorTool } from '@gitroom/nestjs-libraries/chat/tools/post.generator.tool';
+import { PostGeneratorDraftTool } from '@gitroom/nestjs-libraries/chat/tools/post.generator.draft.tool';
+import { PostChangeDateTool } from '@gitroom/nestjs-libraries/chat/tools/post.change.date.tool';
+import { PostSeparateTool } from '@gitroom/nestjs-libraries/chat/tools/post.separate.tool';
 
 export const toolList = [
   IntegrationListTool,
@@ -30,6 +42,18 @@ export const toolList = [
   PostsListTool,
   PostSettingsTool,
   DeletePostTool,
+  PostGetTool,
+  PostsBrowseTool,
+  PostStatisticsTool,
+  PostReleaseTool,
+  PostCommentsTool,
+  PostTagsTool,
+  PostFindSlotTool,
+  PostValidateTool,
+  PostGeneratorTool,
+  PostGeneratorDraftTool,
+  PostChangeDateTool,
+  PostSeparateTool,
   GenerateVideoOptionsTool,
   VideoFunctionTool,
   GenerateVideoTool,

@@ -14,7 +14,8 @@ import {
   copilotRuntimeNodeHttpEndpoint,
 } from '@copilotkit/runtime';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
-import { Organization } from '@prisma/client';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { Organization, User } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { MastraAgent } from '@ag-ui/mastra';
 import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
@@ -72,7 +73,8 @@ export class CopilotController {
   async agent(
     @Req() req: Request,
     @Res() res: Response,
-    @GetOrgFromRequest() organization: Organization
+    @GetOrgFromRequest() organization: Organization & { users?: object[] },
+    @GetUserFromRequest() user: User
   ) {
     if (
       process.env.OPENAI_API_KEY === undefined ||
@@ -88,7 +90,15 @@ export class CopilotController {
       req?.body?.body?.forwardedProps?.integrations || []
     );
 
-    requestContext.set('organization', JSON.stringify(organization));
+    // the tools read the caller from users[0], the same shape as an MCP
+    // OAuth connection (role and the user's id)
+    requestContext.set(
+      'organization',
+      JSON.stringify({
+        ...organization,
+        users: [{ ...organization.users?.[0], userId: user.id }],
+      })
+    );
     requestContext.set('ui', 'true');
 
     const agents = MastraAgent.getLocalAgents({

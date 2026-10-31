@@ -791,8 +791,8 @@ export class PostsService {
     return this.groupForEditor(posts, convertToJPEG);
   }
 
-  async getOldPosts(orgId: string, date: string) {
-    return this._postRepository.getOldPosts(orgId, date);
+  async getOldPosts(orgId: string, date: string, take?: number) {
+    return this._postRepository.getOldPosts(orgId, date, take);
   }
 
   public async updateTags(orgId: string, post: Post[]): Promise<Post[]> {
@@ -1557,6 +1557,14 @@ export class PostsService {
       .year(body.year)
       .startOf('isoWeek');
 
+    // findTime retries until it lands in the future, which never happens for
+    // a week that is already over
+    if (allDates.endOf('isoWeek').isBefore(dayjs())) {
+      throw new BadRequestException(
+        'This week is already over, pick the current week or a future one'
+      );
+    }
+
     const dates = [...new Array(7)].map((_, i) => {
       return allDates.add(i, 'day').format('YYYY-MM-DD');
     });
@@ -1733,9 +1741,11 @@ export class PostsService {
     previewId: string,
     body: CreatePublicCommentDto,
     userId: string | null,
-    ip: string
+    ip: string,
+    orgId?: string
   ) {
-    const posts = await this.getPostsRecursively(previewId, false);
+    // a shared preview can be commented from any organization, unless orgId scopes it
+    const posts = await this.getPostsRecursively(previewId, false, orgId);
     if (!posts.length) {
       throw new NotFoundException('Post not found');
     }

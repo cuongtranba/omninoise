@@ -3,9 +3,11 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
 import { toolList } from '@gitroom/nestjs-libraries/chat/tools/tool.list';
 import { McpRelayService } from '@gitroom/nestjs-libraries/chat/mcp.relay.service';
+import { AgentModule } from '@gitroom/nestjs-libraries/agent/agent.module';
 
 @Global()
 @Module({
+  imports: [AgentModule],
   providers: [MastraService, LoadToolsService, McpRelayService, ...toolList],
   get exports() {
     return this.providers;

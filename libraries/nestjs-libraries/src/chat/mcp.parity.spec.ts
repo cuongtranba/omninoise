@@ -100,6 +100,9 @@ const EXCLUDED: Record<string, string> = {
   'POST /oauth/authorize': OAUTH_SERVER,
   // payment.controller
   'POST /payment/:provider': 'payment provider webhook receiver',
+  // posts.controller
+  'GET /posts/group/:group/debug-export':
+    'support download for the super admin of the instance (403 for everyone else), an organization member can never use it',
   // public.controller
   'POST /public/agent': 'internal endpoint guarded by a server secret',
   'GET /public/posts/:id': 'unauthenticated public preview page of the browser',
@@ -198,30 +201,6 @@ const PENDING: string[] = [
   'PUT /user/oauth-app',
   'DELETE /user/oauth-app',
   'POST /user/oauth-app/rotate-secret',
-  // posts.controller
-  'GET /posts/:id/statistics',
-  'GET /posts/:id/missing',
-  'GET /posts/:id/release-url',
-  'PUT /posts/:id/release-id',
-  'POST /posts/should-shortlink',
-  'POST /posts/:id/comments',
-  'PUT /posts/comments/:commentId/resolve',
-  'GET /posts/tags',
-  'POST /posts/tags',
-  'PUT /posts/tags/:id',
-  'DELETE /posts/tags/:id',
-  'GET /posts/find-slot',
-  'GET /posts/find-slot/:id',
-  'GET /posts/list',
-  'GET /posts/old',
-  'GET /posts/group/:group/debug-export',
-  'GET /posts/group/:group',
-  'GET /posts/:id',
-  'POST /posts/valid',
-  'POST /posts/generator/draft',
-  'POST /posts/generator',
-  'PUT /posts/:id/date',
-  'POST /posts/separate-posts',
   // sets.controller
   'GET /sets',
   'POST /sets',

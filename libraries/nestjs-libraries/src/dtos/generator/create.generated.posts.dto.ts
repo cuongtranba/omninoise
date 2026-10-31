@@ -43,10 +43,10 @@ export class CreateGeneratedPostsDto {
   @IsString()
   @IsDefined()
   @ValidateIf((o) => !o.url)
-  url: string;
+  url?: string;
 
   @IsString()
   @IsDefined()
   @ValidateIf((o) => !o.url)
-  postId: string;
+  postId?: string;
 }

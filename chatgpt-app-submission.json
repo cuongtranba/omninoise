@@ -104,6 +104,150 @@
         "destructive_justification": "Permanently deletes the post (every repetition of a repeating post) and its comments from Postiz, so a scheduled post is no longer published; this cannot be undone."
       }
     },
+    "postGetTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves one post of the organization with its parts, media, channel and settings.",
+        "open_world_justification": "Does not write to public internet state or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "postsBrowseTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves a page of the organization's posts, or the earlier posts up to a date.",
+        "open_world_justification": "Does not write to public internet state or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "postStatisticsTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves the click counts of the shortened links of a post.",
+        "open_world_justification": "Asks the short link service for the clicks of the links; nothing is written to it.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "postReleaseTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Can store the id of the published post on a Postiz post whose id was not captured.",
+        "open_world_justification": "Looks up the published post and the recent content of the channel on the connected social network; nothing is published or changed there.",
+        "destructive_justification": "Overwrites the stored release id of a post whose id is marked as missing, and only after the user picked the candidate."
+      }
+    },
+    "postCommentsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Adds a review comment to a post or marks a comment as resolved.",
+        "open_world_justification": "Review comments stay inside Postiz and are never published on a social network.",
+        "destructive_justification": "Does not delete or overwrite anything: it adds a comment or toggles whether a comment is resolved."
+      }
+    },
+    "postTagsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Creates, renames, recolors and deletes tags of the organization.",
+        "open_world_justification": "Tags stay inside Postiz and do not reach any external system.",
+        "destructive_justification": "Deleting a tag removes it from every post that has it and cannot be undone; renaming overwrites the previous name and color."
+      }
+    },
+    "postFindSlotTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only calculates the next free time for a post; nothing is scheduled.",
+        "open_world_justification": "Does not write to public internet state or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "postValidateTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only checks posts against the channel rules and link shortening; nothing is created.",
+        "open_world_justification": "Does not write to public internet state or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "postGeneratorTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Generates post text and optionally pictures, and saves the generated pictures in the media library.",
+        "open_world_justification": "Researches the topic on the internet and sends the request to an AI provider to write the text and pictures.",
+        "destructive_justification": "Does not delete, overwrite or publish anything; it only returns new text and adds new media."
+      }
+    },
+    "postGeneratorDraftTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates draft posts on the enabled channels for a chosen week.",
+        "open_world_justification": "Only creates drafts inside Postiz; nothing is published on any social network.",
+        "destructive_justification": "Does not delete or overwrite anything; it only adds new drafts."
+      }
+    },
+    "postChangeDateTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Changes the publish date of a post and can put it back in the queue.",
+        "open_world_justification": "Only changes the date inside Postiz; the post is published later by the normal schedule.",
+        "destructive_justification": "Overwrites the publish date of the post, and with the schedule action clears its published link and queues it again; a published post is refused unless the user explicitly asks to publish it again."
+      }
+    },
+    "postSeparateTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only returns the text split into parts; nothing is stored or scheduled.",
+        "open_world_justification": "Sends the text to an AI provider to split it into parts.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
     "generateVideoOptions": {
       "annotations": {
         "readOnlyHint": true,
