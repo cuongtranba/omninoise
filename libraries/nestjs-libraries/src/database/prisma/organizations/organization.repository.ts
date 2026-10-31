@@ -244,6 +244,10 @@ export class OrganizationRepository {
       data: {
         apiKey: AuthService.fixedEncryption(makeSecureId(20)),
       },
+      select: {
+        id: true,
+        apiKey: true,
+      },
     });
   }
 

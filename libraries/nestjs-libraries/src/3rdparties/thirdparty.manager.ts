@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import {
   ThirdPartyAbstract,
   ThirdPartyParams,
@@ -12,6 +12,7 @@ import { ImportMediaItemDto } from '@gitroom/nestjs-libraries/dtos/third-party/i
 
 @Injectable()
 export class ThirdPartyManager {
+  private readonly _logger = new Logger(ThirdPartyManager.name);
   private storage = UploadFactory.createStorage();
 
   constructor(
@@ -81,19 +82,25 @@ export class ThirdPartyManager {
   }
 
   // the saved integrations of an organization with what their provider says
-  // about itself, never the api key
+  // about itself, never the api key. A row whose provider no longer exists in
+  // the code is skipped
   async getSavedThirdParties(org: string) {
-    return (await this.getAllThirdPartiesByOrganization(org)).map(
+    return (await this.getAllThirdPartiesByOrganization(org)).flatMap(
       (thirdParty) => {
-        const { description, fields, position, title } =
-          this.getThirdPartyByName(thirdParty.identifier)!;
-        return {
-          ...thirdParty,
-          title,
-          position,
-          fields,
-          description,
-        };
+        const provider = this.getThirdPartyByName(thirdParty.identifier);
+        if (!provider) {
+          return [];
+        }
+        const { description, fields, position, title } = provider;
+        return [
+          {
+            ...thirdParty,
+            title,
+            position,
+            fields,
+            description,
+          },
+        ];
       }
     );
   }
@@ -202,7 +209,7 @@ export class ThirdPartyManager {
         id: save.id,
       };
     } catch (e) {
-      console.log(e);
+      this._logger.error(e);
       throw new HttpException('Integration Already Exists', 400);
     }
   }

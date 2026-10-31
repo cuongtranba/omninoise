@@ -294,19 +294,31 @@ test('a queue with concurrency 1 never runs two jobs at once', async () => {
 
 test('a job with a future run_at does not run before it is due', async () => {
   const q = uniqueName('future');
-  let ranAt = 0;
+  // the worker decides a job is due with the clock of Postgres (run_at <=
+  // now()), so the due time is set and checked on that same clock: the host
+  // clock may differ from the one of the database
+  let ranBeforeDue: boolean | undefined;
   await startWorker(q, (w) =>
-    w.register('future', async () => {
-      ranAt = Date.now();
+    w.register('future', async (job) => {
+      ranBeforeDue = (
+        await getPgPool().query(
+          'SELECT clock_timestamp() < run_at AS early FROM pgonly.jobs WHERE id = $1',
+          [job.id]
+        )
+      ).rows[0].early;
     })
   );
-  const dueAt = Date.now() + 1_500;
+  const dueAt = (
+    await getPgPool().query(
+      `SELECT now() + interval '1500 milliseconds' AS due_at`
+    )
+  ).rows[0].due_at as Date;
   const { id } = await queue.enqueue(
     'future',
     {},
     {
       queue: q,
-      runAt: new Date(dueAt),
+      runAt: dueAt,
     }
   );
 
@@ -317,7 +329,7 @@ test('a job with a future run_at does not run before it is due', async () => {
     },
     { timeout: 10_000 }
   );
-  expect(ranAt).toBeGreaterThanOrEqual(dueAt - 5);
+  expect(ranBeforeDue).toBe(false);
 });
 
 test('a handler that throws twice then succeeds ends done after 3 attempts', async () => {
