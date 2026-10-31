@@ -94,6 +94,9 @@ export class IntegrationRepository {
 
   updateProviderSettings(org: string, id: string, settings: string) {
     return this._integration.model.integration.update({
+      select: {
+        id: true,
+      },
       where: {
         id,
         organizationId: org,
@@ -465,13 +468,14 @@ export class IntegrationRepository {
     });
   }
 
-  updateNameAndUrl(id: string, name: string, url: string) {
+  updateNameAndUrl(org: string, id: string, name: string, url: string) {
     return this._integration.model.integration.update({
       select: {
         id: true,
       },
       where: {
         id,
+        organizationId: org,
       },
       data: {
         ...(name ? { name } : {}),

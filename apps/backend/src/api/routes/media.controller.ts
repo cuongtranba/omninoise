@@ -20,7 +20,6 @@ import { ApiTags } from '@nestjs/swagger';
 import handleR2Upload from '@gitroom/nestjs-libraries/upload/r2.uploader';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
-import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
@@ -28,7 +27,6 @@ import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.fu
 @ApiTags('Media')
 @Controller('/media')
 export class MediaController {
-  private storage = UploadFactory.createStorage();
   constructor(private _mediaService: MediaService) {}
 
   @Delete('/:id')
@@ -71,14 +69,7 @@ export class MediaController {
     @Req() req: Request,
     @Body('prompt') prompt: string
   ) {
-    const image = await this.generateImage(org, req, prompt, true);
-    if (!image) {
-      return false;
-    }
-
-    const file = await this.storage.uploadSimple(image.output);
-
-    return this._mediaService.saveFile(org.id, file.split('/').pop(), file);
+    return this._mediaService.generateAndSaveImage(org, prompt, true);
   }
 
   @Post('/upload-server')

@@ -21,6 +21,8 @@ const UPLOAD_TRANSPORT =
   'upload transport internals, the MCP uploads through upload-from-url and the upload widget';
 const OAUTH_SERVER =
   'OAuth 2.0 server endpoints that authenticate the MCP and other clients themselves';
+const ENTERPRISE =
+  "server-to-server enterprise provisioning authenticated by a signed partner token in the body, not an organization user's action";
 
 const EXCLUDED: Record<string, string> = {
   // auth.controller
@@ -82,6 +84,21 @@ const EXCLUDED: Record<string, string> = {
     'transport of the browser upload widget, the MCP drives it through the upload widget tools',
   // monitor.controller
   'GET /monitor/queue/:name': 'queue health probe for operators',
+  // enterprise.controller
+  'POST /enterprise/create-user': ENTERPRISE,
+  'POST /enterprise/url': ENTERPRISE,
+  'POST /enterprise/delete-channel': ENTERPRISE,
+  // integrations.controller
+  'POST /integrations/provider/:id/connect':
+    'page picker completed in the browser after the OAuth callback of the channel connect flow',
+  'GET /integrations/telegram/updates':
+    'step of the Telegram browser connect flow, finds the bot of the connect dialog',
+  'POST /integrations/moltbook/register':
+    'step of the Moltbook browser connect flow, registers the agent of the connect dialog',
+  'GET /integrations/moltbook/status':
+    'step of the Moltbook browser connect flow, polls the claim of the connect dialog',
+  'GET /integrations/:id':
+    'marketplace order lookup (the channel of a post bought through an order), not used by the web app and the MCP has no marketplace',
   // no.auth.integrations.controller
   'POST /integrations/social-connect/:integration':
     'OAuth callback of the channel connect flow, completed in the browser',
@@ -100,6 +117,9 @@ const EXCLUDED: Record<string, string> = {
   'POST /oauth/authorize': OAUTH_SERVER,
   // payment.controller
   'POST /payment/:provider': 'payment provider webhook receiver',
+  // posts.controller
+  'GET /posts/group/:group/debug-export':
+    'support download for the super admin of the instance (403 for everyone else), an organization member can never use it',
   // public.controller
   'POST /public/agent': 'internal endpoint guarded by a server secret',
   'GET /public/posts/:id': 'unauthenticated public preview page of the browser',
@@ -124,152 +144,6 @@ const EXCLUDED: Record<string, string> = {
   'POST /user/logout': 'clears the session cookie of the browser',
   'POST /user/t': 'browser tracking pixel',
 };
-
-// Routes not mirrored yet. Each area PR removes its routes from this list, the
-// final PR deletes it.
-const PENDING: string[] = [
-  // admin.controller
-  'GET /admin/errors',
-  'GET /admin/errors/platforms',
-  'GET /admin/stats',
-  // analytics.controller
-  'GET /analytics/:integration',
-  'GET /analytics/post/:postId',
-  // announcements.controller
-  'GET /announcements',
-  'POST /announcements',
-  'DELETE /announcements/:id',
-  // approved-apps.controller
-  'GET /user/approved-apps',
-  'DELETE /user/approved-apps/:id',
-  // autopost.controller
-  'GET /autopost',
-  'POST /autopost',
-  'PUT /autopost/:id',
-  'DELETE /autopost/:id',
-  'POST /autopost/:id/active',
-  'POST /autopost/send',
-  // clipping.controller
-  'GET /clipping',
-  // copilot.controller
-  'GET /copilot/credits',
-  'GET /copilot/:thread/list',
-  'GET /copilot/list',
-  // enterprise.controller
-  'POST /enterprise/create-user',
-  'POST /enterprise/url',
-  'POST /enterprise/delete-channel',
-  // integrations.controller
-  'POST /integrations/provider/:id/connect',
-  'GET /integrations/:identifier/internal-plugs',
-  'PUT /integrations/customers/:id',
-  'PUT /integrations/:id/group',
-  'PUT /integrations/:id/customer-name',
-  'PUT /integrations/:id/custom-name',
-  'POST /integrations/:id/settings',
-  'POST /integrations/:id/nickname',
-  'GET /integrations/:id',
-  'GET /integrations/social/:integration',
-  'POST /integrations/:id/time',
-  'POST /integrations/mentions',
-  'POST /integrations/disable',
-  'POST /integrations/enable',
-  'DELETE /integrations',
-  'GET /integrations/plug/list',
-  'GET /integrations/:id/plugs',
-  'POST /integrations/:id/plugs',
-  'PUT /integrations/plugs/:id/activate',
-  'GET /integrations/telegram/updates',
-  'POST /integrations/moltbook/register',
-  'GET /integrations/moltbook/status',
-  // media.controller
-  'DELETE /media/:id',
-  'POST /media/generate-image-with-prompt',
-  'POST /media/information',
-  'GET /media/generate-video/:type/allowed',
-  // no.auth.integrations.controller
-  'GET /integrations',
-  // notifications.controller
-  'GET /notifications',
-  'GET /notifications/list',
-  // oauth-app.controller
-  'GET /user/oauth-app',
-  'POST /user/oauth-app',
-  'PUT /user/oauth-app',
-  'DELETE /user/oauth-app',
-  'POST /user/oauth-app/rotate-secret',
-  // posts.controller
-  'GET /posts/:id/statistics',
-  'GET /posts/:id/missing',
-  'GET /posts/:id/release-url',
-  'PUT /posts/:id/release-id',
-  'POST /posts/should-shortlink',
-  'POST /posts/:id/comments',
-  'PUT /posts/comments/:commentId/resolve',
-  'GET /posts/tags',
-  'POST /posts/tags',
-  'PUT /posts/tags/:id',
-  'DELETE /posts/tags/:id',
-  'GET /posts/find-slot',
-  'GET /posts/find-slot/:id',
-  'GET /posts/list',
-  'GET /posts/old',
-  'GET /posts/group/:group/debug-export',
-  'GET /posts/group/:group',
-  'GET /posts/:id',
-  'POST /posts/valid',
-  'POST /posts/generator/draft',
-  'POST /posts/generator',
-  'PUT /posts/:id/date',
-  'POST /posts/separate-posts',
-  // sets.controller
-  'GET /sets',
-  'POST /sets',
-  'PUT /sets',
-  'DELETE /sets/:id',
-  // settings.controller
-  'GET /settings/team',
-  'POST /settings/team',
-  'POST /settings/team/add',
-  'DELETE /settings/team/:id',
-  'GET /settings/shortlink',
-  'POST /settings/shortlink',
-  // signature.controller
-  'GET /signatures',
-  'GET /signatures/default',
-  'POST /signatures',
-  'DELETE /signatures/:id',
-  'PUT /signatures/:id',
-  // third-party.controller
-  'GET /third-party/list',
-  'GET /third-party',
-  'DELETE /third-party/:id',
-  'POST /third-party/:id/submit',
-  'POST /third-party/function/:id/:functionName',
-  'POST /third-party/:id/import',
-  'POST /third-party/:identifier',
-  // users.controller
-  'GET /user/self',
-  'GET /user/personal',
-  'GET /user/impersonate',
-  'POST /user/personal',
-  'GET /user/email-notifications',
-  'POST /user/email-notifications',
-  'POST /user/timezone',
-  'POST /user/api-key/rotate',
-  'GET /user/subscription',
-  'GET /user/subscription/tiers',
-  'POST /user/join-org',
-  'GET /user/organizations',
-  'GET /user/delete-account-info',
-  'POST /user/delete-account',
-  // webhooks.controller
-  'GET /webhooks',
-  'POST /webhooks',
-  'PUT /webhooks',
-  'DELETE /webhooks/:id',
-  'POST /webhooks/send',
-];
 
 const list = (dir: string, suffix: string): string[] =>
   readdirSync(dir, { recursive: true, encoding: 'utf8' })
@@ -312,7 +186,6 @@ const webRoutes = [...new Set(parseRoutes(webRoutesDir))];
 const publicRoutes = [...new Set(parseRoutes(publicRoutesDir))];
 const tools = toolList.map((Tool) => new Tool());
 const mirrored = new Set(tools.flatMap((tool) => tool.mirrors));
-const pending = new Set(PENDING);
 
 test('the route parser finds the web and public API routes', () => {
   expect(webRoutes.length).toBeGreaterThan(100);
@@ -323,15 +196,15 @@ test('the route parser finds the web and public API routes', () => {
   expect(publicRoutes).toContain('POST /public/v1/posts');
 });
 
-test('every web route is mirrored by an MCP tool, excluded with a reason, or pending', () => {
+test('every web route is mirrored by an MCP tool or excluded with a reason', () => {
   const uncovered = webRoutes.filter(
-    (route) =>
-      !mirrored.has(route) && !(route in EXCLUDED) && !pending.has(route)
+    (route) => !mirrored.has(route) && !(route in EXCLUDED)
   );
   expect(
     uncovered,
     `These web routes have no MCP counterpart:\n${uncovered.join('\n')}\n` +
-      `Add an MCP tool whose \`mirrors\` lists the route, or add it to EXCLUDED in ${__filename} with the reason it has no MCP equivalent.`
+      `Every web route needs an MCP tool (in ${toolsDir}, registered in tool.list.ts) whose \`mirrors\` lists the route and that calls the same service method, ` +
+      `or an entry in EXCLUDED in ${__filename} with the specific reason it has no MCP equivalent.`
   ).toEqual([]);
 });
 
@@ -345,14 +218,13 @@ test('every tool mirror points at an existing route', () => {
   expect(stale, `Stale \`mirrors\` entries:\n${stale.join('\n')}`).toEqual([]);
 });
 
-test('EXCLUDED and PENDING only list existing routes and never overlap', () => {
+test('EXCLUDED only lists existing routes that no tool mirrors', () => {
   const known = new Set(webRoutes);
-  const listed = [...Object.keys(EXCLUDED), ...PENDING];
+  const listed = Object.keys(EXCLUDED);
   expect({
     stale: listed.filter((route) => !known.has(route)),
-    both: PENDING.filter((route) => route in EXCLUDED),
     alreadyMirrored: listed.filter((route) => mirrored.has(route)),
-  }).toEqual({ stale: [], both: [], alreadyMirrored: [] });
+  }).toEqual({ stale: [], alreadyMirrored: [] });
 });
 
 test('tools go through services, never a repository or Prisma', () => {

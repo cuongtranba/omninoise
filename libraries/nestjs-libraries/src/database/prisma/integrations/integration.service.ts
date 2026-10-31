@@ -24,11 +24,12 @@ import {
 import { IntegrationTimeDto } from '@gitroom/nestjs-libraries/dtos/integrations/integration.time.dto';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { PlugDto } from '@gitroom/nestjs-libraries/dtos/plugs/plug.dto';
-import { difference, uniq } from 'lodash';
+import { difference, uniq, uniqBy } from 'lodash';
 import utc from 'dayjs/plugin/utc';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 dayjs.extend(utc);
 
@@ -40,6 +41,16 @@ const isCloudflareImage = (url: string) => {
     return false;
   }
 };
+
+// Why a connect link was refused, so a caller can answer in its own format
+export class ConnectUrlError extends Error {
+  constructor(
+    message: string,
+    public readonly reason: 'notAllowed' | 'externalUrl'
+  ) {
+    super(message);
+  }
+}
 
 @Injectable()
 export class IntegrationService {
@@ -152,7 +163,12 @@ export class IntegrationService {
     );
   }
 
-  updateIntegrationGroup(org: string, id: string, group: string) {
+  async updateIntegrationGroup(org: string, id: string, group: string) {
+    // a group of another organization must never be linked to this channel
+    if (group && !(await this.customers(org)).some((p) => p.id === group)) {
+      throw new HttpException('Group not found', HttpStatus.NOT_FOUND);
+    }
+
     return this._integrationRepository.updateIntegrationGroup(org, id, group);
   }
 
@@ -162,6 +178,42 @@ export class IntegrationService {
 
   getIntegrationsList(org: string) {
     return this._integrationRepository.getIntegrationsList(org);
+  }
+
+  // The channels of the organization the way the dashboard shows them, with
+  // what each platform allows on them
+  async getIntegrationsListForDisplay(org: string) {
+    return Promise.all(
+      (await this.getIntegrationsList(org)).map(async (p) => {
+        const findIntegration = this._integrationManager.getSocialIntegration(
+          p.providerIdentifier
+        );
+        return {
+          name: p.customName || p.name,
+          originalName: p.name,
+          id: p.id,
+          internalId: p.internalId,
+          disabled: p.disabled,
+          editor: findIntegration.editor,
+          stripLinks: !!findIntegration?.stripLinks?.(),
+          picture: p.picture || '/no-picture.jpg',
+          identifier: p.providerIdentifier,
+          inBetweenSteps: p.inBetweenSteps,
+          refreshNeeded: p.refreshNeeded,
+          isCustomFields: !!findIntegration.customFields,
+          ...(findIntegration.customFields
+            ? { customFields: await findIntegration.customFields() }
+            : {}),
+          display: p.profile,
+          type: p.type,
+          time: JSON.parse(p.postingTimes),
+          changeProfilePicture: !!findIntegration?.changeProfilePicture,
+          changeNickName: !!findIntegration?.changeNickname,
+          customer: p.customer,
+          additionalSettings: p.additionalSettings || '[]',
+        };
+      })
+    );
   }
 
   getChannelHealth(org: string, includeDeleted = false) {
@@ -181,8 +233,8 @@ export class IntegrationService {
     return this._integrationRepository.updateCustomName(org, id, name);
   }
 
-  updateNameAndUrl(id: string, name: string, url: string) {
-    return this._integrationRepository.updateNameAndUrl(id, name, url);
+  updateNameAndUrl(org: string, id: string, name: string, url: string) {
+    return this._integrationRepository.updateNameAndUrl(org, id, name, url);
   }
 
   getIntegrationById(org: string, id: string) {
@@ -290,6 +342,225 @@ export class IntegrationService {
         }
       }
     }
+  }
+
+  // The authorization link the user opens to connect a channel, or to reconnect
+  // one when `refresh` is its internal id. The state of the link lives in
+  // Redis, so it completes in any browser, signed in or not.
+  async generateConnectUrl(
+    orgId: string,
+    integration: string,
+    options: {
+      refresh?: string;
+      externalUrl?: string;
+      redirectUrl?: string;
+      onboarding?: string;
+      webhookUrl?: string;
+    }
+  ) {
+    const { refresh, externalUrl, redirectUrl, onboarding, webhookUrl } =
+      options;
+    if (
+      !this._integrationManager
+        .getAllowedSocialsIntegrations()
+        .includes(integration)
+    ) {
+      throw new ConnectUrlError('Integration not allowed', 'notAllowed');
+    }
+
+    // A provider migrated via MIGRATE_PROVIDERS reconnects through its target
+    // provider's OAuth: the callback lands on the target and the channel is
+    // migrated in place (see migrateIntegration).
+    const migrateTo = refresh
+      ? this._integrationManager.getMigrationTarget(integration)
+      : undefined;
+
+    const integrationProvider = this._integrationManager.getSocialIntegration(
+      migrateTo || integration
+    );
+
+    if (integrationProvider.externalUrl && !externalUrl) {
+      throw new ConnectUrlError('Missing external url', 'externalUrl');
+    }
+
+    try {
+      const getExternalUrl = integrationProvider.externalUrl
+        ? {
+            ...(await integrationProvider.externalUrl(externalUrl!)),
+            instanceUrl: externalUrl,
+          }
+        : undefined;
+
+      const { codeVerifier, state, url } =
+        await integrationProvider.generateAuthUrl(getExternalUrl);
+
+      if (refresh) {
+        await ioRedis.set(`refresh:${state}`, refresh, 'EX', 3600);
+      }
+
+      if (onboarding === 'true') {
+        await ioRedis.set(`onboarding:${state}`, 'true', 'EX', 3600);
+      }
+
+      if (redirectUrl) {
+        await ioRedis.set(`redirect:${state}`, redirectUrl, 'EX', 3600);
+      }
+
+      if (webhookUrl) {
+        await ioRedis.set(`webhookUrl:${state}`, webhookUrl, 'EX', 3600);
+      }
+
+      await ioRedis.set(`organization:${state}`, orgId, 'EX', 3600);
+      await ioRedis.set(`login:${state}`, codeVerifier, 'EX', 3600);
+      if (getExternalUrl) {
+        await ioRedis.set(
+          `external:${state}`,
+          JSON.stringify(getExternalUrl),
+          'EX',
+          3600
+        );
+      }
+
+      return { url };
+    } catch (err) {
+      return { err: true };
+    }
+  }
+
+  // Calls a function of the provider that the dashboard is allowed to call
+  async dashboardFunction(
+    orgId: string,
+    id: string,
+    name: string,
+    data: any
+  ): Promise<any> {
+    const getIntegration = await this._integrationRepository.getIntegrationById(
+      orgId,
+      id
+    );
+    if (!getIntegration) {
+      throw new Error('Invalid integration');
+    }
+
+    const integrationProvider = this._integrationManager.getSocialIntegration(
+      getIntegration.providerIdentifier
+    );
+    if (!integrationProvider) {
+      throw new Error('Invalid provider');
+    }
+
+    if (
+      this._integrationManager.isDashboardCallable(integrationProvider, name)
+    ) {
+      const result = await this.callProviderFunction(
+        getIntegration,
+        name,
+        data,
+        { disconnectOnRefreshFailure: false }
+      );
+
+      if (result.status === 'ok') {
+        return result.data;
+      }
+
+      return result.status === 'refreshFailed' ? undefined : false;
+    }
+    throw new Error('Function not found');
+  }
+
+  // The accounts a post can mention on the platform of the channel: the ones
+  // the platform finds for `data.query`, plus the ones already known
+  async mentions(orgId: string, id: string, data: any) {
+    const getIntegration = await this._integrationRepository.getIntegrationById(
+      orgId,
+      id
+    );
+    if (!getIntegration) {
+      throw new Error('Invalid integration');
+    }
+
+    let newList: any[] | { none: true } = [];
+    try {
+      newList =
+        (await this.dashboardFunction(orgId, id, 'mention', data)) || [];
+    } catch (err) {
+      console.log(err);
+    }
+
+    if (!Array.isArray(newList) && newList?.none) {
+      return newList;
+    }
+
+    const list = await this.getMentions(
+      getIntegration.providerIdentifier,
+      data?.query
+    );
+
+    if (Array.isArray(newList) && newList.length) {
+      await this.insertMentions(
+        getIntegration.providerIdentifier,
+        newList
+          .map((p: any) => ({
+            name: p.label || '',
+            username: p.id || '',
+            image: p.image || '',
+            doNotCache: p.doNotCache || false,
+          }))
+          .filter((f: any) => f.name && !f.doNotCache)
+      );
+    }
+
+    return uniqBy(
+      [
+        ...list.map((p) => ({
+          id: p.username,
+          image: p.image,
+          label: p.name,
+        })),
+        ...(newList as any[]),
+      ],
+      (p) => p.id
+    ).filter((f) => f.label && f.id);
+  }
+
+  // Changes the name and picture of the channel on the platform itself
+  async changeProfile(
+    orgId: string,
+    id: string,
+    body: { name: string; picture: string }
+  ) {
+    const integration = await this._integrationRepository.getIntegrationById(
+      orgId,
+      id
+    );
+    if (!integration) {
+      throw new Error('Invalid integration');
+    }
+
+    const manager = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    if (!manager.changeProfilePicture && !manager.changeNickname) {
+      throw new Error('Invalid integration');
+    }
+
+    const { url } = manager.changeProfilePicture
+      ? await manager.changeProfilePicture(
+          integration.internalId,
+          integration.token,
+          body.picture
+        )
+      : { url: '' };
+
+    const { name } = manager.changeNickname
+      ? await manager.changeNickname(
+          integration.internalId,
+          integration.token,
+          body.name
+        )
+      : { name: '' };
+
+    return this._integrationRepository.updateNameAndUrl(orgId, id, name, url);
   }
 
   // A reconnect that came back from a different provider (MIGRATE_PROVIDERS):
@@ -463,6 +734,22 @@ export class IntegrationService {
 
   async disableChannel(org: string, id: string) {
     return this._integrationRepository.disableChannel(org, id);
+  }
+
+  // The channel limit is the one of the subscription, or the free plan's when
+  // the organization has none
+  enableChannelForOrganization(
+    org: {
+      id: string;
+      subscription?: { totalChannels?: number | null } | null;
+    },
+    id: string
+  ) {
+    return this.enableChannel(
+      org.id,
+      org.subscription?.totalChannels || pricing.FREE.channel,
+      id
+    );
   }
 
   async enableChannel(org: string, totalChannels: number, id: string) {
@@ -741,6 +1028,24 @@ export class IntegrationService {
     integrationId: string,
     body: PlugDto
   ) {
+    // the channel must belong to the organization and the plug to its provider
+    const integration = await this._integrationRepository.getIntegrationById(
+      orgId,
+      integrationId
+    );
+    if (!integration) {
+      throw new HttpException('Integration not found', HttpStatus.NOT_FOUND);
+    }
+
+    const providerPlugs =
+      this._integrationManager
+        .getAllPlugs()
+        .find((p) => p.identifier === integration.providerIdentifier)?.plugs ||
+      [];
+    if (!providerPlugs.some((p: any) => p.methodName === body.func)) {
+      throw new HttpException('Plug not found', HttpStatus.BAD_REQUEST);
+    }
+
     const { activated } = await this._integrationRepository.createOrUpdatePlug(
       orgId,
       integrationId,
