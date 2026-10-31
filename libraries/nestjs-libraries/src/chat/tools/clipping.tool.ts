@@ -11,6 +11,7 @@ import { CLIPPING_WIDGET_URI } from '@gitroom/nestjs-libraries/chat/ui/clipping.
 export class ClippingTool implements AgentToolInterface {
   constructor(private _clippingService: ClippingService) {}
   name = 'clippingTool';
+  mirrors = ['POST /clipping'];
 
   available() {
     return UploadFactory.clippingEnabled();

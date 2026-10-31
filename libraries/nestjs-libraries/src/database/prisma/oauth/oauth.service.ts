@@ -1,6 +1,15 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { OAuthRepository } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.repository';
-import { CreateOAuthAppDto } from '@gitroom/nestjs-libraries/dtos/oauth/create-oauth-app.dto';
+import { isURL } from 'class-validator';
+import {
+  CreateOAuthAppDto,
+  redirectUrlOptions,
+} from '@gitroom/nestjs-libraries/dtos/oauth/create-oauth-app.dto';
 import { UpdateOAuthAppDto } from '@gitroom/nestjs-libraries/dtos/oauth/update-oauth-app.dto';
 import { RegisterClientDto } from '@gitroom/nestjs-libraries/dtos/oauth/register-client.dto';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -83,7 +92,16 @@ export class OAuthService {
     return rest;
   }
 
+  // The redirect url of the app is where the consent screen sends the user,
+  // the same rule as the DTOs so every caller of the service gets it
+  private assertRedirectUrl(redirectUrl: string) {
+    if (!isURL(redirectUrl, redirectUrlOptions)) {
+      throw new BadRequestException('redirectUrl must be an http(s) URL');
+    }
+  }
+
   async createApp(orgId: string, dto: CreateOAuthAppDto) {
+    this.assertRedirectUrl(dto.redirectUrl);
     const existing = await this._oauthRepository.getAppByOrgId(orgId);
     if (existing) {
       throw new HttpException(
@@ -109,6 +127,9 @@ export class OAuthService {
   }
 
   async updateApp(orgId: string, dto: UpdateOAuthAppDto) {
+    if (dto.redirectUrl !== undefined) {
+      this.assertRedirectUrl(dto.redirectUrl);
+    }
     return this._oauthRepository.updateApp(orgId, {
       ...(dto.name && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),

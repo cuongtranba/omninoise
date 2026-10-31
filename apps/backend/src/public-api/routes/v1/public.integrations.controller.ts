@@ -20,7 +20,10 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { GetIncludeDeletedFromRequest } from '@gitroom/nestjs-libraries/user/include.deleted.from.request';
 import { GetOAuthUserIdFromRequest } from '@gitroom/nestjs-libraries/user/oauth.user.id.from.request';
 import { Organization } from '@prisma/client';
-import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
+import {
+  ConnectUrlError,
+  IntegrationService,
+} from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -48,7 +51,6 @@ import {
 import { getValidationSchemas } from '@gitroom/nestjs-libraries/chat/validation.schemas.helper';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { SuperAdminGuard } from '@gitroom/backend/services/auth/super.admin.guard';
-import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
@@ -308,49 +310,34 @@ export class PublicIntegrationsController {
     @GetOrgFromRequest() org: Organization
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    if (
-      !this._integrationManager
-        .getAllowedSocialsIntegrations()
-        .includes(integration)
-    ) {
-      throw new HttpException({ msg: 'Integration not allowed' }, 400);
-    }
+    let result;
+    try {
+      result = await this._integrationService.generateConnectUrl(
+        org.id,
+        integration,
+        { refresh }
+      );
+    } catch (err) {
+      if (!(err instanceof ConnectUrlError)) {
+        throw err;
+      }
 
-    // A provider migrated via MIGRATE_PROVIDERS reconnects through its target
-    // provider's OAuth: the callback lands on the target and the channel is
-    // migrated in place (see migrateIntegration).
-    const migrateTo = refresh
-      ? this._integrationManager.getMigrationTarget(integration)
-      : undefined;
-
-    const integrationProvider = this._integrationManager.getSocialIntegration(
-      migrateTo || integration
-    );
-
-    if (integrationProvider.externalUrl) {
       throw new HttpException(
         {
-          msg: 'This integration requires an external URL and is not supported via the public API',
+          msg:
+            err.reason === 'externalUrl'
+              ? 'This integration requires an external URL and is not supported via the public API'
+              : 'Integration not allowed',
         },
         400
       );
     }
 
-    try {
-      const { codeVerifier, state, url } =
-        await integrationProvider.generateAuthUrl();
-
-      if (refresh) {
-        await ioRedis.set(`refresh:${state}`, refresh, 'EX', 3600);
-      }
-
-      await ioRedis.set(`organization:${state}`, org.id, 'EX', 3600);
-      await ioRedis.set(`login:${state}`, codeVerifier, 'EX', 3600);
-
-      return { url };
-    } catch (err) {
+    if ('err' in result) {
       throw new HttpException({ msg: 'Failed to generate auth URL' }, 500);
     }
+
+    return { url: result.url };
   }
 
   @Get('/users')
@@ -508,17 +495,7 @@ export class PublicIntegrationsController {
     @Param('id') id: string
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    const isTherePosts = await this._integrationService.getPostsForChannel(
-      org.id,
-      id
-    );
-    if (isTherePosts.length) {
-      for (const post of isTherePosts) {
-        this._postsService.deletePost(org.id, post.group).catch(() => {});
-      }
-    }
-
-    return this._integrationService.deleteChannel(org.id, id);
+    return this._postsService.deleteChannelWithPosts(org.id, id);
   }
 
   @Get('/integration-settings/:id')

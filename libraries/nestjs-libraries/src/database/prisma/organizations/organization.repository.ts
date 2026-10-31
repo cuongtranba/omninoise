@@ -65,6 +65,7 @@ export class OrganizationRepository {
             subscriptionTier: true,
             totalChannels: true,
             isLifetime: true,
+            createdAt: true,
           },
         },
       },
@@ -242,6 +243,10 @@ export class OrganizationRepository {
       },
       data: {
         apiKey: AuthService.fixedEncryption(makeSecureId(20)),
+      },
+      select: {
+        id: true,
+        apiKey: true,
       },
     });
   }

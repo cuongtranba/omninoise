@@ -56,10 +56,11 @@ export const startMcp = async (app: INestApplication) => {
   const mcpRelayService = app.get(McpRelayService, { strict: false });
 
   // The organization row, plus the caller's role the way the web request
-  // carries it (org.users[0].role) - tools read it to enforce plan limits
-  const withRole = <T extends object>(org: T, role: Role) => ({
+  // carries it (org.users[0].role) - tools read it to enforce plan limits - and
+  // the id of the user an OAuth token belongs to (an API key has none)
+  const withRole = <T extends object>(org: T, role: Role, userId?: string) => ({
     ...org,
-    users: [{ role }],
+    users: [{ role, userId }],
   });
 
   // An API key acts as the owner of its organization, like in the public API
@@ -78,7 +79,11 @@ export const startMcp = async (app: INestApplication) => {
       ) {
         return null;
       }
-      return withRole(authorization.organization, authorization.role);
+      return withRole(
+        authorization.organization,
+        authorization.role,
+        authorization.userId
+      );
     }
     return resolveApiKey(token);
   };
@@ -97,7 +102,9 @@ export const startMcp = async (app: INestApplication) => {
   };
 
   // The Claude connector directory does not accept AI media generation tools,
-  // so the directory-facing endpoint hides them. Direct connections
+  // and the instance admin tools are for the operator of the installation, not
+  // for the people who install the connector, so the directory-facing endpoint
+  // hides them. Direct connections
   // (/mcp, /mcp/:id, /sse/:id) and the ChatGPT app keep the full toolset.
   const claudeHiddenTools = [
     'generateImageTool',
@@ -108,7 +115,11 @@ export const startMcp = async (app: INestApplication) => {
     // clipping renders new videos (AI picked cuts, burned-in captions)
     'clippingTool',
     'clippingStatusTool',
+    'clippingListTool',
     'clippingWidgetTicketTool',
+    // instance admin tools, they only work for the super admin of the instance
+    'adminTool',
+    'announcementsTool',
   ];
   const withoutClaudeHidden = <T extends Record<string, unknown>>(source: T) =>
     Object.fromEntries(

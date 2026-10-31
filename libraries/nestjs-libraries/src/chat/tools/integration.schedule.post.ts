@@ -78,6 +78,7 @@ const toMedia = (
 export class IntegrationSchedulePostTool implements AgentToolInterface {
   constructor(private _postsService: PostsService) {}
   name = 'integrationSchedulePostTool';
+  mirrors = ['POST /posts'];
   // same limit as POST /posts
   policies: AbilityPolicy[] = [
     [AuthorizationActions.Create, Sections.POSTS_PER_MONTH],

@@ -116,7 +116,17 @@ export class OAuthRepository {
     return this._oauthApp.model.oAuthApp.update({
       where: { id: app.id },
       data,
-      include: {
+      // the row also holds the (encrypted) client secret, never selected
+      select: {
+        id: true,
+        organizationId: true,
+        name: true,
+        description: true,
+        pictureId: true,
+        redirectUrl: true,
+        clientId: true,
+        createdAt: true,
+        updatedAt: true,
         picture: true,
       },
     });
@@ -251,6 +261,7 @@ export class OAuthRepository {
                 subscriptionTier: true,
                 totalChannels: true,
                 isLifetime: true,
+                createdAt: true,
               },
             },
           },
@@ -291,10 +302,21 @@ export class OAuthRepository {
         revokedAt: null,
         accessToken: { not: null },
       },
-      include: {
+      // the row holds the (encrypted) access token and the client secret of
+      // the app, only what the apps list shows is selected
+      select: {
+        id: true,
+        organizationId: true,
+        createdAt: true,
         oauthApp: {
-          include: {
-            picture: true,
+          select: {
+            name: true,
+            description: true,
+            picture: {
+              select: {
+                path: true,
+              },
+            },
           },
         },
       },

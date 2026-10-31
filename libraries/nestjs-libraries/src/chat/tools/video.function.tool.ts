@@ -13,6 +13,7 @@ export class VideoFunctionTool implements AgentToolInterface {
     private _mediaService: MediaService
   ) {}
   name = 'videoFunctionTool';
+  mirrors = ['POST /media/video/function'];
 
   run() {
     return createTool({

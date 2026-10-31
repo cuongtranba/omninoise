@@ -16,6 +16,7 @@ export class IntegrationTriggerTool implements AgentToolInterface {
     private _integrationService: IntegrationService
   ) {}
   name = 'triggerTool';
+  mirrors = ['POST /integrations/function'];
 
   run() {
     return createTool({
