@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { Organization } from '@prisma/client';
+import { Organization, Role } from '@prisma/client';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
@@ -15,9 +15,12 @@ export class PublicAuthMiddleware implements NestMiddleware {
     private _oauthService: OAuthService
   ) {}
 
-  private setOrg(req: Request, org: Organization) {
+  // The role the way the web request carries it (org.users[0].role), the guard
+  // of the routes reads it: an API key acts as the owner of its organization,
+  // an OAuth token as the user who approved the app
+  private setOrg(req: Request, org: Organization, role: Role) {
     // @ts-ignore
-    req.org = { ...org, users: [{ users: { role: 'SUPERADMIN' } }] };
+    req.org = { ...org, users: [{ role }] };
   }
 
   async use(req: Request, res: Response, next: NextFunction) {
@@ -29,6 +32,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
     }
     try {
       let org: Organization & { subscription?: unknown };
+      let role: Role = Role.SUPERADMIN;
       const isOAuthApp = auth.startsWith('pos_');
 
       // @ts-ignore
@@ -44,6 +48,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
         }
 
         org = authorization.organization;
+        role = authorization.role;
         // The user who approved the OAuth app, so /me can show who is connected
         // @ts-ignore
         req.oauthUserId = authorization.userId;
@@ -64,7 +69,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
         return;
       }
 
-      this.setOrg(req, org);
+      this.setOrg(req, org, role);
       const includeDeleted =
         (req.headers['x-postiz-include-deleted'] as string)?.trim() === 'true';
       // @ts-ignore
@@ -95,7 +100,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
           return;
         }
 
-        this.setOrg(req, overrideOrg);
+        this.setOrg(req, overrideOrg, Role.SUPERADMIN);
 
         this._logger.log(
           `Organization override performed by organization ${org.id}: acting as ${overrideOrg.id} on ${req.method} ${req.path}`

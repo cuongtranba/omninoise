@@ -131,6 +131,24 @@ export class MediaService {
     }
   }
 
+  // Generates an image, stores it and saves it in the media library; false
+  // when the account has no AI image credits left (same gate as generateImage)
+  async generateAndSaveImage(
+    org: Organization,
+    prompt: string,
+    generatePromptFirst?: boolean
+  ) {
+    const image = await this.generateImage(prompt, org, generatePromptFirst);
+    if (image === false) {
+      return false;
+    }
+
+    const file = await this.storage.uploadSimple(
+      'data:image/png;base64,' + image
+    );
+    return this.saveFile(org.id, file.split('/').pop(), file);
+  }
+
   // Streams the remote body straight into storage: only the sniffing prefix
   // and a few upload parts are ever in memory, so a 1 GB video does not cost
   // 1 GB of heap
