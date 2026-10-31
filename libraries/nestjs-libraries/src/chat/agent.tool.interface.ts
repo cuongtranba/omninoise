@@ -18,5 +18,9 @@ export interface AgentToolInterface {
   // the plan limits of the web route this tool mirrors (same tuples as @CheckPolicies),
   // checked before every execution
   policies?: AbilityPolicy[];
+  // the internal id of the channel a call reconnects: reconnecting adds no
+  // channel, so it skips the channel limit like the `refresh` query of the web
+  // route
+  refreshChannelId?(inputData: any, orgId: string): Promise<string | undefined>;
   run(): ToolReturn;
 }

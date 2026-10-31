@@ -82,6 +82,17 @@ const EXCLUDED: Record<string, string> = {
     'transport of the browser upload widget, the MCP drives it through the upload widget tools',
   // monitor.controller
   'GET /monitor/queue/:name': 'queue health probe for operators',
+  // integrations.controller
+  'POST /integrations/provider/:id/connect':
+    'page picker completed in the browser after the OAuth callback of the channel connect flow',
+  'GET /integrations/telegram/updates':
+    'step of the Telegram browser connect flow, finds the bot of the connect dialog',
+  'POST /integrations/moltbook/register':
+    'step of the Moltbook browser connect flow, registers the agent of the connect dialog',
+  'GET /integrations/moltbook/status':
+    'step of the Moltbook browser connect flow, polls the claim of the connect dialog',
+  'GET /integrations/:id':
+    'marketplace order lookup (the channel of a post bought through an order), not used by the web app and the MCP has no marketplace',
   // no.auth.integrations.controller
   'POST /integrations/social-connect/:integration':
     'OAuth callback of the channel connect flow, completed in the browser',
@@ -162,36 +173,11 @@ const PENDING: string[] = [
   'POST /enterprise/create-user',
   'POST /enterprise/url',
   'POST /enterprise/delete-channel',
-  // integrations.controller
-  'POST /integrations/provider/:id/connect',
-  'GET /integrations/:identifier/internal-plugs',
-  'PUT /integrations/customers/:id',
-  'PUT /integrations/:id/group',
-  'PUT /integrations/:id/customer-name',
-  'PUT /integrations/:id/custom-name',
-  'POST /integrations/:id/settings',
-  'POST /integrations/:id/nickname',
-  'GET /integrations/:id',
-  'GET /integrations/social/:integration',
-  'POST /integrations/:id/time',
-  'POST /integrations/mentions',
-  'POST /integrations/disable',
-  'POST /integrations/enable',
-  'DELETE /integrations',
-  'GET /integrations/plug/list',
-  'GET /integrations/:id/plugs',
-  'POST /integrations/:id/plugs',
-  'PUT /integrations/plugs/:id/activate',
-  'GET /integrations/telegram/updates',
-  'POST /integrations/moltbook/register',
-  'GET /integrations/moltbook/status',
   // media.controller
   'DELETE /media/:id',
   'POST /media/generate-image-with-prompt',
   'POST /media/information',
   'GET /media/generate-video/:type/allowed',
-  // no.auth.integrations.controller
-  'GET /integrations',
   // notifications.controller
   'GET /notifications',
   'GET /notifications/list',

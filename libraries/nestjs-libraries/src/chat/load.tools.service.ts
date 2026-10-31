@@ -34,7 +34,11 @@ export class LoadToolsService {
 
   // The same plan limits PoliciesGuard enforces on the web routes: MCP and
   // agent calls never pass through that guard
-  private withPolicies(tool: ToolReturn, policies: AbilityPolicy[]) {
+  private withPolicies(
+    tool: ToolReturn,
+    policies: AbilityPolicy[],
+    refreshChannelId?: AgentToolInterface['refreshChannelId']
+  ) {
     const execute = tool.execute!;
     tool.execute = async (inputData: any, context: any) => {
       checkAuth(inputData, context);
@@ -43,7 +47,8 @@ export class LoadToolsService {
         org.id,
         new Date(org.createdAt),
         org.users?.[0]?.role || 'USER',
-        policies
+        policies,
+        await refreshChannelId?.(inputData, org.id)
       );
 
       const denied = policies.find(([action, section]) => !ability.can(action, section));
@@ -74,7 +79,11 @@ export class LoadToolsService {
             return {
               name: p.name as string,
               tool: p.policies?.length
-                ? this.withPolicies(tool, p.policies)
+                ? this.withPolicies(
+                    tool,
+                    p.policies,
+                    p.refreshChannelId?.bind(p)
+                  )
                 : tool,
             };
           })
@@ -128,6 +137,8 @@ export class LoadToolsService {
         - Show global analytics about socials
         - List integrations (channels)
         - List groups (customers) and filter the channels by a group
+        - Connect a channel (integrationProvidersTool, integrationConnectTool), read one (integrationGetTool) and manage it: rename and settings (integrationUpdateTool), groups (integrationGroupTool), posting times (integrationTimesTool), enable, disable or delete (integrationStateTool), name and picture on the platform (integrationProfileTool), plugs (integrationPlugsTool)
+        - Search the accounts a post can mention (integrationMentionsTool)
 
       - We schedule posts to different integration like facebook, instagram, etc. but to the user we don't say integrations we say channels as integration is the technical name
       - When scheduling a post, you must follow the social media rules and best practices.
@@ -155,6 +166,10 @@ export class LoadToolsService {
       - postGeneratorTool writes the text (and pictures if asked) of a post from a short request, it takes a few minutes and costs the user's AI usage, so call it once the request is clear. It does not schedule: show the result to the user and schedule with their confirmation. postGeneratorDraftTool creates one draft per enabled channel for every item, so it can create many posts: show the number first and get the user's confirmation.
       - Never open the "modal with populated content" to edit an existing post - that modal only CREATES a new post, so using it to edit would duplicate the post. It is only for brand new posts.
       - To delete a post, first find it with postsListTool, then use deletePostTool with the post's id. It deletes the post on that one channel (with its comments) - when the same post was created for several channels, ask the user which channels to delete it from and call deletePostTool once per post id. A repeating post is listed once per repetition with the same id - deleting it deletes all the repetitions. Deleting a published post only removes it from Postiz, it stays live on the social network. Deletion cannot be undone, so show the user which post will be deleted (channel, date and text), mention the two cases above when they apply, and get their confirmation first.
+      - To connect a channel, find the platform with integrationProvidersTool and use integrationConnectTool: it returns a link, it does not connect anything by itself. Give the link to the user, who opens it in the browser and authorizes on the platform (valid for one hour); then list the channels again to confirm. Platforms whose connect is not "oauth" can only be added by the user inside Postiz. To reconnect a channel that needs it ("refreshNeeded"), pass its id as reconnectChannelId.
+      - Read a channel with integrationGetTool before changing it: integrationUpdateTool (action saveSettings) and integrationTimesTool replace the whole list they receive, so send the current values back with the change, and confirm with the user first. Posting times are in UTC. integrationProfileTool changes the real account on the social network and cannot be undone from Postiz, so confirm first.
+      - integrationStateTool: disable stops posting and frees the place in the plan, enable counts against the channels limit. Delete removes the channel AND all its posts and cannot be undone: show the user the channel and its number of posts (postsListTool) and get their confirmation first.
+      - integrationMentionsTool finds the accounts to mention in a post of a channel, use the "id" of its results as the handle. integrationPlugsTool: list "available" plugs, then "save" one on a channel with the values the user gave; "save" runs against the real account, so confirm the values first.
       - Between tools, we will reference things like: [output:name] and [input:name] to set the information right.
       - When outputting a date for the user, make sure it's human readable with time
       - The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can\'t have u and strong together), don't use a "code" box

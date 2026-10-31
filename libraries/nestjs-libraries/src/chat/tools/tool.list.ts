@@ -32,9 +32,29 @@ import { PostGeneratorTool } from '@gitroom/nestjs-libraries/chat/tools/post.gen
 import { PostGeneratorDraftTool } from '@gitroom/nestjs-libraries/chat/tools/post.generator.draft.tool';
 import { PostChangeDateTool } from '@gitroom/nestjs-libraries/chat/tools/post.change.date.tool';
 import { PostSeparateTool } from '@gitroom/nestjs-libraries/chat/tools/post.separate.tool';
+import { IntegrationProvidersTool } from '@gitroom/nestjs-libraries/chat/tools/integration.providers.tool';
+import { IntegrationConnectTool } from '@gitroom/nestjs-libraries/chat/tools/integration.connect.tool';
+import { IntegrationGetTool } from '@gitroom/nestjs-libraries/chat/tools/integration.get.tool';
+import { IntegrationUpdateTool } from '@gitroom/nestjs-libraries/chat/tools/integration.update.tool';
+import { IntegrationGroupTool } from '@gitroom/nestjs-libraries/chat/tools/integration.group.tool';
+import { IntegrationProfileTool } from '@gitroom/nestjs-libraries/chat/tools/integration.profile.tool';
+import { IntegrationTimesTool } from '@gitroom/nestjs-libraries/chat/tools/integration.times.tool';
+import { IntegrationStateTool } from '@gitroom/nestjs-libraries/chat/tools/integration.state.tool';
+import { IntegrationMentionsTool } from '@gitroom/nestjs-libraries/chat/tools/integration.mentions.tool';
+import { IntegrationPlugsTool } from '@gitroom/nestjs-libraries/chat/tools/integration.plugs.tool';
 
 export const toolList = [
   IntegrationListTool,
+  IntegrationProvidersTool,
+  IntegrationConnectTool,
+  IntegrationGetTool,
+  IntegrationUpdateTool,
+  IntegrationGroupTool,
+  IntegrationProfileTool,
+  IntegrationTimesTool,
+  IntegrationStateTool,
+  IntegrationMentionsTool,
+  IntegrationPlugsTool,
   GroupListTool,
   IntegrationValidationTool,
   IntegrationTriggerTool,

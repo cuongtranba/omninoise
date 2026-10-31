@@ -916,6 +916,19 @@ export class PostsService {
     return { error: true };
   }
 
+  // Deletes a channel together with the posts it still has
+  async deleteChannelWithPosts(orgId: string, id: string) {
+    const channelPosts = await this._integrationService.getPostsForChannel(
+      orgId,
+      id
+    );
+    for (const post of channelPosts) {
+      this.deletePost(orgId, post.group).catch(() => {});
+    }
+
+    return this._integrationService.deleteChannel(orgId, id);
+  }
+
   async countPostsFromDay(orgId: string, date: Date) {
     return this._postRepository.countPostsFromDay(orgId, date);
   }

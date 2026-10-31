@@ -415,6 +415,126 @@
         "open_world_justification": "The ticket only allows reading the user's own clipping job inside Postiz; no public or third-party state changes.",
         "destructive_justification": "Does not delete or overwrite anything, revoke access, or publish content."
       }
+    },
+    "integrationProvidersTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists the social platforms a channel can be connected to.",
+        "open_world_justification": "Does not write to public internet state or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "integrationConnectTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a one hour authorization link for the user to connect or reconnect a channel; the channel itself is only created when the user authorizes in their browser.",
+        "open_world_justification": "Asks the social platform for the authorization page of the link; nothing is published or changed on it.",
+        "destructive_justification": "Does not delete or overwrite anything; reconnecting only refreshes the connection of the channel after the user authorizes it."
+      }
+    },
+    "integrationGetTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves one channel with its posting times and settings, never its credentials.",
+        "open_world_justification": "Does not write to public internet state or third-party systems.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "integrationUpdateTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Renames a channel in Postiz and replaces its settings.",
+        "open_world_justification": "Names and settings stay inside Postiz and do not reach the social network.",
+        "destructive_justification": "Saving the settings replaces the whole previous list and renaming replaces the previous name."
+      }
+    },
+    "integrationGroupTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Puts channels in groups, creates a group by name and renames a group.",
+        "open_world_justification": "Groups stay inside Postiz and do not reach the social network.",
+        "destructive_justification": "Does not delete anything; it moves a channel between groups and renames groups."
+      }
+    },
+    "integrationProfileTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Changes the name and picture of the account on the social platform.",
+        "open_world_justification": "Sends the new name and picture to the connected social network, where everyone can see them.",
+        "destructive_justification": "Overwrites the current name and picture of the account on the social network."
+      }
+    },
+    "integrationTimesTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Sets the posting times of a channel.",
+        "open_world_justification": "Posting times stay inside Postiz and do not reach the social network.",
+        "destructive_justification": "Replaces the whole previous list of posting times of the channel."
+      }
+    },
+    "integrationStateTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Enables, disables or deletes a channel.",
+        "open_world_justification": "Only changes the channel inside Postiz; the account on the social network is not touched.",
+        "destructive_justification": "Deleting a channel also deletes all its posts, scheduled posts are no longer published, and it cannot be undone; disabling stops posting to the channel."
+      }
+    },
+    "integrationMentionsTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only searches the accounts a post can mention; Postiz remembers the accounts it finds for the next search.",
+        "open_world_justification": "Asks the social platform to search its accounts; nothing is written to it.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "integrationPlugsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists the plugs of the channels, sets up a plug and turns it on or off.",
+        "open_world_justification": "Plugs are stored inside Postiz; they run later against the connected account.",
+        "destructive_justification": "Saving a plug replaces its previous values and turning a plug off stops its automation."
+      }
     }
   },
   "test_cases": [
