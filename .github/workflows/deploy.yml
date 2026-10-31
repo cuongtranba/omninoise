@@ -2,7 +2,8 @@ name: Deploy
 
 # Every push to main: build and test, publish the image
 # ghcr.io/cuongtranba/omninoise:sha-<short sha>, then deploy that exact tag to
-# Dokploy at https://lowbit.link and wait until the site answers again.
+# Dokploy and wait until the site answers again. The Dokploy and site URLs are
+# repository secrets, not variables, so the public run logs mask them.
 on:
   push:
     branches:
@@ -25,9 +26,9 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/omninoise
-  DOKPLOY_URL: https://lowbit.link/api
+  DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
   DOKPLOY_COMPOSE_ID: zKgpTfdzxIcMupkBoEwx5
-  SITE_URL: https://postiz.lowbit.link
+  SITE_URL: ${{ secrets.SITE_URL }}
 
 jobs:
   checks:
@@ -117,7 +118,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Cloudflare in front of lowbit.link challenges curl and Node's fetch from
+      # Cloudflare in front of Dokploy challenges curl and Node's fetch from
       # GitHub's runners (it scores the TLS fingerprint, not just the user agent);
       # Bun's fetch gets through, as in undercroft's deploy. All HTTP calls below
       # go through this one Bun helper.
@@ -167,10 +168,12 @@ jobs:
         env:
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
         run: |
-          if [ -z "$DOKPLOY_API_KEY" ]; then
-            echo "::error::Repository secret DOKPLOY_API_KEY is not set; the image $IMAGE:$TAG was published but not deployed."
-            exit 1
-          fi
+          for name in DOKPLOY_API_KEY DOKPLOY_URL SITE_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Repository secret $name is not set; the image $IMAGE:$TAG was published but not deployed."
+              exit 1
+            fi
+          done
           # Prints the JSON body on stdout; errors go to stderr. The key reaches
           # the helper through the environment, not the command line.
           api() {
