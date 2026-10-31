@@ -26,7 +26,7 @@ export class AutopostCreateTool implements AgentToolInterface {
   optionalOnSelfHosted = true;
   // same limit as the route of the web app
   policies: AgentToolInterface['policies'] = [
-    [AuthorizationActions.Create, Sections.WEBHOOKS],
+    [AuthorizationActions.Create, Sections.AUTOPOST],
   ];
 
   run() {

@@ -10,6 +10,10 @@ import { AuthorizationActions, Sections } from './permission.exception.class';
 
 export type AppAbility = Ability<[AuthorizationActions, Sections]>;
 
+// The admin section is granted by the role of the caller, with or without billing
+const isAdminRole = (permission: 'USER' | 'ADMIN' | 'SUPERADMIN') =>
+  ['ADMIN', 'SUPERADMIN'].includes(permission);
+
 @Injectable()
 export class PermissionsService {
   constructor(
@@ -52,6 +56,10 @@ export class PermissionsService {
       !process.env.STRIPE_PUBLISHABLE_KEY
     ) {
       for (const [action, section] of requestedPermission) {
+        // without billing the plan limits are open, the role is not
+        if (section === Sections.ADMIN && !isAdminRole(permission)) {
+          continue;
+        }
         can(action, section);
       }
       return build({
@@ -126,10 +134,7 @@ export class PermissionsService {
         continue;
       }
 
-      if (
-        section === Sections.ADMIN &&
-        ['ADMIN', 'SUPERADMIN'].includes(permission)
-      ) {
+      if (section === Sections.ADMIN && isAdminRole(permission)) {
         can(action, section);
         continue;
       }
@@ -151,6 +156,11 @@ export class PermissionsService {
       }
 
       if (section === Sections.AI && options.ai) {
+        can(action, section);
+        continue;
+      }
+
+      if (section === Sections.AUTOPOST && options.autoPost) {
         can(action, section);
         continue;
       }

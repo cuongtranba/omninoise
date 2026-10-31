@@ -12,6 +12,7 @@ export enum Sections {
   IMPORT_FROM_CHANNELS = 'import_from_channels',
   ADMIN = 'admin',
   WEBHOOKS = 'webhooks',
+  AUTOPOST = 'autopost',
 }
 
 export enum AuthorizationActions {
@@ -46,6 +47,11 @@ export const getErrorMessage = (error: {
       switch (error.action) {
         default:
           return 'You have reached the maximum number of webhooks for your subscription. Please upgrade your subscription to add more webhooks.';
+      }
+    case Sections.AUTOPOST:
+      switch (error.action) {
+        default:
+          return 'Your subscription does not include autoposts. Please upgrade your subscription to create autoposts.';
       }
     case Sections.VIDEOS_PER_MONTH:
       switch (error.action) {

@@ -87,8 +87,11 @@ export class UsersService {
   }
 
   getSelf(user: User, organization: RequestOrganization, impersonate: boolean) {
+    // the sign in of the user (password hash, ip, agent, provider id) is not
+    // read by the web app
+    const { password, ip, agent, providerId, ...rest } = user;
     return {
-      ...user,
+      ...rest,
       ...this.getPlan(organization),
       admin: !!user.isSuperAdmin,
       impersonate,

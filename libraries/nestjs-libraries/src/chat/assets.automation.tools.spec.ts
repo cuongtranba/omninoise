@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { createServer } from 'node:http';
 import { Test } from '@nestjs/testing';
 import { RequestContext } from '@mastra/core/di';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
@@ -24,7 +25,7 @@ let moduleRef: Awaited<
 let tools: Record<string, any>;
 const orgIds: string[] = [];
 
-const org = async (name: string, tier?: 'STANDARD') => {
+const org = async (name: string, tier?: 'STANDARD' | 'TEAM') => {
   const prisma = moduleRef.get(PrismaService);
   const created = await prisma.organization.create({
     data: { name: `${name}-${run}` },
@@ -578,4 +579,98 @@ test('updating an autopost only changes the settings that are passed', async () 
       lastUrl: 'https://8.8.8.8/item-1',
     }),
   ]);
+});
+
+test('an autopost is allowed by the autopost flag of the plan, not by the number of webhooks', async () => {
+  process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_assets_automation';
+  const prisma = moduleRef.get(PrismaService);
+  const standard = await org('autopost-standard', 'STANDARD');
+  const team = await org('autopost-team', 'TEAM');
+  // the TEAM plan has 10 webhooks, all of them used
+  await prisma.webhooks.createMany({
+    data: Array.from({ length: 10 }, (_, n) => ({
+      organizationId: team,
+      name: `hook-${n}`,
+      url: 'https://8.8.8.8/hook',
+    })),
+  });
+  const input = {
+    title: 'feed',
+    url: 'https://8.8.8.8/feed.xml',
+    active: false,
+    channels: [],
+    generateContent: false,
+    addPicture: false,
+    syncLast: false,
+    onSlot: false,
+    lastUrl: 'https://8.8.8.8/item-1',
+  };
+
+  const refused = await tools.autopostCreateTool
+    .execute(input, connection(standard))
+    .catch((err: Error) => err);
+  const created = await tools.autopostCreateTool.execute(
+    input,
+    connection(team)
+  );
+
+  expect(refused).not.toHaveProperty('output');
+  expect(created.output).toHaveProperty('created');
+});
+
+test('the saved third party apps skip a provider that no longer exists in the code', async () => {
+  const manager = moduleRef.get(ThirdPartyManager);
+  const mine = await org('third-party-removed');
+  await manager.saveIntegration(mine, 'heygen', `key-${run}`, {
+    id: `heygen-${run}`,
+    name: 'HeyGen User',
+    username: 'heygen',
+  });
+  await manager.saveIntegration(mine, `removed-${run}`, `key-${run}`, {
+    id: `removed-${run}`,
+    name: 'Removed Provider',
+    username: 'removed',
+  });
+
+  const saved = await manager.getSavedThirdParties(mine);
+
+  expect(saved.map((s) => s.identifier)).toEqual(['heygen']);
+});
+
+test('the autopost feed and page loaders refuse a private address like the webhooks do', async () => {
+  const server = createServer((_req, res) =>
+    res.end(
+      '<rss version="2.0"><channel><item><title>t</title><link>https://8.8.8.8/i</link><pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate><description>hello feed</description></item></channel></rss>'
+    )
+  );
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${
+    (server.address() as { port: number }).port
+  }/`;
+  const autopost = moduleRef.get(AutopostService);
+  const protection = process.env.DISABLE_SSRF_PROTECTION;
+
+  try {
+    delete process.env.DISABLE_SSRF_PROTECTION;
+    const feed = await autopost.loadXML(url);
+    const page = await autopost.loadUrl(url);
+    // the same server is read once the protection is switched off, so the
+    // refusal above is the guard and not the server or the feed
+    process.env.DISABLE_SSRF_PROTECTION = 'true';
+    const openFeed = await autopost.loadXML(url);
+
+    expect(feed).toEqual({ success: false });
+    expect(page).toBe('');
+    expect(openFeed).toMatchObject({
+      success: true,
+      description: 'hello feed',
+    });
+  } finally {
+    if (protection === undefined) {
+      delete process.env.DISABLE_SSRF_PROTECTION;
+    } else {
+      process.env.DISABLE_SSRF_PROTECTION = protection;
+    }
+    server.close();
+  }
 });
