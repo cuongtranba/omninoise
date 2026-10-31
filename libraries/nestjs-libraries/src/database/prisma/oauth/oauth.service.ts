@@ -721,7 +721,7 @@ export class OAuthService {
     } catch (err) {
       // timeout or network failure, fetch rejects instead of answering
       throw new HttpException(
-        'Could not reach HubSpot to finish installing Postiz, please try again',
+        'Could not reach HubSpot to finish installing Omninoise, please try again',
         HttpStatus.BAD_GATEWAY,
         { cause: err }
       );
@@ -730,7 +730,7 @@ export class OAuthService {
     if (!response.ok) {
       const value = await response.json().catch(() => null);
       throw new HttpException(
-        `Could not finish installing Postiz in HubSpot${
+        `Could not finish installing Omninoise in HubSpot${
           value?.message ? `: ${value.message}` : ''
         }`,
         HttpStatus.BAD_REQUEST

@@ -79,13 +79,13 @@ export const OAuthSelfHosted: FC<{
       <div className="flex flex-col gap-[4px]">
         <div className="text-[16px] font-semibold">Use self-hosted</div>
         <div className="text-[14px] text-gray-400">
-          {appName} will work with your own Postiz instance. Postiz Cloud
+          {appName} will work with your own Omninoise instance. Omninoise Cloud
           relays its requests, and your API key is stored encrypted.
         </div>
       </div>
 
       {/* plain text fields: a password field makes browsers autofill the
-          saved Postiz login (email + password) into this form */}
+          saved Omninoise login (email + password) into this form */}
       <Input
         name="instance_url"
         label="Instance URL"
@@ -144,7 +144,7 @@ export const OAuthSelfHosted: FC<{
           disabled={
             submitting || !instanceUrl.trim() || (askEmail && !email.trim())
           }
-          className="flex-1 bg-[#612BD3] hover:bg-[#7B3FF2] disabled:opacity-50 text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
+          className="flex-1 bg-brand hover:bg-brandHover disabled:opacity-50 text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
         >
           {submitting ? 'Connecting...' : 'Connect'}
         </button>

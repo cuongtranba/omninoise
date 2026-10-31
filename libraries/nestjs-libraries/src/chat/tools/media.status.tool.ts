@@ -13,7 +13,7 @@ export class MediaStatusTool implements AgentToolInterface {
   run() {
     return createTool({
       id: 'mediaStatusTool',
-      description: `Check whether a media uploaded with adjust set to true finished adjusting to the platforms' limits, using the media id returned by uploadFromUrlTool, the public API (POST /public/v1/upload or /public/v1/upload-from-url) or the Postiz CLI (postiz upload).
+      description: `Check whether a media uploaded with adjust set to true finished adjusting to the platforms' limits, using the media id returned by uploadFromUrlTool, the public API (POST /public/v1/upload or /public/v1/upload-from-url) or the Omninoise CLI (postiz upload).
 Files the user uploaded through the upload widget (uploadWidgetTool) have no id until they are listed, so check those with uploadWidgetStatusTool and its sessionId instead.
 Only a media with the status "processing" needs checking: wait about 10 seconds and call again. Don't publish a post with its path until it is "ready": a post published while it is processing uses the original, unadjusted file.
 "ready" means the adjusted file is in place at the same path. "ready" with a warning means the adjustment failed and the original file was kept and will be used for publishing.`,
