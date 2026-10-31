@@ -114,6 +114,21 @@ export class UsersService {
     return this._organizationRepository.getImpersonateUser(name);
   }
 
+  // The admin routes of the instance (errors, stats, announcements, the user
+  // search) are only for the super admin, the web checks the user of the request
+  assertSuperAdmin(user?: Pick<User, 'isSuperAdmin'> | null) {
+    if (!user?.isSuperAdmin) {
+      throw new HttpException('Unauthorized', 400);
+    }
+  }
+
+  // The same check for a connection of the MCP or the copilot: the user is read
+  // from the database by its id, never from the request. An API key has no
+  // user, so it can never pass.
+  async assertSuperAdminById(userId?: string) {
+    this.assertSuperAdmin(userId ? await this.getUserById(userId) : null);
+  }
+
   getUserByProvider(providerId: string, provider: Provider) {
     return this._usersRepository.getUserByProvider(providerId, provider);
   }

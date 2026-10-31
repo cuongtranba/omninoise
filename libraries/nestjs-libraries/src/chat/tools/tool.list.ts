@@ -66,6 +66,8 @@ import { AutopostCreateTool } from '@gitroom/nestjs-libraries/chat/tools/autopos
 import { WebhooksTool } from '@gitroom/nestjs-libraries/chat/tools/webhooks.tool';
 import { WebhookCreateTool } from '@gitroom/nestjs-libraries/chat/tools/webhook.create.tool';
 import { ThirdPartyTool } from '@gitroom/nestjs-libraries/chat/tools/third.party.tool';
+import { AdminTool } from '@gitroom/nestjs-libraries/chat/tools/admin.tool';
+import { AnnouncementsTool } from '@gitroom/nestjs-libraries/chat/tools/announcements.tool';
 
 export const toolList = [
   IntegrationListTool,
@@ -136,4 +138,6 @@ export const toolList = [
   WebhooksTool,
   WebhookCreateTool,
   ThirdPartyTool,
+  AdminTool,
+  AnnouncementsTool,
 ];
