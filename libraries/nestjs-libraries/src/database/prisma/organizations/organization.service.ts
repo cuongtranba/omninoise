@@ -63,6 +63,12 @@ export class OrganizationService {
     return this._organizationRepository.getOrgByApiKey(api);
   }
 
+  // Billing is on and the organization has no subscription: the public API
+  // and MCP both refuse it
+  hasNoSubscription(org: { subscription?: unknown }) {
+    return !!process.env.STRIPE_SECRET_KEY && !org.subscription;
+  }
+
   async canUseSuperAdminApi(orgId: string) {
     const [superAdmin, privilegedOther] = await Promise.all([
       this._organizationRepository.getSuperAdminUser(orgId),

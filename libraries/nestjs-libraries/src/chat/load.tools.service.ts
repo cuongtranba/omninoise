@@ -6,7 +6,14 @@ import { pStore } from '@gitroom/nestjs-libraries/chat/mastra.store';
 import { array, object, string } from 'zod';
 import { ModuleRef } from '@nestjs/core';
 import { toolList } from '@gitroom/nestjs-libraries/chat/tools/tool.list';
-import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
+import {
+  AgentToolInterface,
+  ToolReturn,
+} from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
+import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
+import { PermissionsService } from '@gitroom/nestjs-libraries/permissions/permissions.service';
+import { AbilityPolicy } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
+import { getErrorMessage } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 import dayjs from 'dayjs';
 
 export const AgentState = object({
@@ -20,7 +27,37 @@ const renderArray = (list: string[], show: boolean) => {
 
 @Injectable()
 export class LoadToolsService {
-  constructor(private _moduleRef: ModuleRef) {}
+  constructor(
+    private _moduleRef: ModuleRef,
+    private _permissionsService: PermissionsService
+  ) {}
+
+  // The same plan limits PoliciesGuard enforces on the web routes: MCP and
+  // agent calls never pass through that guard
+  private withPolicies(tool: ToolReturn, policies: AbilityPolicy[]) {
+    const execute = tool.execute!;
+    tool.execute = async (inputData: any, context: any) => {
+      checkAuth(inputData, context);
+      const org = JSON.parse(context.requestContext.get('organization'));
+      const ability = await this._permissionsService.check(
+        org.id,
+        new Date(org.createdAt),
+        org.users?.[0]?.role || 'USER',
+        policies
+      );
+
+      const denied = policies.find(([action, section]) => !ability.can(action, section));
+      if (denied) {
+        throw new Error(
+          getErrorMessage({ action: denied[0], section: denied[1] }) ||
+            'You do not have permission to do this.'
+        );
+      }
+
+      return execute(inputData, context);
+    };
+    return tool;
+  }
 
   async loadTools(mcpOnly = false) {
     return (
@@ -32,10 +69,15 @@ export class LoadToolsService {
           )
           .filter((p) => !!p.mcpOnly === mcpOnly)
           .filter((p) => !p.available || p.available())
-          .map(async (p) => ({
-            name: p.name as string,
-            tool: await p.run(),
-          }))
+          .map(async (p) => {
+            const tool = p.run();
+            return {
+              name: p.name as string,
+              tool: p.policies?.length
+                ? this.withPolicies(tool, p.policies)
+                : tool,
+            };
+          })
       )
     ).reduce(
       (all, current) => ({

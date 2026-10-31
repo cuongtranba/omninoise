@@ -6,7 +6,8 @@ export class OAuthRepository {
   constructor(
     private _oauthApp: PrismaRepository<'oAuthApp'>,
     private _oauthAuth: PrismaRepository<'oAuthAuthorization'>,
-    private _oauthSelfHosted: PrismaRepository<'oAuthSelfHostedAuthorization'>
+    private _oauthSelfHosted: PrismaRepository<'oAuthSelfHostedAuthorization'>,
+    private _userOrg: PrismaRepository<'userOrganization'>
   ) {}
 
   getAppByOrgId(orgId: string) {
@@ -233,6 +234,7 @@ export class OAuthRepository {
       where: {
         accessToken: encryptedToken,
         revokedAt: null,
+        organization: { deletedAt: null },
       },
       include: {
         oauthApp: {
@@ -260,6 +262,24 @@ export class OAuthRepository {
             activated: true,
           },
         },
+      },
+    });
+  }
+
+  // The seat the token's user still holds in the organization: removed,
+  // disabled or deleted users no longer reach it through a token they approved
+  findActiveMembership(userId: string, organizationId: string) {
+    return this._userOrg.model.userOrganization.findFirst({
+      where: {
+        userId,
+        organizationId,
+        disabled: false,
+        user: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
       },
     });
   }

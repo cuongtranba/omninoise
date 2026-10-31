@@ -1,4 +1,5 @@
 import type { ToolAction } from '@mastra/core/tools';
+import type { AbilityPolicy } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 
 export type ToolReturn = ToolAction<any, any, any, any, any, any>;
 
@@ -11,5 +12,8 @@ export interface AgentToolInterface {
   // a self-hosted instance without it can still connect through the cloud
   // relay, calling it there asks to update the instance
   optionalOnSelfHosted?: boolean;
+  // the plan limits of the web route this tool mirrors (same tuples as @CheckPolicies),
+  // checked before every execution
+  policies?: AbilityPolicy[];
   run(): ToolReturn;
 }

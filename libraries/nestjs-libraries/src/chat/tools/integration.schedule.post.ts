@@ -8,6 +8,8 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { AllProvidersSettings } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/all.providers.settings';
 import { Integration } from '@prisma/client';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
+import { AbilityPolicy } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
+import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 import {
   ValidUrlExtension,
   ValidUrlPath,
@@ -65,6 +67,8 @@ export class IntegrationSchedulePostTool implements AgentToolInterface {
     private _integrationService: IntegrationService
   ) {}
   name = 'integrationSchedulePostTool';
+  // same limit as POST /posts
+  policies: AbilityPolicy[] = [[AuthorizationActions.Create, Sections.POSTS_PER_MONTH]];
 
   run() {
     return createTool({

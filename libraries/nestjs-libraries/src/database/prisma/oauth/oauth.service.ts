@@ -765,9 +765,27 @@ export class OAuthService {
     return this._oauthRepository.deleteSelfHostedAuthorization(id);
   }
 
-  async getOrgByOAuthToken(token: string) {
+  // The authorization of an access token, only while it still grants access:
+  // not revoked, the organization not deleted and the user still an active
+  // member of it. role is the user's role in that organization.
+  async resolveAccessToken(token: string) {
     const encrypted = AuthService.fixedEncryption(token);
-    return this._oauthRepository.findByAccessToken(encrypted);
+    const authorization = await this._oauthRepository.findByAccessToken(
+      encrypted
+    );
+    if (!authorization) {
+      return null;
+    }
+
+    const membership = await this._oauthRepository.findActiveMembership(
+      authorization.userId,
+      authorization.organizationId
+    );
+    if (!membership) {
+      return null;
+    }
+
+    return { ...authorization, role: membership.role };
   }
 
   async getUserInfo(authorization?: string) {
@@ -793,7 +811,7 @@ export class OAuthService {
       return this.getSelfHostedUserInfo(token);
     }
 
-    const authorizationRecord = await this.getOrgByOAuthToken(token);
+    const authorizationRecord = await this.resolveAccessToken(token);
     if (!authorizationRecord) {
       throw new HttpException(
         { error: 'invalid_token', error_description: 'Token is invalid or revoked' },

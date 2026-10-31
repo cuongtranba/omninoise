@@ -35,7 +35,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
       req.isOAuthApp = isOAuthApp;
 
       if (isOAuthApp) {
-        const authorization = await this._oauthService.getOrgByOAuthToken(auth);
+        const authorization = await this._oauthService.resolveAccessToken(auth);
         if (!authorization) {
           res
             .status(HttpStatus.UNAUTHORIZED)
@@ -57,7 +57,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
         }
       }
 
-      if (!!process.env.STRIPE_SECRET_KEY && !org.subscription) {
+      if (this._organizationService.hasNoSubscription(org)) {
         res
           .status(HttpStatus.UNAUTHORIZED)
           .json({ msg: 'No subscription found' });
