@@ -9,7 +9,7 @@ export const PreConditionComponentModal: FC = () => {
   return (
     <div className="flex flex-col gap-[16px]">
       <div className="whitespace-pre-line">
-        This social channel was previously connected to another Postiz account.
+        This social channel was previously connected to another Omninoise account.
         {'\n'}
         To connect it during your trial, you can end the trial now: your plan's
         first payment is charged today instead of at the end of the trial, and
