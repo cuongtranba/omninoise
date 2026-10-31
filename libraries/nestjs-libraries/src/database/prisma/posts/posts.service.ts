@@ -59,6 +59,10 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+import {
+  PostValidationError,
+  PostValidationException,
+} from '@gitroom/nestjs-libraries/database/prisma/posts/posts.validation.exception';
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -787,8 +791,8 @@ export class PostsService {
     return this.groupForEditor(posts, convertToJPEG);
   }
 
-  async getOldPosts(orgId: string, date: string) {
-    return this._postRepository.getOldPosts(orgId, date);
+  async getOldPosts(orgId: string, date: string, take?: number) {
+    return this._postRepository.getOldPosts(orgId, date, take);
   }
 
   public async updateTags(orgId: string, post: Post[]): Promise<Post[]> {
@@ -910,6 +914,19 @@ export class PostsService {
     }
 
     return { error: true };
+  }
+
+  // Deletes a channel together with the posts it still has
+  async deleteChannelWithPosts(orgId: string, id: string) {
+    const channelPosts = await this._integrationService.getPostsForChannel(
+      orgId,
+      id
+    );
+    for (const post of channelPosts) {
+      this.deletePost(orgId, post.group).catch(() => {});
+    }
+
+    return this._integrationService.deleteChannel(orgId, id);
   }
 
   async countPostsFromDay(orgId: string, date: Date) {
@@ -1112,6 +1129,94 @@ export class PostsService {
       }
     }
     return '';
+  }
+
+  /**
+   * The create path behind the dashboard, the public API and MCP: validates the
+   * posts server-side, maps the raw body to a CreatePostDto and creates them.
+   * Throws PostValidationException for the first channel that fails.
+   *
+   * `replaceDraft` is the public API contract: posts are typed 'schedule'
+   * while they are mapped, the mapped posts are the ones validated, and the
+   * request type is restored before creating.
+   */
+  async validateAndCreatePosts(
+    orgId: string,
+    rawBody: any,
+    creationMethod: CreationMethod,
+    options?: { replaceDraft?: boolean }
+  ) {
+    if (options?.replaceDraft) {
+      const body = await this.mapTypeToPost(rawBody, orgId, true);
+      body.type = rawBody.type;
+      await this.assertPostsValid(orgId, body.type, body.posts);
+      return this.createPost(orgId, body, creationMethod);
+    }
+
+    // Server-side validation — never trust the client to have validated.
+    await this.assertPostsValid(orgId, rawBody?.type, rawBody?.posts || []);
+    return this.mapAndCreatePosts(orgId, rawBody, creationMethod);
+  }
+
+  // The create half of validateAndCreatePosts, for callers that validated
+  // every request of a batch first (MCP creates nothing when one is invalid)
+  async mapAndCreatePosts(
+    orgId: string,
+    rawBody: any,
+    creationMethod: CreationMethod
+  ) {
+    const body = await this.mapTypeToPost(rawBody, orgId);
+    return this.createPost(orgId, body, creationMethod);
+  }
+
+  async assertPostsValid(
+    orgId: string,
+    type: string,
+    posts: Parameters<PostsService['validatePosts']>[1]
+  ) {
+    const validation = await this.validatePosts(orgId, posts);
+
+    const fail = (
+      item: (typeof validation)[number],
+      reason: PostValidationError['reason'],
+      error: string
+    ) => {
+      throw new PostValidationException({
+        provider: item.identifier,
+        name: item.name,
+        error,
+        reason,
+        maximumCharacters: item.maximumCharacters,
+      });
+    };
+
+    for (const item of validation) {
+      if (item.emptyContent) {
+        fail(
+          item,
+          'emptyContent',
+          'Your post should have at least one character or one image.'
+        );
+      }
+    }
+
+    if (type !== 'draft') {
+      for (const item of validation) {
+        if (!item.valid) {
+          fail(
+            item,
+            'settings',
+            item.settingsError || 'Please fix your settings'
+          );
+        }
+        if (item.errors !== true) {
+          fail(item, 'media', item.errors as string);
+        }
+        if (item.tooLong) {
+          fail(item, 'tooLong', 'post is too long, please fix it');
+        }
+      }
+    }
   }
 
   // A schedule-type save targeting an already-PUBLISHED post republishes it to
@@ -1465,6 +1570,14 @@ export class PostsService {
       .year(body.year)
       .startOf('isoWeek');
 
+    // findTime retries until it lands in the future, which never happens for
+    // a week that is already over
+    if (allDates.endOf('isoWeek').isBefore(dayjs())) {
+      throw new BadRequestException(
+        'This week is already over, pick the current week or a future one'
+      );
+    }
+
     const dates = [...new Array(7)].map((_, i) => {
       return allDates.add(i, 'day').format('YYYY-MM-DD');
     });
@@ -1641,9 +1754,11 @@ export class PostsService {
     previewId: string,
     body: CreatePublicCommentDto,
     userId: string | null,
-    ip: string
+    ip: string,
+    orgId?: string
   ) {
-    const posts = await this.getPostsRecursively(previewId, false);
+    // a shared preview can be commented from any organization, unless orgId scopes it
+    const posts = await this.getPostsRecursively(previewId, false, orgId);
     if (!posts.length) {
       throw new NotFoundException('Post not found');
     }

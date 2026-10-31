@@ -100,11 +100,18 @@ export class MediaService {
     return this._mediaRepository.getMediaById(id);
   }
 
+  // Returns false when the account has no AI image credits left. The credit
+  // gate is only enforced when billing is enabled (cloud), self-hosted is free.
   async generateImage(
     prompt: string,
     org: Organization,
     generatePromptFirst?: boolean
-  ) {
+  ): Promise<string | false> {
+    const total = await this._subscriptionService.checkCredits(org);
+    if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
+      return false;
+    }
+
     try {
       const generating = await this._subscriptionService.useCredit(
         org,
@@ -122,6 +129,24 @@ export class MediaService {
     } catch (err) {
       throw generationError(err);
     }
+  }
+
+  // Generates an image, stores it and saves it in the media library; false
+  // when the account has no AI image credits left (same gate as generateImage)
+  async generateAndSaveImage(
+    org: Organization,
+    prompt: string,
+    generatePromptFirst?: boolean
+  ) {
+    const image = await this.generateImage(prompt, org, generatePromptFirst);
+    if (image === false) {
+      return false;
+    }
+
+    const file = await this.storage.uploadSimple(
+      'data:image/png;base64,' + image
+    );
+    return this.saveFile(org.id, file.split('/').pop(), file);
   }
 
   // Streams the remote body straight into storage: only the sniffing prefix

@@ -10,6 +10,8 @@ import { UPLOAD_WIDGET_URI } from '@gitroom/nestjs-libraries/chat/ui/upload.widg
 export class UploadWidgetTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'uploadWidgetTool';
+  // mcp-only widget launcher, the web app uploads through its own upload components
+  mirrors = [];
   mcpOnly = true;
 
   run() {

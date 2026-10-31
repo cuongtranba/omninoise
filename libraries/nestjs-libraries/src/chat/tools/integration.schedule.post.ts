@@ -2,14 +2,19 @@ import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.in
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { Injectable } from '@nestjs/common';
-import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { AllProvidersSettings } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/all.providers.settings';
-import { Integration } from '@prisma/client';
+import {
+  PostValidationError,
+  PostValidationException,
+} from '@gitroom/nestjs-libraries/database/prisma/posts/posts.validation.exception';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 import { AbilityPolicy } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
-import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
+import {
+  AuthorizationActions,
+  Sections,
+} from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 import {
   ValidUrlExtension,
   ValidUrlPath,
@@ -41,6 +46,15 @@ const attachment = z.union([
   }),
 ]);
 
+// The error is the only thing returned on failure, so the posts that were
+// already created are listed in it.
+const alreadyCreated = (created: { postId: string; previewUrl: string }[]) =>
+  created.length
+    ? ` Posts already created before this error (do not create them again): ${created
+        .map((p) => `${p.postId} (${p.previewUrl})`)
+        .join(', ')}.`
+    : '';
+
 const toMedia = (
   a:
     | string
@@ -62,13 +76,13 @@ const toMedia = (
 
 @Injectable()
 export class IntegrationSchedulePostTool implements AgentToolInterface {
-  constructor(
-    private _postsService: PostsService,
-    private _integrationService: IntegrationService
-  ) {}
+  constructor(private _postsService: PostsService) {}
   name = 'integrationSchedulePostTool';
+  mirrors = ['POST /posts'];
   // same limit as POST /posts
-  policies: AbilityPolicy[] = [[AuthorizationActions.Create, Sections.POSTS_PER_MONTH]];
+  policies: AbilityPolicy[] = [
+    [AuthorizationActions.Create, Sections.POSTS_PER_MONTH],
+  ];
 
   run() {
     return createTool({
@@ -127,7 +141,7 @@ If validation fails, the result contains output.errors describing what to fix; t
                     content: z
                       .string()
                       .describe(
-                        "The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can't have u and strong together), img (<img src=\"...\">) only when the integration rules say pictures go inside the content, and span only for a mention in the exact format given by a mention tool from the integrationSchema tools"
+                        'The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can\'t have u and strong together), img (<img src="...">) only when the integration rules say pictures go inside the content, and span only for a mention in the exact format given by a mention tool from the integrationSchema tools'
                       ),
                     attachments: z
                       .array(attachment)
@@ -179,121 +193,96 @@ If validation fails, the result contains output.errors describing what to fix; t
         const organizationId = JSON.parse(
           (context?.requestContext as any)?.get('organization') as string
         ).id;
-        const finalOutput = [];
-
-        const integrations = {} as Record<string, Integration>;
-        for (const platform of inputData.socialPost) {
-          integrations[platform.integrationId] =
-            await this._integrationService.getIntegrationById(
-              organizationId,
-              platform.integrationId
-            );
-
-          // Same server-side validation as the dashboard / public API
-          // (settings DTO + media checkValidity + empty / too-long content).
-          const settings = platform.settings.reduce(
-            (acc: AllProvidersSettings, s: { key: string; value: any }) => ({
-              ...acc,
-              [s.key]: s.value,
-            }),
-            {} as AllProvidersSettings
-          );
-
-          const [validation] = await this._postsService.validatePosts(
-            organizationId,
-            [
-              {
-                integration: { id: platform.integrationId },
-                settings,
-                value: platform.postsAndComments.map((p: any) => ({
-                  content: p.content,
-                  image: (p.attachments || []).map(toMedia),
+        // The same body the dashboard sends to POST /posts, one per socialPost
+        // (each has its own date and type)
+        const bodies = inputData.socialPost.map((post) => ({
+          date: post.date,
+          type: post.type,
+          shortLink: post.shortLink,
+          tags: [],
+          posts: [
+            {
+              integration: { id: post.integrationId },
+              group: makeId(10),
+              settings: post.settings.reduce(
+                (
+                  acc: AllProvidersSettings,
+                  s: { key: string; value: any }
+                ) => ({
+                  ...acc,
+                  [s.key]: s.value,
+                }),
+                {} as AllProvidersSettings
+              ),
+              value: post.postsAndComments.map((p: any) => ({
+                content: p.content,
+                id: makeId(10),
+                delay: 0,
+                image: (p.attachments || []).map((a: any) => ({
+                  id: makeId(10),
+                  ...toMedia(a),
                 })),
-              },
-            ]
-          );
+              })),
+            },
+          ],
+        }));
 
-          if (validation.emptyContent) {
-            return {
-              output: {
-                errors: `${validation.name}: Your post should have at least one character or one image.`,
-              },
-            };
+        // Every socialPost is validated before any is created, so an invalid
+        // one creates nothing
+        try {
+          for (const body of bodies) {
+            await this._postsService.assertPostsValid(
+              organizationId,
+              body.type,
+              body.posts
+            );
+          }
+        } catch (err) {
+          if (!(err instanceof PostValidationException)) {
+            throw err;
           }
 
-          if (platform.type !== 'draft') {
-            if (!validation.valid) {
-              return {
-                output: {
-                  errors: `${validation.name}: ${
-                    validation.settingsError || 'Please fix your settings'
-                  }, please fix it, and try integrationSchedulePostTool again.`,
-                },
-              };
-            }
+          const { name, error, reason, maximumCharacters } =
+            err.getResponse() as PostValidationError;
+          const retry =
+            ', please fix it, and try integrationSchedulePostTool again.';
+          const message =
+            reason === 'emptyContent'
+              ? error
+              : reason === 'tooLong'
+              ? `The maximum characters is ${maximumCharacters}${retry}`
+              : `${error}${retry}`;
 
-            if (validation.errors !== true) {
-              return {
-                output: {
-                  errors: `${validation.name}: ${validation.errors}, please fix it, and try integrationSchedulePostTool again.`,
-                },
-              };
-            }
-
-            if (validation.tooLong) {
-              return {
-                output: {
-                  errors: `${validation.name}: The maximum characters is ${validation.maximumCharacters}, please fix it, and try integrationSchedulePostTool again.`,
-                },
-              };
-            }
-          }
+          return { output: { errors: `${name}: ${message}` } };
         }
 
-        for (const post of inputData.socialPost) {
-          const integration = integrations[post.integrationId];
-
-          if (!integration) {
-            throw new Error('Integration not found');
+        // Posts created before a failure stay created, so they are reported
+        // together with the error
+        const finalOutput = [];
+        try {
+          for (const body of bodies) {
+            const output = await this._postsService.mapAndCreatePosts(
+              organizationId,
+              body,
+              'MCP'
+            );
+            // Same public preview page the calendar "Preview Post" button opens.
+            finalOutput.push(
+              ...output.map((p) => ({
+                ...p,
+                previewUrl: `${process.env.FRONTEND_URL}/p/${p.postId}?share=true`,
+              }))
+            );
           }
-
-          const output = await this._postsService.createPost(organizationId, {
-            date: post.date,
-            type: post.type as 'draft' | 'schedule' | 'now',
-            shortLink: post.shortLink,
-            tags: [],
-            posts: [
-              {
-                integration,
-                group: makeId(10),
-                settings: post.settings.reduce(
-                  (acc: AllProvidersSettings, s: { key: string; value: any }) => ({
-                    ...acc,
-                    [s.key]: s.value,
-                  }),
-                  {
-                    __type: integration.providerIdentifier,
-                  } as AllProvidersSettings
-                ),
-                value: post.postsAndComments.map((p: any) => ({
-                  content: p.content,
-                  id: makeId(10),
-                  delay: 0,
-                  image: p.attachments.map((a: any) => ({
-                    id: makeId(10),
-                    ...toMedia(a),
-                  })),
-                })),
-              },
-            ],
-          }, 'MCP');
-          // Same public preview page the calendar "Preview Post" button opens.
-          finalOutput.push(
-            ...output.map((p) => ({
-              ...p,
-              previewUrl: `${process.env.FRONTEND_URL}/p/${p.postId}?share=true`,
-            }))
-          );
+        } catch (err) {
+          if (!finalOutput.length) {
+            throw err;
+          }
+          return {
+            output: {
+              errors: `${(err as Error).message}${alreadyCreated(finalOutput)}`,
+            },
+          };
         }
 
         return {
