@@ -1,4 +1,5 @@
 import {
+  ExposeThirdPartyFunction,
   ThirdParty,
   ThirdPartyAbstract,
 } from '@gitroom/nestjs-libraries/3rdparties/thirdparty.interface';
@@ -34,6 +35,7 @@ export class ReelFarmProvider extends ThirdPartyAbstract {
     };
   }
 
+  @ExposeThirdPartyFunction()
   async listMedia(
     apiKey: string,
     data?: { page?: number }

@@ -330,6 +330,10 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
     accessToken: string,
     data: { id: string; accountName: string; locationName: string }
   ) {
+    if (!/^locations\/[\w-]+$/.test(data.locationName)) {
+      throw new Error('Invalid location');
+    }
+
     // data.id is the full resource path: accounts/{accountId}/locations/{locationId}
     // data.locationName is the v1 API format: locations/{locationId}
     // Fetch location details using the v1 API format

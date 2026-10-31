@@ -41,3 +41,13 @@ export function ThirdParty(params: ThirdPartyParams) {
     Reflect.defineMetadata('third:party', existingMetadata, ThirdPartyAbstract);
   };
 }
+
+export function ExposeThirdPartyFunction() {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    Reflect.defineMetadata('third-party-function', 'true', descriptor.value);
+  };
+}

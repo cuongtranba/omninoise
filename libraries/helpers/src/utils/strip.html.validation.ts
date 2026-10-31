@@ -150,10 +150,10 @@ export const stripHtmlValidation = (
     return striptags(value)
       .replace(/&gt;/gi, '>')
       .replace(/&lt;/gi, '<')
-      .replace(/&amp;/gi, '&')
       .replace(/&nbsp;/gi, ' ')
       .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, "'");
+      .replace(/&#39;/gi, "'")
+      .replace(/&amp;/gi, '&');
   }
 
   if (type === 'html') {
@@ -177,10 +177,10 @@ export const stripHtmlValidation = (
     )
       .replace(/&gt;/gi, '>')
       .replace(/&lt;/gi, '<')
-      .replace(/&amp;/gi, '&')
       .replace(/&nbsp;/gi, ' ')
       .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, "'");
+      .replace(/&#39;/gi, "'")
+      .replace(/&amp;/gi, '&');
   }
 
   if (type === 'markdown') {
@@ -190,10 +190,6 @@ export const stripHtmlValidation = (
           .replace(/<h1[^>]*>([.\s\S]*?)<\/h1>/g, (match, p1) => {
             return `<h1># ${p1}</h1>\n`;
           })
-          .replace(/&amp;/gi, '&')
-          .replace(/&nbsp;/gi, ' ')
-          .replace(/&quot;/gi, '"')
-          .replace(/&#39;/gi, "'")
           .replace(/<h2[^>]*>([.\s\S]*?)<\/h2>/g, (match, p1) => {
             return `<h2>## ${p1}</h2>\n`;
           })
@@ -222,7 +218,11 @@ export const stripHtmlValidation = (
       )
     )
       .replace(/&gt;/gi, '>')
-      .replace(/&lt;/gi, '<');
+      .replace(/&lt;/gi, '<')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&amp;/gi, '&');
   }
 
   if (!/<p[\s>]/i.test(value) && !none) {
@@ -230,7 +230,6 @@ export const stripHtmlValidation = (
   }
 
   const html = (value || '')
-    .replace(/&amp;/gi, '&')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
@@ -239,7 +238,10 @@ export const stripHtmlValidation = (
     .replace(/<\/p>/gi, '');
 
   if (none) {
-    return striptags(html).replace(/&gt;/gi, '>').replace(/&lt;/gi, '<');
+    return striptags(html)
+      .replace(/&gt;/gi, '>')
+      .replace(/&lt;/gi, '<')
+      .replace(/&amp;/gi, '&');
   }
 
   if (replaceBold) {
@@ -264,16 +266,14 @@ export const stripHtmlValidation = (
     return striptags(processedHtml)
       .replace(/&gt;/gi, '>')
       .replace(/&lt;/gi, '<')
-      .replace(/&𝗹𝘁;/gi, '<')
-      .replace(/&𝗴𝘁;/gi, '>')
-      .replace(/&g̲t̲;/gi, '>')
-      .replace(/&l̲t̲;/gi, '<');
+      .replace(/&amp;/gi, '&');
   }
 
   // Strip all other tags
   return striptags(html, ['ul', 'li', 'h1', 'h2', 'h3'])
     .replace(/&gt;/gi, '>')
-    .replace(/&lt;/gi, '<');
+    .replace(/&lt;/gi, '<')
+    .replace(/&amp;/gi, '&');
 };
 
 // keeps only an http(s) src and the alt of a picture, a value holding a quote
@@ -311,19 +311,20 @@ export const convertMention = (
 export const convertToAscii = (value: string): string => {
   return value
     .replace(/<strong>(.+?)<\/strong>/gi, (match, p1) => {
-      const replacer = p1.split('').map((char: string) => {
+      // an entity such as &lt; is kept as is, not letter-mapped
+      const replacer = p1.replace(/&[#\w]+;|[\s\S]/g, (char: string) => {
         // @ts-ignore
-        return bold?.[char] || char;
+        return char.length > 1 ? char : bold?.[char] || char;
       });
 
-      return match.replace(p1, replacer.join(''));
+      return match.replace(p1, replacer);
     })
     .replace(/<u>(.+?)<\/u>/gi, (match, p1) => {
-      const replacer = p1.split('').map((char: string) => {
+      const replacer = p1.replace(/&[#\w]+;|[\s\S]/g, (char: string) => {
         // @ts-ignore
-        return underlineMap?.[char] || char;
+        return char.length > 1 ? char : underlineMap?.[char] || char;
       });
 
-      return match.replace(p1, replacer.join(''));
+      return match.replace(p1, replacer);
     });
 };
