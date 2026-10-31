@@ -27,6 +27,7 @@ import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
 import { Provider } from '@prisma/client';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import * as Sentry from '@sentry/nestjs';
+import { escape } from 'lodash';
 import { FarcasterProvider } from '@gitroom/nestjs-libraries/integrations/social/farcaster.provider';
 
 @ApiTags('Auth')
@@ -115,7 +116,7 @@ export class AuthController {
       });
     } catch (e: any) {
       response.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      response.status(400).send(e.message);
+      response.status(400).send(escape(e.message));
     }
   }
 
@@ -180,7 +181,7 @@ export class AuthController {
       });
     } catch (e: any) {
       response.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      response.status(400).send(e.message);
+      response.status(400).send(escape(e.message));
     }
   }
 

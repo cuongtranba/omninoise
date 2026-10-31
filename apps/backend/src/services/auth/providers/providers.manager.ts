@@ -15,7 +15,7 @@ export class AuthProviderManager {
     );
 
     if (!found) {
-      throw new Error(`Auth provider ${provider} not found`);
+      throw new Error('Auth provider not found');
     }
 
     return this._moduleRef.get(found.target, { strict: false });
