@@ -102,7 +102,9 @@ export const startMcp = async (app: INestApplication) => {
   };
 
   // The Claude connector directory does not accept AI media generation tools,
-  // so the directory-facing endpoint hides them. Direct connections
+  // and the instance admin tools are for the operator of the installation, not
+  // for the people who install the connector, so the directory-facing endpoint
+  // hides them. Direct connections
   // (/mcp, /mcp/:id, /sse/:id) and the ChatGPT app keep the full toolset.
   const claudeHiddenTools = [
     'generateImageTool',
@@ -113,7 +115,11 @@ export const startMcp = async (app: INestApplication) => {
     // clipping renders new videos (AI picked cuts, burned-in captions)
     'clippingTool',
     'clippingStatusTool',
+    'clippingListTool',
     'clippingWidgetTicketTool',
+    // instance admin tools, they only work for the super admin of the instance
+    'adminTool',
+    'announcementsTool',
   ];
   const withoutClaudeHidden = <T extends Record<string, unknown>>(source: T) =>
     Object.fromEntries(

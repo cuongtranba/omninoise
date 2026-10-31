@@ -3,16 +3,16 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { Injectable } from '@nestjs/common';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
-import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 
 @Injectable()
 export class GenerateImageTool implements AgentToolInterface {
-  private storage = UploadFactory.createStorage();
-
   constructor(private _mediaService: MediaService) {}
   name = 'generateImageTool';
-  mirrors = ['POST /media/generate-image'];
+  mirrors = [
+    'POST /media/generate-image',
+    'POST /media/generate-image-with-prompt',
+  ];
 
   run() {
     return createTool({
@@ -32,6 +32,12 @@ export class GenerateImageTool implements AgentToolInterface {
       },
       inputSchema: z.object({
         prompt: z.string(),
+        writePromptFirst: z
+          .boolean()
+          .optional()
+          .describe(
+            'Pass true when "prompt" is the text of a post or a short idea instead of a description of the picture: an AI first writes the picture description from it (the generate-image-with-prompt flow of the dashboard)'
+          ),
       }),
       // Mastra validates the return against this schema, so it must also
       // allow the graceful { error } shape (same as uploadFromUrlTool)
@@ -44,26 +50,19 @@ export class GenerateImageTool implements AgentToolInterface {
         checkAuth(inputData, context);
         const org = JSON.parse((context?.requestContext as any)?.get('organization') as string);
         try {
-          // Same credit gate as the dashboard's /media/generate-image route
-          const image = await this._mediaService.generateImage(
+          // Same credit gate as the dashboard's /media/generate-image routes
+          const media = await this._mediaService.generateAndSaveImage(
+            org,
             inputData.prompt,
-            org
+            inputData.writePromptFirst
           );
-          if (image === false) {
+          if (media === false) {
             return {
               error: 'No AI image credits are available on this account.',
             };
           }
 
-          const file = await this.storage.uploadSimple(
-            'data:image/png;base64,' + image
-          );
-
-          return await this._mediaService.saveFile(
-            org.id,
-            file.split('/').pop(),
-            file
-          );
+          return media;
         } catch (err) {
           return {
             error: `Image generation failed: ${
