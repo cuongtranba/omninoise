@@ -1,4 +1,5 @@
 import {
+  ExposeThirdPartyFunction,
   ThirdParty,
   ThirdPartyAbstract,
 } from '@gitroom/nestjs-libraries/3rdparties/thirdparty.interface';
@@ -47,12 +48,14 @@ export class HeygenProvider extends ThirdPartyAbstract<{
     };
   }
 
+  @ExposeThirdPartyFunction()
   async generateVoice(apiKey: string, data: { text: string }) {
     return {
       voice: await this._openaiService.generateVoiceFromText(data.text),
     };
   }
 
+  @ExposeThirdPartyFunction()
   async voices(apiKey: string) {
     const {
       data: { voices },
@@ -69,6 +72,7 @@ export class HeygenProvider extends ThirdPartyAbstract<{
     return voices.slice(0, 20);
   }
 
+  @ExposeThirdPartyFunction()
   async avatars(apiKey: string) {
     const {
       data: { avatar_group_list },

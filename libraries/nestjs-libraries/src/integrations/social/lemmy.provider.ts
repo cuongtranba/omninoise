@@ -178,13 +178,17 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
 
     try {
       const user = await (
-        await fetch(body.service + `/api/v3/user?username=${body.identifier}`, {
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-          dispatcher: getSsrfSafeDispatcher(),
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
-        })
+        await fetch(
+          body.service +
+            `/api/v3/user?username=${encodeURIComponent(body.identifier)}`,
+          {
+            // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+            dispatcher: getSsrfSafeDispatcher(),
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+          }
+        )
       ).json();
 
       return {

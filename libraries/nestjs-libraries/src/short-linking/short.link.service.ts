@@ -57,10 +57,11 @@ export class ShortLinkService {
     }
 
     const messages = messagesList.map((text) => {
-      return text
-        .replace(/&amp;/g, '&')
-        .replace(/&quest;/g, '?')
-        .replace(/&num;/g, '#');
+      return text.replace(
+        /&(amp|quest|num);/g,
+        (_, name: 'amp' | 'quest' | 'num') =>
+          ({ amp: '&', quest: '?', num: '#' }[name])
+      );
     });
 
     const urlRegex =

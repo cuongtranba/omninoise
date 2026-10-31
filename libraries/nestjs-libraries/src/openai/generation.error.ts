@@ -1,7 +1,7 @@
 import { HttpException } from '@nestjs/common';
 
 // e.g. "400 Your request was rejected by the safety system, safety_violations=[sexual]"
-const SAFETY_VIOLATIONS_REGEX = /safety_violations=\[([^\]]*)\]/i;
+const SAFETY_VIOLATIONS_REGEX = /safety_violations=\[([^\]]{0,200})\]/i;
 
 // Match genuine content-safety rejections by message, NOT by a bare 400 status:
 // a 400 can just as easily be an invalid-parameter error, which must not be

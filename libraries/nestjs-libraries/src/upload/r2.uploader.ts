@@ -170,7 +170,7 @@ export async function prepareUploadParts(req: Request, res: Response) {
       response.presignedUrls[part.number] = url;
     } catch (err) {
       console.log('Error', err);
-      return res.status(500).json(err);
+      return res.status(500).json({ message: 'Internal server error.' });
     }
   }
 
@@ -192,7 +192,7 @@ export async function listParts(req: Request, res: Response) {
     return res.status(200).json(response['Parts']);
   } catch (err) {
     console.log('Error', err);
-    return res.status(500).json(err);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 }
 
@@ -257,7 +257,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     return response;
   } catch (err) {
     console.log('Error', err);
-    return res.status(500).json(err);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 }
 
@@ -276,7 +276,7 @@ export async function abortMultipartUpload(req: Request, res: Response) {
     return res.status(200).json(response);
   } catch (err) {
     console.log('Error', err);
-    return res.status(500).json(err);
+    return res.status(500).json({ message: 'Internal server error.' });
   }
 }
 

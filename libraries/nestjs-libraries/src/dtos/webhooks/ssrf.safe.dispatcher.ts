@@ -1,4 +1,4 @@
-import { Agent } from 'undici';
+import { Agent, buildConnector } from 'undici';
 import axios, { AxiosInstance } from 'axios';
 import dns from 'node:dns';
 import net from 'node:net';
@@ -45,18 +45,54 @@ function ssrfSafeLookup(
   });
 }
 
+// Node skips the `lookup` hook when the host is already an IP literal, so the
+// literal has to be checked before connecting.
+function isBlockedIpLiteral(host?: string) {
+  const ip = host?.replace(/^\[|\]$/g, '') || '';
+  return net.isIP(ip) > 0 && isBlockedIp(ip);
+}
+
+const ssrfSafeConnector = buildConnector({ lookup: ssrfSafeLookup });
+
 export const ssrfSafeDispatcher = new Agent({
-  connect: {
-    lookup: ssrfSafeLookup,
+  connect: (options, callback) => {
+    if (isBlockedIpLiteral(options.hostname)) {
+      return callback(new Error('Blocked IP'), null);
+    }
+    return ssrfSafeConnector(options, callback);
   },
 });
+
+class SsrfSafeHttpAgent extends http.Agent {
+  createConnection(options: any, callback?: any) {
+    if (isBlockedIpLiteral(options.host)) {
+      callback?.(new Error('Blocked IP'));
+      return undefined as any;
+    }
+    // @ts-ignore - createConnection is missing from the @types/node typings
+    return super.createConnection(options, callback);
+  }
+}
+
+class SsrfSafeHttpsAgent extends https.Agent {
+  createConnection(options: any, callback?: any) {
+    if (isBlockedIpLiteral(options.host)) {
+      callback?.(new Error('Blocked IP'));
+      return undefined as any;
+    }
+    // @ts-ignore - createConnection is missing from the @types/node typings
+    return super.createConnection(options, callback);
+  }
+}
 
 // axios can't use an undici dispatcher, but Node's http(s) agents accept the
 // same `lookup` hook, so axios requests (providers that need form-data /
 // stream uploads) get the identical pinned-DNS guard as `this.fetch`.
 const ssrfSafeAxios = axios.create({
-  httpAgent: new http.Agent({ lookup: ssrfSafeLookup } as http.AgentOptions),
-  httpsAgent: new https.Agent({
+  httpAgent: new SsrfSafeHttpAgent({
+    lookup: ssrfSafeLookup,
+  } as http.AgentOptions),
+  httpsAgent: new SsrfSafeHttpsAgent({
     lookup: ssrfSafeLookup,
   } as https.AgentOptions),
 });

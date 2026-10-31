@@ -116,7 +116,16 @@ export class ThirdPartyController {
       throw new HttpException('Invalid identifier', 400);
     }
 
-    return thirdPartyInstance?.instance?.[functionName](
+    const functionToCall = thirdPartyInstance.instance[functionName];
+    if (
+      typeof functionToCall !== 'function' ||
+      this._thirdPartyManager.checkAvailableThirdPartyFunction(functionToCall)
+    ) {
+      throw new HttpException('Function not found', 400);
+    }
+
+    return functionToCall.call(
+      thirdPartyInstance.instance,
       AuthService.fixedDecryption(thirdParty.apiKey),
       data
     );

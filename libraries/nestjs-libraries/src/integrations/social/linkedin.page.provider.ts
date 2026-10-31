@@ -190,7 +190,7 @@ export class LinkedinPageProvider
     const pageId = params.page;
     const data = await (
       await fetch(
-        `https://api.linkedin.com/v2/organizations/${pageId}?projection=(id,localizedName,vanityName,logoV2(original~:playableStreams))`,
+        `https://api.linkedin.com/v2/organizations/${encodeURIComponent(pageId)}?projection=(id,localizedName,vanityName,logoV2(original~:playableStreams))`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,

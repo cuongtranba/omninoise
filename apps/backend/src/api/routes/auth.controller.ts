@@ -114,6 +114,7 @@ export class AuthController {
         register: true,
       });
     } catch (e: any) {
+      response.setHeader('Content-Type', 'text/plain; charset=utf-8');
       response.status(400).send(e.message);
     }
   }
@@ -178,6 +179,7 @@ export class AuthController {
         login: true,
       });
     } catch (e: any) {
+      response.setHeader('Content-Type', 'text/plain; charset=utf-8');
       response.status(400).send(e.message);
     }
   }
@@ -226,10 +228,10 @@ export class AuthController {
     const state = `login-${makeSecureId(16)}`;
     response.cookie('oauth_state', state, {
       domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
+      httpOnly: true,
       ...(!process.env.NOT_SECURED
         ? {
             secure: true,
-            httpOnly: true,
             sameSite: 'none',
           }
         : {}),

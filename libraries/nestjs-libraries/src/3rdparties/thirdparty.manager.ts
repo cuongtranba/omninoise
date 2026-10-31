@@ -25,6 +25,14 @@ export class ThirdPartyManager {
       }));
   }
 
+  checkAvailableThirdPartyFunction(method: any) {
+    const thirdPartyFunction = Reflect.getMetadata(
+      'third-party-function',
+      method
+    );
+    return !thirdPartyFunction;
+  }
+
   getThirdPartyByName(
     identifier: string
   ): (ThirdPartyParams & { instance: ThirdPartyAbstract }) | undefined {

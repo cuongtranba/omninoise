@@ -31,6 +31,15 @@ import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 
 dayjs.extend(utc);
 
+// Cloudflare Images delivery URLs are already hosted, so they are not re-uploaded
+const isCloudflareImage = (url: string) => {
+  try {
+    return new URL(url).hostname === 'imagedelivery.net';
+  } catch (err) {
+    return false;
+  }
+};
+
 @Injectable()
 export class IntegrationService {
   private storage = UploadFactory.createStorage();
@@ -114,7 +123,7 @@ export class IntegrationService {
     customInstanceDetails?: string
   ) {
     const uploadedPicture = picture
-      ? picture?.indexOf('imagedelivery.net') > -1
+      ? isCloudflareImage(picture)
         ? picture
         : await this.storage.uploadSimple(picture).catch((err) => {
             console.log('Failed to upload profile picture:', picture, err);
