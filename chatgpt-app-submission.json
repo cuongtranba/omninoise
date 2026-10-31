@@ -823,6 +823,30 @@
         "open_world_justification": "Connecting, running a function, submitting and importing call the third-party service the user connected; the stored API key is never returned.",
         "destructive_justification": "Disconnecting forgets the stored API key and cannot be undone; the media already made stays."
       }
+    },
+    "adminTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads the failed posts, the usage statistics and the user search of the whole instance, and only for the super admin of the instance; everyone else is refused.",
+        "open_world_justification": "Reads Postiz's own database and nothing reaches an external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content; it cannot start an impersonation."
+      }
+    },
+    "announcementsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists the announcements and, for the super admin of the instance only, creates and deletes them.",
+        "open_world_justification": "Announcements stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Deleting an announcement removes it for every user and cannot be undone; only the super admin of the instance can do it."
+      }
     }
   },
   "test_cases": [

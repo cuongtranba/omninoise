@@ -9,6 +9,7 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 
 process.env.JWT_SECRET ||= 'team-user-tools-spec-secret';
@@ -158,7 +159,9 @@ afterEach(() => {
 afterAll(async () => {
   const prisma = moduleRef.get(PrismaService);
   const inOrgs = { organizationId: { in: orgIds } };
-  await prisma.oAuthAuthorization.deleteMany({ where: { oauthAppId: appId } });
+  await prisma.oAuthAuthorization.deleteMany({
+    where: { OR: [{ oauthAppId: appId }, inOrgs] },
+  });
   await prisma.oAuthApp.deleteMany({
     where: { OR: [{ id: appId }, inOrgs] },
   });
@@ -731,4 +734,116 @@ test('rotating the API key returns the new key and the old one stops working', a
   expect(result.output).toEqual({ apiKey: stored.apiKey });
   expect(stored.apiKey).not.toBe(`rotate-${run}`);
   expect(await organizations.getOrgByApiKey(`rotate-${run}`)).toBeNull();
+});
+
+test('without billing a USER member is refused the admin tools while the plan limits stay open', async () => {
+  delete process.env.STRIPE_PUBLISHABLE_KEY;
+  const prisma = moduleRef.get(PrismaService);
+  // no subscription: on the FREE plan of a billed instance no webhook fits
+  const created = await prisma.organization.create({
+    data: { name: `self-hosted-roles-${run}` },
+  });
+  orgIds.push(created.id);
+  const regular = await user('self-hosted-roles-regular');
+  await member(created.id, regular, 'USER');
+
+  const webhook = await tools.webhookCreateTool.execute(
+    { name: 'hook', url: 'https://8.8.8.8/hook', channels: [] },
+    await connection(created.id, 'USER', regular)
+  );
+  await expect(
+    tools.teamTool.execute(
+      { action: 'invite', role: 'USER', sendEmail: false },
+      await connection(created.id, 'USER', regular)
+    )
+  ).rejects.toThrow();
+  const invite = await tools.teamTool.execute(
+    { action: 'invite', role: 'USER', sendEmail: false },
+    await connection(created.id, 'ADMIN', regular)
+  );
+
+  expect(webhook.output).toHaveProperty('created');
+  expect(invite.output).not.toHaveProperty('errors');
+  await prisma.webhooks.deleteMany({ where: { organizationId: created.id } });
+});
+
+test('rotating the API key and reading the account answer with no credentials', async () => {
+  const team = await org('credentials-rotate', `old-key-${run}`);
+  const owner = await user('credentials-owner', { password: `hash-${run}` });
+  await moduleRef.get(PrismaService).user.update({
+    where: { id: owner },
+    data: { ip: '203.0.113.7', agent: 'Mozilla/5.0', providerId: `p-${run}` },
+  });
+  await member(team, owner, 'ADMIN');
+  const caller = JSON.parse(
+    (await connection(team, 'ADMIN', owner)).requestContext.get('organization')
+  );
+  const row = await moduleRef
+    .get(PrismaService)
+    .user.findUniqueOrThrow({ where: { id: owner } });
+
+  const rotated = await moduleRef.get(OrganizationService).updateApiKey(team);
+  const self = moduleRef.get(UsersService).getSelf(row, caller, false);
+
+  expect(rotated).toEqual({ id: team, apiKey: expect.any(String) });
+  expect(rotated.apiKey).not.toBe(`old-key-${run}`);
+  expect(self).toMatchObject({
+    id: owner,
+    email: `credentials-owner-${run}@postiz.test`,
+    timezoneName: row.timezoneName,
+    orgId: team,
+    role: 'ADMIN',
+    publicApi: `old-key-${run}`,
+  });
+  for (const secret of ['password', 'ip', 'agent', 'providerId']) {
+    expect(self).not.toHaveProperty(secret);
+  }
+});
+
+test('the approved apps and the updated OAuth app never carry a token or a client secret', async () => {
+  const prisma = moduleRef.get(PrismaService);
+  const team = await org('credentials-oauth');
+  const owner = await user('credentials-approver');
+  const clientSecret = AuthService.fixedEncryption(`pcs_secret_${run}`);
+  const app = await prisma.oAuthApp.create({
+    data: {
+      organizationId: team,
+      name: `own-app-${run}`,
+      description: 'my app',
+      redirectUrl: 'https://postiz.test/callback',
+      clientId: `own-app-${run}`,
+      clientSecret,
+    },
+  });
+  const accessToken = AuthService.fixedEncryption(`pos_approved_${run}`);
+  const authorization = await prisma.oAuthAuthorization.create({
+    data: {
+      oauthAppId: app.id,
+      userId: owner,
+      organizationId: team,
+      accessToken,
+    },
+  });
+  const oauth = moduleRef.get(OAuthService);
+
+  const approved = await oauth.getApprovedApps(owner);
+  const updated = await oauth.updateApp(team, { name: `renamed-${run}` });
+
+  expect(approved).toEqual([
+    {
+      id: authorization.id,
+      organizationId: team,
+      createdAt: authorization.createdAt,
+      oauthApp: {
+        name: `own-app-${run}`,
+        description: 'my app',
+        picture: null,
+      },
+    },
+  ]);
+  expect(updated).toMatchObject({ id: app.id, name: `renamed-${run}` });
+  for (const answer of [approved, updated]) {
+    expect(JSON.stringify(answer)).not.toContain(clientSecret);
+    expect(JSON.stringify(answer)).not.toContain(accessToken);
+  }
 });

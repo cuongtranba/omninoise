@@ -101,9 +101,7 @@ export class UsersController {
     @GetUserFromRequest() user: User,
     @Query('name') name: string
   ) {
-    if (!user.isSuperAdmin) {
-      throw new HttpException('Unauthorized', 400);
-    }
+    this._userService.assertSuperAdmin(user);
 
     return this._userService.getImpersonateUser(name);
   }
