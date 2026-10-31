@@ -100,11 +100,18 @@ export class MediaService {
     return this._mediaRepository.getMediaById(id);
   }
 
+  // Returns false when the account has no AI image credits left. The credit
+  // gate is only enforced when billing is enabled (cloud), self-hosted is free.
   async generateImage(
     prompt: string,
     org: Organization,
     generatePromptFirst?: boolean
-  ) {
+  ): Promise<string | false> {
+    const total = await this._subscriptionService.checkCredits(org);
+    if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
+      return false;
+    }
+
     try {
       const generating = await this._subscriptionService.useCredit(
         org,

@@ -46,12 +46,8 @@ import {
   IntegrationManager,
 } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { getValidationSchemas } from '@gitroom/nestjs-libraries/chat/validation.schemas.helper';
-import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
-import { RefreshToken } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-import { PostValidationException } from '@gitroom/backend/api/routes/posts.validation.exception';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { SuperAdminGuard } from '@gitroom/backend/services/auth/super.admin.guard';
-import { timer } from '@gitroom/helpers/utils/timer';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
@@ -69,7 +65,6 @@ export class PublicIntegrationsController {
     private _mediaService: MediaService,
     private _notificationService: NotificationService,
     private _integrationManager: IntegrationManager,
-    private _refreshIntegrationService: RefreshIntegrationService,
     private _usersService: UsersService,
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
@@ -150,26 +145,21 @@ export class PublicIntegrationsController {
     @Body() rawBody: any
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    const body = await this._postsService.mapTypeToPost(
-      {
-        ...rawBody,
-        // a date per channel is a dashboard feature, the public API keeps one
-        // date for the whole request
-        posts: Array.isArray(rawBody?.posts)
-          ? rawBody.posts.map((post: any) => omit(post, 'date'))
-          : rawBody?.posts,
-      },
-      org.id,
-      rawBody?.type === 'draft' || true
-    );
-    body.type = rawBody.type;
+    // a date per channel is a dashboard feature, the public API keeps one date
+    // for the whole request
+    const posts = Array.isArray(rawBody?.posts)
+      ? rawBody.posts.map((post: any) => omit(post, 'date'))
+      : rawBody?.posts;
 
     if (
       process.env.RESTRICT_UPLOAD_DOMAINS &&
-      body.posts.some((p) =>
-        p.value.some((a) =>
-          a.image.some(
-            (i) => i.path.indexOf(process.env.RESTRICT_UPLOAD_DOMAINS) === -1
+      Array.isArray(posts) &&
+      posts.some((p: any) =>
+        p?.value?.some?.((a: any) =>
+          a?.image?.some?.(
+            (i: any) =>
+              typeof i?.path === 'string' &&
+              i.path.indexOf(process.env.RESTRICT_UPLOAD_DOMAINS) === -1
           )
         )
       )
@@ -182,44 +172,6 @@ export class PublicIntegrationsController {
       );
     }
 
-    // Server-side validation — same rules as the dashboard, surfaced as a
-    // readable 400 (see PostValidationExceptionFilter).
-    const validation = await this._postsService.validatePosts(
-      org.id,
-      body.posts
-    );
-
-    const fail = (item: (typeof validation)[number], error: string) => {
-      throw new PostValidationException({
-        provider: item.identifier,
-        name: item.name,
-        error,
-      });
-    };
-
-    for (const item of validation) {
-      if (item.emptyContent) {
-        fail(
-          item,
-          'Your post should have at least one character or one image.'
-        );
-      }
-    }
-
-    if (body.type !== 'draft') {
-      for (const item of validation) {
-        if (!item.valid) {
-          fail(item, item.settingsError || 'Please fix your settings');
-        }
-        if (item.errors !== true) {
-          fail(item, item.errors as string);
-        }
-        if (item.tooLong) {
-          fail(item, 'post is too long, please fix it');
-        }
-      }
-    }
-
     const allowedCreationMethods = ['CLI', 'API'] as const;
     const creationMethod = allowedCreationMethods.includes(
       rawBody.creationMethod
@@ -227,7 +179,14 @@ export class PublicIntegrationsController {
       ? (rawBody.creationMethod as 'CLI' | 'API')
       : 'API';
 
-    return this._postsService.createPost(org.id, body, creationMethod);
+    // Server-side validation — same rules as the dashboard, surfaced as a
+    // readable 400 (see PostValidationExceptionFilter).
+    return this._postsService.validateAndCreatePosts(
+      org.id,
+      { ...rawBody, posts },
+      creationMethod,
+      { replaceDraft: true }
+    );
   }
 
   @Delete('/posts/:id')
@@ -715,48 +674,24 @@ export class PublicIntegrationsController {
       throw new HttpException({ msg: 'Tool not found' }, 404);
     }
 
-    while (true) {
-      try {
-        // @ts-ignore
-        const result = await integrationProvider[body.methodName](
-          getIntegration.token,
-          body.data || {},
-          getIntegration.internalId,
-          getIntegration
-        );
+    const result = await this._integrationService.callProviderFunction(
+      getIntegration,
+      body.methodName,
+      body.data || {},
+      { disconnectOnRefreshFailure: true }
+    );
 
-        return { output: result };
-      } catch (err) {
-        if (err instanceof RefreshToken) {
-          const data = await this._refreshIntegrationService.refresh(
-            getIntegration
-          );
-
-          if (!data) {
-            await this._integrationService.disconnectChannel(
-              org.id,
-              getIntegration
-            );
-            throw new HttpException(
-              { msg: 'Channel disconnected due to expired token' },
-              401
-            );
-          }
-
-          const { accessToken } = data;
-
-          if (accessToken) {
-            getIntegration.token = accessToken;
-
-            if (integrationProvider.refreshWait) {
-              await timer(10000);
-            }
-
-            continue;
-          }
-        }
-        throw new HttpException({ msg: 'Unexpected error' }, 500);
-      }
+    if (result.status === 'ok') {
+      return { output: result.data };
     }
+
+    if (result.status === 'refreshFailed') {
+      throw new HttpException(
+        { msg: 'Channel disconnected due to expired token' },
+        401
+      );
+    }
+
+    throw new HttpException({ msg: 'Unexpected error' }, 500);
   }
 }

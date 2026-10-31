@@ -3,14 +3,14 @@ import { createTool } from '@mastra/core/tools';
 import { Injectable } from '@nestjs/common';
 import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import z from 'zod';
-import { ModuleRef } from '@nestjs/core';
+import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 
 @Injectable()
 export class VideoFunctionTool implements AgentToolInterface {
   constructor(
     private _videoManagerService: VideoManager,
-    private _moduleRef: ModuleRef
+    private _mediaService: MediaService
   ) {}
   name = 'videoFunctionTool';
 
@@ -30,6 +30,10 @@ export class VideoFunctionTool implements AgentToolInterface {
       inputSchema: z.object({
         identifier: z.string(),
         functionName: z.string(),
+        params: z
+          .record(z.string(), z.any())
+          .optional()
+          .describe('Parameters passed to the function, if it takes any'),
       }),
       outputSchema: z.object({}).passthrough(),
       execute: async (inputData, context) => {
@@ -45,11 +49,12 @@ export class VideoFunctionTool implements AgentToolInterface {
           throw new Error('Function not found');
         }
 
-        const func = await this._moduleRef
-          // @ts-ignore
-          .get(findVideo.target, { strict: false })
-          [inputData.functionName]();
-        return func;
+        // Same call as the dashboard and the public API
+        return this._mediaService.videoFunction(
+          inputData.identifier,
+          inputData.functionName,
+          inputData.params
+        );
       },
     });
   }

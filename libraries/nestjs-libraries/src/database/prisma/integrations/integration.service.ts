@@ -17,6 +17,7 @@ import dayjs from 'dayjs';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import {
+  Disconnect,
   NotEnoughScopes,
   RefreshToken,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
@@ -213,6 +214,82 @@ export class IntegrationService {
   async disconnectChannel(orgId: string, integration: Integration, err = '') {
     await this._integrationRepository.disconnectChannel(orgId, integration.id);
     await this.informAboutRefreshError(orgId, integration, err);
+  }
+
+  /**
+   * Runs a provider method with the channel's token, the one loop behind the
+   * dashboard, the public API and MCP. The caller decides which methods may be
+   * called and how every outcome is worded to its client.
+   *
+   * An expired token is refreshed once and the call is retried. The refresh
+   * itself already flags the channel and tells the organization when it fails;
+   * `disconnectOnRefreshFailure` keeps the extra disconnect the public API and
+   * MCP have always done on top of it.
+   */
+  async callProviderFunction(
+    integration: Integration,
+    methodName: string,
+    data: any,
+    options: { disconnectOnRefreshFailure: boolean }
+  ): Promise<
+    | { status: 'ok'; data: any }
+    | { status: 'disconnected'; error: Disconnect }
+    | { status: 'refreshFailed' }
+    | { status: 'tokenRejected' }
+    | { status: 'error'; error: unknown }
+  > {
+    const provider = this._integrationManager.getSocialIntegration(
+      integration.providerIdentifier
+    );
+    const current = { ...integration };
+
+    let refreshed = false;
+    while (true) {
+      try {
+        // @ts-ignore
+        const load = await provider[methodName](
+          current.token,
+          data,
+          current.internalId,
+          current
+        );
+
+        return { status: 'ok', data: load };
+      } catch (err) {
+        // The platform will keep rejecting this channel until the user
+        // re-connects it: mark it as needing a refresh instead of retrying.
+        if (err instanceof Disconnect) {
+          await this.disconnectChannel(current.organizationId, current);
+          return { status: 'disconnected', error: err };
+        }
+
+        if (!(err instanceof RefreshToken)) {
+          return { status: 'error', error: err };
+        }
+
+        if (refreshed) {
+          return { status: 'tokenRejected' };
+        }
+        refreshed = true;
+
+        const refresh = await this._refreshIntegrationService.refresh(current);
+        if (!refresh) {
+          if (options.disconnectOnRefreshFailure) {
+            await this.disconnectChannel(current.organizationId, current);
+          }
+          return { status: 'refreshFailed' };
+        }
+
+        if (!refresh.accessToken) {
+          return { status: 'tokenRejected' };
+        }
+
+        current.token = refresh.accessToken;
+        if (provider.refreshWait) {
+          await timer(10000);
+        }
+      }
+    }
   }
 
   // A reconnect that came back from a different provider (MIGRATE_PROVIDERS):

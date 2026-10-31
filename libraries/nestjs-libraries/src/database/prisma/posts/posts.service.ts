@@ -59,6 +59,10 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+import {
+  PostValidationError,
+  PostValidationException,
+} from '@gitroom/nestjs-libraries/database/prisma/posts/posts.validation.exception';
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -1112,6 +1116,94 @@ export class PostsService {
       }
     }
     return '';
+  }
+
+  /**
+   * The create path behind the dashboard, the public API and MCP: validates the
+   * posts server-side, maps the raw body to a CreatePostDto and creates them.
+   * Throws PostValidationException for the first channel that fails.
+   *
+   * `replaceDraft` is the public API contract: posts are typed 'schedule'
+   * while they are mapped, the mapped posts are the ones validated, and the
+   * request type is restored before creating.
+   */
+  async validateAndCreatePosts(
+    orgId: string,
+    rawBody: any,
+    creationMethod: CreationMethod,
+    options?: { replaceDraft?: boolean }
+  ) {
+    if (options?.replaceDraft) {
+      const body = await this.mapTypeToPost(rawBody, orgId, true);
+      body.type = rawBody.type;
+      await this.assertPostsValid(orgId, body.type, body.posts);
+      return this.createPost(orgId, body, creationMethod);
+    }
+
+    // Server-side validation — never trust the client to have validated.
+    await this.assertPostsValid(orgId, rawBody?.type, rawBody?.posts || []);
+    return this.mapAndCreatePosts(orgId, rawBody, creationMethod);
+  }
+
+  // The create half of validateAndCreatePosts, for callers that validated
+  // every request of a batch first (MCP creates nothing when one is invalid)
+  async mapAndCreatePosts(
+    orgId: string,
+    rawBody: any,
+    creationMethod: CreationMethod
+  ) {
+    const body = await this.mapTypeToPost(rawBody, orgId);
+    return this.createPost(orgId, body, creationMethod);
+  }
+
+  async assertPostsValid(
+    orgId: string,
+    type: string,
+    posts: Parameters<PostsService['validatePosts']>[1]
+  ) {
+    const validation = await this.validatePosts(orgId, posts);
+
+    const fail = (
+      item: (typeof validation)[number],
+      reason: PostValidationError['reason'],
+      error: string
+    ) => {
+      throw new PostValidationException({
+        provider: item.identifier,
+        name: item.name,
+        error,
+        reason,
+        maximumCharacters: item.maximumCharacters,
+      });
+    };
+
+    for (const item of validation) {
+      if (item.emptyContent) {
+        fail(
+          item,
+          'emptyContent',
+          'Your post should have at least one character or one image.'
+        );
+      }
+    }
+
+    if (type !== 'draft') {
+      for (const item of validation) {
+        if (!item.valid) {
+          fail(
+            item,
+            'settings',
+            item.settingsError || 'Please fix your settings'
+          );
+        }
+        if (item.errors !== true) {
+          fail(item, 'media', item.errors as string);
+        }
+        if (item.tooLong) {
+          fail(item, 'tooLong', 'post is too long, please fix it');
+        }
+      }
+    }
   }
 
   // A schedule-type save targeting an already-PUBLISHED post republishes it to

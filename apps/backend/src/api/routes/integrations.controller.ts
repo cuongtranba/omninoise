@@ -23,12 +23,6 @@ import { IntegrationTimeDto } from '@gitroom/nestjs-libraries/dtos/integrations/
 import { IntegrationNameDto } from '@gitroom/nestjs-libraries/dtos/integrations/integration.name.dto';
 import { CustomerNameDto } from '@gitroom/nestjs-libraries/dtos/integrations/customer.name.dto';
 import { PlugDto } from '@gitroom/nestjs-libraries/dtos/plugs/plug.dto';
-import {
-  Disconnect,
-  RefreshToken,
-} from '@gitroom/nestjs-libraries/integrations/social.abstract';
-
-import { timer } from '@gitroom/helpers/utils/timer';
 import { TelegramProvider } from '@gitroom/nestjs-libraries/integrations/social/telegram.provider';
 import { MoltbookProvider } from '@gitroom/nestjs-libraries/integrations/social/moltbook.provider';
 import {
@@ -36,7 +30,6 @@ import {
   Sections,
 } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 import { uniqBy } from 'lodash';
-import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -44,8 +37,7 @@ export class IntegrationsController {
   constructor(
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
-    private _postService: PostsService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _postService: PostsService
   ) {}
 
   @Post('/provider/:id/connect')
@@ -378,50 +370,18 @@ export class IntegrationsController {
         body.name
       )
     ) {
-      try {
-        // @ts-ignore
-        const load = await integrationProvider[body.name](
-          getIntegration.token,
-          body.data,
-          getIntegration.internalId,
-          getIntegration
-        );
+      const result = await this._integrationService.callProviderFunction(
+        getIntegration,
+        body.name,
+        body.data,
+        { disconnectOnRefreshFailure: false }
+      );
 
-        return load;
-      } catch (err) {
-        // The platform will keep rejecting this channel until the user
-        // re-connects it: mark it as needing a refresh instead of retrying.
-        if (err instanceof Disconnect) {
-          await this._integrationService.disconnectChannel(
-            org.id,
-            getIntegration
-          );
-          return false;
-        }
-
-        if (err instanceof RefreshToken) {
-          const data = await this._refreshIntegrationService.refresh(
-            getIntegration
-          );
-
-          if (!data) {
-            return;
-          }
-
-          const { accessToken } = data;
-
-          if (accessToken) {
-            if (integrationProvider.refreshWait) {
-              await timer(10000);
-            }
-            return this.functionIntegration(org, body);
-          }
-
-          return false;
-        }
-
-        return false;
+      if (result.status === 'ok') {
+        return result.data;
       }
+
+      return result.status === 'refreshFailed' ? undefined : false;
     }
     throw new Error('Function not found');
   }
