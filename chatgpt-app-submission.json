@@ -255,7 +255,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Only lists available video generation types, required parameters, and helper functions.",
+        "read_only_justification": "Only lists available video generation types, required parameters, helper functions, and whether the account may use each type now.",
         "open_world_justification": "Does not write to public internet state or third-party systems.",
         "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
       }
@@ -303,7 +303,7 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Generates an image, consumes the user's image generation credit, uploads the result, and saves it to the media library.",
+        "read_only_justification": "Generates an image (optionally writing the picture description from the text of a post first), consumes the user's image generation credit, uploads the result, and saves it to the media library.",
         "open_world_justification": "Calls external generation and storage services to create media for the user's workspace.",
         "destructive_justification": "Does not delete or overwrite existing media, revoke access, or publish content."
       }
@@ -534,6 +534,78 @@
         "read_only_justification": "Lists the plugs of the channels, sets up a plug and turns it on or off.",
         "open_world_justification": "Plugs are stored inside Postiz; they run later against the connected account.",
         "destructive_justification": "Saving a plug replaces its previous values and turning a plug off stops its automation."
+      }
+    },
+    "analyticsTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads the analytics of a channel or of a published post from the social network; no post, media or setting is created or changed. As housekeeping of the connection, an expired channel token is refreshed first and saved, and if that refresh fails the channel is marked as disconnected so that it can be reconnected.",
+        "open_world_justification": "Asks the connected social network for the numbers of the account or post; it never posts or changes anything there.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "mediaManageTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Saves the alt text and thumbnail of a media in the library and removes media from the library.",
+        "open_world_justification": "Media stays inside Postiz and the change does not reach any external system.",
+        "destructive_justification": "Deleting a media removes it from the media library and cannot be undone; updating overwrites the previous alt text and thumbnail."
+      }
+    },
+    "clippingListTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists the clippings of the user's workspace with their status.",
+        "open_world_justification": "Reads internal Postiz data for the user's workspace only.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "aiCreditsTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads how many AI credits the workspace has left this month.",
+        "open_world_justification": "Reads internal Postiz data for the user's workspace only.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "copilotThreadsTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads the conversations and messages of the in-app copilot of the user's workspace.",
+        "open_world_justification": "Reads internal Postiz data for the user's workspace only.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "notificationsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads the notifications of the user; listing them marks them as read for the user, like opening the bell in the app.",
+        "open_world_justification": "Notifications stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Does not delete or overwrite any notification, revoke access, or send content; it only moves the user's last-read time forward."
       }
     }
   },

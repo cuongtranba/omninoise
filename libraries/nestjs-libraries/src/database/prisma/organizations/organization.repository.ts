@@ -65,6 +65,7 @@ export class OrganizationRepository {
             subscriptionTier: true,
             totalChannels: true,
             isLifetime: true,
+            createdAt: true,
           },
         },
       },

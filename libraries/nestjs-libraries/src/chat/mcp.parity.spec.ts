@@ -146,9 +146,6 @@ const PENDING: string[] = [
   'GET /admin/errors',
   'GET /admin/errors/platforms',
   'GET /admin/stats',
-  // analytics.controller
-  'GET /analytics/:integration',
-  'GET /analytics/post/:postId',
   // announcements.controller
   'GET /announcements',
   'POST /announcements',
@@ -163,24 +160,10 @@ const PENDING: string[] = [
   'DELETE /autopost/:id',
   'POST /autopost/:id/active',
   'POST /autopost/send',
-  // clipping.controller
-  'GET /clipping',
-  // copilot.controller
-  'GET /copilot/credits',
-  'GET /copilot/:thread/list',
-  'GET /copilot/list',
   // enterprise.controller
   'POST /enterprise/create-user',
   'POST /enterprise/url',
   'POST /enterprise/delete-channel',
-  // media.controller
-  'DELETE /media/:id',
-  'POST /media/generate-image-with-prompt',
-  'POST /media/information',
-  'GET /media/generate-video/:type/allowed',
-  // notifications.controller
-  'GET /notifications',
-  'GET /notifications/list',
   // oauth-app.controller
   'GET /user/oauth-app',
   'POST /user/oauth-app',

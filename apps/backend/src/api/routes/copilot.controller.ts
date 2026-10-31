@@ -137,40 +137,16 @@ export class CopilotController {
 
   @Get('/:thread/list')
   @CheckPolicies([AuthorizationActions.Create, Sections.AI])
-  async getMessagesList(
+  getMessagesList(
     @GetOrgFromRequest() organization: Organization,
     @Param('thread') threadId: string
   ): Promise<any> {
-    const mastra = await this._mastraService.mastra();
-    const memory = await mastra.getAgent('postiz').getMemory();
-    try {
-      return await memory.recall({
-        resourceId: organization.id,
-        threadId,
-      });
-    } catch (err) {
-      Logger.warn(`Could not recall messages for thread ${threadId}: ${err}`);
-      return { messages: [] };
-    }
+    return this._mastraService.threadMessages(organization.id, threadId);
   }
 
   @Get('/list')
   @CheckPolicies([AuthorizationActions.Create, Sections.AI])
-  async getList(@GetOrgFromRequest() organization: Organization) {
-    const mastra = await this._mastraService.mastra();
-    const memory = await mastra.getAgent('postiz').getMemory();
-    const list = await memory.listThreads({
-      filter: { resourceId: organization.id },
-      perPage: 100000,
-      page: 0,
-      orderBy: { field: 'createdAt', direction: 'DESC' },
-    });
-
-    return {
-      threads: list.threads.map((p) => ({
-        id: p.id,
-        title: p.title,
-      })),
-    };
+  getList(@GetOrgFromRequest() organization: Organization) {
+    return this._mastraService.listThreads(organization.id);
   }
 }

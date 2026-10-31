@@ -42,6 +42,12 @@ import { IntegrationTimesTool } from '@gitroom/nestjs-libraries/chat/tools/integ
 import { IntegrationStateTool } from '@gitroom/nestjs-libraries/chat/tools/integration.state.tool';
 import { IntegrationMentionsTool } from '@gitroom/nestjs-libraries/chat/tools/integration.mentions.tool';
 import { IntegrationPlugsTool } from '@gitroom/nestjs-libraries/chat/tools/integration.plugs.tool';
+import { AnalyticsTool } from '@gitroom/nestjs-libraries/chat/tools/analytics.tool';
+import { MediaManageTool } from '@gitroom/nestjs-libraries/chat/tools/media.manage.tool';
+import { ClippingListTool } from '@gitroom/nestjs-libraries/chat/tools/clipping.list.tool';
+import { CopilotThreadsTool } from '@gitroom/nestjs-libraries/chat/tools/copilot.threads.tool';
+import { AiCreditsTool } from '@gitroom/nestjs-libraries/chat/tools/ai.credits.tool';
+import { NotificationsTool } from '@gitroom/nestjs-libraries/chat/tools/notifications.tool';
 
 export const toolList = [
   IntegrationListTool,
@@ -55,6 +61,7 @@ export const toolList = [
   IntegrationStateTool,
   IntegrationMentionsTool,
   IntegrationPlugsTool,
+  AnalyticsTool,
   GroupListTool,
   IntegrationValidationTool,
   IntegrationTriggerTool,
@@ -80,12 +87,17 @@ export const toolList = [
   VideoStatusTool,
   ClippingTool,
   ClippingStatusTool,
+  ClippingListTool,
   ClippingWidgetTicketTool,
   GenerateImageTool,
   UploadFromUrlTool,
   MediaListTool,
   MediaStatusTool,
+  MediaManageTool,
   UploadWidgetTool,
   UploadWidgetTicketTool,
   UploadWidgetStatusTool,
+  AiCreditsTool,
+  CopilotThreadsTool,
+  NotificationsTool,
 ];

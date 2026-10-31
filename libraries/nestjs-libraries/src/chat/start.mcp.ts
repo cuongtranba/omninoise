@@ -113,6 +113,7 @@ export const startMcp = async (app: INestApplication) => {
     // clipping renders new videos (AI picked cuts, burned-in captions)
     'clippingTool',
     'clippingStatusTool',
+    'clippingListTool',
     'clippingWidgetTicketTool',
   ];
   const withoutClaudeHidden = <T extends Record<string, unknown>>(source: T) =>
