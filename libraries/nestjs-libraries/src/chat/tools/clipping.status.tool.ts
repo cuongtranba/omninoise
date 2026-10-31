@@ -10,6 +10,7 @@ import { z } from 'zod';
 export class ClippingStatusTool implements AgentToolInterface {
   constructor(private _clippingService: ClippingService) {}
   name = 'clippingStatusTool';
+  mirrors = ['GET /clipping/:id'];
 
   available() {
     return UploadFactory.clippingEnabled();

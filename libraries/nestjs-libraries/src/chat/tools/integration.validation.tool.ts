@@ -13,6 +13,8 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class IntegrationValidationTool implements AgentToolInterface {
   constructor(private _integrationManager: IntegrationManager) {}
   name = 'integrationSchema';
+  // returns the provider rules and settings schema, the web app bundles them in the frontend instead of fetching a route
+  mirrors = [];
 
   run() {
     return createTool({

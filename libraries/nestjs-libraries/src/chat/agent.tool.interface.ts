@@ -5,6 +5,9 @@ export type ToolReturn = ToolAction<any, any, any, any, any, any>;
 
 export interface AgentToolInterface {
   name: string;
+  // the web (or public API) routes this tool exposes, as 'METHOD /full/path' keys, e.g. 'POST /posts';
+  // an mcp-only tool that mirrors no route (a widget) uses [] and says why
+  mirrors: string[];
   // needs an MCP host (e.g. renders a ui:// widget), so the in-app agent doesn't get it
   mcpOnly?: boolean;
   // a tool of a feature this install has not configured is left out everywhere

@@ -12,6 +12,7 @@ export class GenerateImageTool implements AgentToolInterface {
 
   constructor(private _mediaService: MediaService) {}
   name = 'generateImageTool';
+  mirrors = ['POST /media/generate-image'];
 
   run() {
     return createTool({

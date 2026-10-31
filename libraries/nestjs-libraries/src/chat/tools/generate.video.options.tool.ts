@@ -12,6 +12,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class GenerateVideoOptionsTool implements AgentToolInterface {
   constructor(private _videoManagerService: VideoManager) {}
   name = 'generateVideoOptions';
+  mirrors = ['GET /media/video-options'];
 
   run() {
     return createTool({
