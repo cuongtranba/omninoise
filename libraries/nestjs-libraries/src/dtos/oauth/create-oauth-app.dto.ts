@@ -1,5 +1,14 @@
 import { IsDefined, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
+// The consent screen navigates to this url: only a full http(s) url is a
+// redirect, anything else (javascript:1/%0aalert(1) passes without a protocol)
+// would run in the Postiz origin
+export const redirectUrlOptions = {
+  require_tld: false,
+  require_protocol: true,
+  protocols: ['http', 'https'],
+};
+
 export class CreateOAuthAppDto {
   @IsString()
   @IsDefined()
@@ -17,6 +26,6 @@ export class CreateOAuthAppDto {
 
   @IsString()
   @IsDefined()
-  @IsUrl({ require_tld: false })
+  @IsUrl(redirectUrlOptions)
   redirectUrl: string;
 }

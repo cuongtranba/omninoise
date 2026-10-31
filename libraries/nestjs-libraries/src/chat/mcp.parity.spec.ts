@@ -150,9 +150,6 @@ const PENDING: string[] = [
   'GET /announcements',
   'POST /announcements',
   'DELETE /announcements/:id',
-  // approved-apps.controller
-  'GET /user/approved-apps',
-  'DELETE /user/approved-apps/:id',
   // autopost.controller
   'GET /autopost',
   'POST /autopost',
@@ -164,24 +161,11 @@ const PENDING: string[] = [
   'POST /enterprise/create-user',
   'POST /enterprise/url',
   'POST /enterprise/delete-channel',
-  // oauth-app.controller
-  'GET /user/oauth-app',
-  'POST /user/oauth-app',
-  'PUT /user/oauth-app',
-  'DELETE /user/oauth-app',
-  'POST /user/oauth-app/rotate-secret',
   // sets.controller
   'GET /sets',
   'POST /sets',
   'PUT /sets',
   'DELETE /sets/:id',
-  // settings.controller
-  'GET /settings/team',
-  'POST /settings/team',
-  'POST /settings/team/add',
-  'DELETE /settings/team/:id',
-  'GET /settings/shortlink',
-  'POST /settings/shortlink',
   // signature.controller
   'GET /signatures',
   'GET /signatures/default',
@@ -196,21 +180,8 @@ const PENDING: string[] = [
   'POST /third-party/function/:id/:functionName',
   'POST /third-party/:id/import',
   'POST /third-party/:identifier',
-  // users.controller
-  'GET /user/self',
-  'GET /user/personal',
+  // users.controller: the search of the super admin to impersonate any user of the instance, with the admin tools
   'GET /user/impersonate',
-  'POST /user/personal',
-  'GET /user/email-notifications',
-  'POST /user/email-notifications',
-  'POST /user/timezone',
-  'POST /user/api-key/rotate',
-  'GET /user/subscription',
-  'GET /user/subscription/tiers',
-  'POST /user/join-org',
-  'GET /user/organizations',
-  'GET /user/delete-account-info',
-  'POST /user/delete-account',
   // webhooks.controller
   'GET /webhooks',
   'POST /webhooks',

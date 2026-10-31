@@ -48,6 +48,17 @@ import { ClippingListTool } from '@gitroom/nestjs-libraries/chat/tools/clipping.
 import { CopilotThreadsTool } from '@gitroom/nestjs-libraries/chat/tools/copilot.threads.tool';
 import { AiCreditsTool } from '@gitroom/nestjs-libraries/chat/tools/ai.credits.tool';
 import { NotificationsTool } from '@gitroom/nestjs-libraries/chat/tools/notifications.tool';
+import { TeamTool } from '@gitroom/nestjs-libraries/chat/tools/team.tool';
+import { TeamAddMemberTool } from '@gitroom/nestjs-libraries/chat/tools/team.add.member.tool';
+import { ShortlinkPreferenceGetTool } from '@gitroom/nestjs-libraries/chat/tools/shortlink.preference.get.tool';
+import { ShortlinkPreferenceSetTool } from '@gitroom/nestjs-libraries/chat/tools/shortlink.preference.set.tool';
+import { UserAccountTool } from '@gitroom/nestjs-libraries/chat/tools/user.account.tool';
+import { ApiKeyRotateTool } from '@gitroom/nestjs-libraries/chat/tools/api.key.rotate.tool';
+import { SubscriptionTool } from '@gitroom/nestjs-libraries/chat/tools/subscription.tool';
+import { UserOrganizationsTool } from '@gitroom/nestjs-libraries/chat/tools/user.organizations.tool';
+import { AccountDeleteTool } from '@gitroom/nestjs-libraries/chat/tools/account.delete.tool';
+import { OAuthAppTool } from '@gitroom/nestjs-libraries/chat/tools/oauth.app.tool';
+import { ApprovedAppsTool } from '@gitroom/nestjs-libraries/chat/tools/approved.apps.tool';
 
 export const toolList = [
   IntegrationListTool,
@@ -100,4 +111,15 @@ export const toolList = [
   AiCreditsTool,
   CopilotThreadsTool,
   NotificationsTool,
+  TeamTool,
+  TeamAddMemberTool,
+  ShortlinkPreferenceGetTool,
+  ShortlinkPreferenceSetTool,
+  UserAccountTool,
+  ApiKeyRotateTool,
+  SubscriptionTool,
+  UserOrganizationsTool,
+  AccountDeleteTool,
+  OAuthAppTool,
+  ApprovedAppsTool,
 ];

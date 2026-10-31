@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
   Param,
   Post,
 } from '@nestjs/common';
@@ -53,11 +52,7 @@ export class SettingsController {
     @GetOrgFromRequest() org: Organization,
     @Body() body: AdminAddTeamMemberDto
   ) {
-    if (!user.isSuperAdmin) {
-      throw new HttpException('Unauthorized', 400);
-    }
-
-    return this._organizationService.addTeamMemberByEmail(org, body);
+    return this._organizationService.addTeamMemberByEmail(org, user, body);
   }
 
   @Delete('/team/:id')
