@@ -59,6 +59,15 @@ import { UserOrganizationsTool } from '@gitroom/nestjs-libraries/chat/tools/user
 import { AccountDeleteTool } from '@gitroom/nestjs-libraries/chat/tools/account.delete.tool';
 import { OAuthAppTool } from '@gitroom/nestjs-libraries/chat/tools/oauth.app.tool';
 import { ApprovedAppsTool } from '@gitroom/nestjs-libraries/chat/tools/approved.apps.tool';
+import { SignaturesTool } from '@gitroom/nestjs-libraries/chat/tools/signatures.tool';
+import { SetsTool } from '@gitroom/nestjs-libraries/chat/tools/sets.tool';
+import { AutopostTool } from '@gitroom/nestjs-libraries/chat/tools/autopost.tool';
+import { AutopostCreateTool } from '@gitroom/nestjs-libraries/chat/tools/autopost.create.tool';
+import { WebhooksTool } from '@gitroom/nestjs-libraries/chat/tools/webhooks.tool';
+import { WebhookCreateTool } from '@gitroom/nestjs-libraries/chat/tools/webhook.create.tool';
+import { ThirdPartyTool } from '@gitroom/nestjs-libraries/chat/tools/third.party.tool';
+import { AdminTool } from '@gitroom/nestjs-libraries/chat/tools/admin.tool';
+import { AnnouncementsTool } from '@gitroom/nestjs-libraries/chat/tools/announcements.tool';
 
 export const toolList = [
   IntegrationListTool,
@@ -122,4 +131,13 @@ export const toolList = [
   AccountDeleteTool,
   OAuthAppTool,
   ApprovedAppsTool,
+  SignaturesTool,
+  SetsTool,
+  AutopostTool,
+  AutopostCreateTool,
+  WebhooksTool,
+  WebhookCreateTool,
+  ThirdPartyTool,
+  AdminTool,
+  AnnouncementsTool,
 ];
