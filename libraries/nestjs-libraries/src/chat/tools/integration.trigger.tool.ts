@@ -7,19 +7,16 @@ import {
   socialIntegrationList,
 } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
-import { RefreshToken } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-import { timer } from '@gitroom/helpers/utils/timer';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
-import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 
 @Injectable()
 export class IntegrationTriggerTool implements AgentToolInterface {
   constructor(
     private _integrationManager: IntegrationManager,
-    private _integrationService: IntegrationService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _integrationService: IntegrationService
   ) {}
   name = 'triggerTool';
+  mirrors = ['POST /integrations/function'];
 
   run() {
     return createTool({
@@ -99,69 +96,45 @@ export class IntegrationTriggerTool implements AgentToolInterface {
           );
         }
 
-        let refreshed = false;
-        while (true) {
-          try {
-            // @ts-ignore
-            const load = await integrationProvider[inputData.methodName](
-              getIntegration.token,
-              inputData.dataSchema.reduce(
-                (all: Record<string, string>, current: { key: string; value: string }) => ({
-                  ...all,
-                  [current.key]: current.value,
-                }),
-                {} as Record<string, string>
-              ),
-              getIntegration.internalId,
-              getIntegration
-            );
+        const result = await this._integrationService.callProviderFunction(
+          getIntegration,
+          inputData.methodName,
+          inputData.dataSchema.reduce(
+            (
+              all: Record<string, string>,
+              current: { key: string; value: string }
+            ) => ({
+              ...all,
+              [current.key]: current.value,
+            }),
+            {} as Record<string, string>
+          ),
+          { disconnectOnRefreshFailure: true }
+        );
 
-            return { output: load };
-          } catch (err) {
-            if (err instanceof RefreshToken && !refreshed) {
-              refreshed = true;
-              const data = await this._refreshIntegrationService.refresh(
-                getIntegration
-              );
-
-              if (!data) {
-                await this._integrationService.disconnectChannel(
-                  organizationId,
-                  getIntegration
-                );
-                throw new Error(
-                  'The channel was disconnected because its token expired, the user needs to reconnect it in Postiz'
-                );
-              }
-
-              const { accessToken } = data;
-
-              if (accessToken) {
-                getIntegration.token = accessToken;
-
-                if (integrationProvider.refreshWait) {
-                  await timer(10000);
-                }
-
-                continue;
-              }
-            }
-
-            if (err instanceof RefreshToken) {
-              throw new Error(
-                'The provider rejected the credentials even after refreshing the token, the user needs to reconnect the channel in Postiz'
-              );
-            }
-
-            throw new Error(
-              `Provider call failed: ${
-                err instanceof Error && err.message
-                  ? err.message
-                  : 'unexpected error'
-              }`
-            );
-          }
+        if (result.status === 'ok') {
+          return { output: result.data };
         }
+
+        if (result.status === 'refreshFailed') {
+          throw new Error(
+            'The channel was disconnected because its token expired, the user needs to reconnect it in Postiz'
+          );
+        }
+
+        if (result.status === 'tokenRejected') {
+          throw new Error(
+            'The provider rejected the credentials even after refreshing the token, the user needs to reconnect the channel in Postiz'
+          );
+        }
+
+        throw new Error(
+          `Provider call failed: ${
+            result.error instanceof Error && result.error.message
+              ? result.error.message
+              : 'unexpected error'
+          }`
+        );
       },
     });
   }

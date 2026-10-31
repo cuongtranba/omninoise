@@ -21,6 +21,7 @@ export class GenerateVideoTool implements AgentToolInterface {
     private _videoManager: VideoManager
   ) {}
   name = 'generateVideoTool';
+  mirrors = ['POST /media/generate-video'];
 
   run() {
     return createTool({

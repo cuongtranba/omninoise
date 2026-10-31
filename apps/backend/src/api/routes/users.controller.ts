@@ -15,12 +15,10 @@ import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/s
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { Response, Request } from 'express';
-import { AuthService } from '@gitroom/backend/services/auth/auth.service';
 import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
-import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
@@ -35,7 +33,7 @@ import { applyTrackCookies } from '@gitroom/nestjs-libraries/track/track.cookies
 import {
   AuthorizationActions,
   Sections,
-} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+} from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 @ApiTags('User')
 @Controller('/user')
@@ -43,7 +41,6 @@ export class UsersController {
   constructor(
     private _subscriptionService: SubscriptionService,
     private _paymentService: PaymentService,
-    private _authService: AuthService,
     private _orgService: OrganizationService,
     private _userService: UsersService,
     private _trackService: TrackService
@@ -91,37 +88,7 @@ export class UsersController {
     }
 
     const impersonate = req.cookies.impersonate || req.headers.impersonate;
-    // @ts-ignore
-    return {
-      ...user,
-      orgId: organization.id,
-      totalChannels: !process.env.STRIPE_PUBLISHABLE_KEY
-        ? 10000
-        : // @ts-ignore
-          organization?.subscription?.totalChannels || pricing.FREE.channel,
-      tier:
-        // @ts-ignore
-        organization?.subscription?.subscriptionTier ||
-        (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE'),
-      // @ts-ignore
-      role: organization?.users[0]?.role,
-      // @ts-ignore
-      isLifetime: !!organization?.subscription?.isLifetime,
-      admin: !!user.isSuperAdmin,
-      impersonate: !!impersonate,
-      isTrailing: !process.env.STRIPE_PUBLISHABLE_KEY
-        ? false
-        : organization?.isTrailing,
-      allowTrial: organization?.allowTrial,
-      streakSince: organization?.streakSince || null,
-      publicApi:
-        // @ts-ignore
-        organization?.users[0]?.role === 'SUPERADMIN' ||
-        // @ts-ignore
-        organization?.users[0]?.role === 'ADMIN'
-          ? organization?.apiKey
-          : '',
-    };
+    return this._userService.getSelf(user, organization, !!impersonate);
   }
 
   @Get('/personal')
@@ -134,9 +101,7 @@ export class UsersController {
     @GetUserFromRequest() user: User,
     @Query('name') name: string
   ) {
-    if (!user.isSuperAdmin) {
-      throw new HttpException('Unauthorized', 400);
-    }
+    this._userService.assertSuperAdmin(user);
 
     return this._userService.getImpersonateUser(name);
   }
@@ -270,34 +235,12 @@ export class UsersController {
     @Body('org') org: string,
     @Res({ passthrough: true }) response: Response
   ) {
-    const getOrgFromCookie = this._authService.getOrgFromCookie(org);
-
-    if (!getOrgFromCookie) {
-      return response.status(200).json({ id: null });
-    }
-
-    const addedOrg = await this._orgService.addUserToOrg(
-      user.id,
-      getOrgFromCookie.id,
-      getOrgFromCookie.orgId,
-      getOrgFromCookie.role
-    );
-
-    response.status(200).json({
-      id: typeof addedOrg !== 'boolean' ? addedOrg.organizationId : null,
-    });
+    response.status(200).json(await this._orgService.joinOrg(user.id, org));
   }
 
   @Get('/organizations')
   async getOrgs(@GetUserFromRequest() user: User) {
-    return (await this._orgService.getOrgsByUserId(user.id))
-      .filter((f) => !f.users[0].disabled)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        users: p.users,
-        subscription: p.subscription,
-      }));
+    return this._orgService.getUserOrganizations(user.id);
   }
 
   @Post('/change-org')
@@ -336,32 +279,11 @@ export class UsersController {
     @Res({ passthrough: true }) response: Response
   ) {
     const impersonate = req.cookies.impersonate || req.headers.impersonate;
-    if (impersonate) {
-      throw new HttpException(
-        'Account cannot be deleted while impersonating',
-        400
-      );
-    }
 
-    // Cancel billing before scrubbing the account — once the account is
-    // deleted there is no way to retry a failed cancellation
-    const ownedOrgs = await this._userService.getOrgsToDeleteForAccount(
-      user.id
+    await this._userService.cancelBillingAndDeleteAccount(
+      user.id,
+      !!impersonate
     );
-
-    for (const org of ownedOrgs) {
-      try {
-        await this._paymentService.cancelAllSubscriptions(org.id);
-      } catch (err) {
-        console.log(err);
-        throw new HttpException(
-          'Could not cancel your subscription, please try again or contact support',
-          400
-        );
-      }
-    }
-
-    await this._userService.deleteAccount(user.id);
 
     return this.logout(response);
   }

@@ -3,20 +3,19 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
   Param,
   Post,
 } from '@nestjs/common';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 import { Organization, User } from '@prisma/client';
-import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { ShortlinkPreferenceDto } from '@gitroom/nestjs-libraries/dtos/settings/shortlink-preference.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { AuthorizationActions, Sections } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 @ApiTags('Settings')
 @Controller('/settings')
@@ -53,11 +52,7 @@ export class SettingsController {
     @GetOrgFromRequest() org: Organization,
     @Body() body: AdminAddTeamMemberDto
   ) {
-    if (!user.isSuperAdmin) {
-      throw new HttpException('Unauthorized', 400);
-    }
-
-    return this._organizationService.addTeamMemberByEmail(org, body);
+    return this._organizationService.addTeamMemberByEmail(org, user, body);
   }
 
   @Delete('/team/:id')

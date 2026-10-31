@@ -17,5 +17,5 @@ export class UserDetailDto {
 
   @IsOptional()
   @ValidateNested()
-  picture: MediaDto;
+  picture?: MediaDto | null;
 }

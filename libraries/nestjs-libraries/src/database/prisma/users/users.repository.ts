@@ -262,15 +262,18 @@ export class UsersRepository {
       data: {
         name: body.fullname,
         bio: body.bio,
+        // null removes the picture, leaving it out keeps the current one
         picture: body.picture
           ? {
               connect: {
                 id: body.picture.id,
               },
             }
-          : {
+          : body.picture === null
+          ? {
               disconnect: true,
-            },
+            }
+          : undefined,
       },
     });
   }

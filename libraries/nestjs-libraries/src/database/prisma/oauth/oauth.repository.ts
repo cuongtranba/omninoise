@@ -6,7 +6,8 @@ export class OAuthRepository {
   constructor(
     private _oauthApp: PrismaRepository<'oAuthApp'>,
     private _oauthAuth: PrismaRepository<'oAuthAuthorization'>,
-    private _oauthSelfHosted: PrismaRepository<'oAuthSelfHostedAuthorization'>
+    private _oauthSelfHosted: PrismaRepository<'oAuthSelfHostedAuthorization'>,
+    private _userOrg: PrismaRepository<'userOrganization'>
   ) {}
 
   getAppByOrgId(orgId: string) {
@@ -115,7 +116,17 @@ export class OAuthRepository {
     return this._oauthApp.model.oAuthApp.update({
       where: { id: app.id },
       data,
-      include: {
+      // the row also holds the (encrypted) client secret, never selected
+      select: {
+        id: true,
+        organizationId: true,
+        name: true,
+        description: true,
+        pictureId: true,
+        redirectUrl: true,
+        clientId: true,
+        createdAt: true,
+        updatedAt: true,
         picture: true,
       },
     });
@@ -233,6 +244,7 @@ export class OAuthRepository {
       where: {
         accessToken: encryptedToken,
         revokedAt: null,
+        organization: { deletedAt: null },
       },
       include: {
         oauthApp: {
@@ -249,6 +261,7 @@ export class OAuthRepository {
                 subscriptionTier: true,
                 totalChannels: true,
                 isLifetime: true,
+                createdAt: true,
               },
             },
           },
@@ -264,6 +277,24 @@ export class OAuthRepository {
     });
   }
 
+  // The seat the token's user still holds in the organization: removed,
+  // disabled or deleted users no longer reach it through a token they approved
+  findActiveMembership(userId: string, organizationId: string) {
+    return this._userOrg.model.userOrganization.findFirst({
+      where: {
+        userId,
+        organizationId,
+        disabled: false,
+        user: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
+      },
+    });
+  }
+
   getApprovedApps(userId: string) {
     return this._oauthAuth.model.oAuthAuthorization.findMany({
       where: {
@@ -271,10 +302,21 @@ export class OAuthRepository {
         revokedAt: null,
         accessToken: { not: null },
       },
-      include: {
+      // the row holds the (encrypted) access token and the client secret of
+      // the app, only what the apps list shows is selected
+      select: {
+        id: true,
+        organizationId: true,
+        createdAt: true,
         oauthApp: {
-          include: {
-            picture: true,
+          select: {
+            name: true,
+            description: true,
+            picture: {
+              select: {
+                path: true,
+              },
+            },
           },
         },
       },

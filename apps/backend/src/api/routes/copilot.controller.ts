@@ -14,14 +14,15 @@ import {
   copilotRuntimeNodeHttpEndpoint,
 } from '@copilotkit/runtime';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
-import { Organization } from '@prisma/client';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { Organization, User } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { MastraAgent } from '@ag-ui/mastra';
 import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
 import { Request, Response } from 'express';
 import { RequestContext } from '@mastra/core/di';
-import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
-import { AuthorizationActions, Sections } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
+import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 export type ChannelsContext = {
   integrations: string;
@@ -72,7 +73,8 @@ export class CopilotController {
   async agent(
     @Req() req: Request,
     @Res() res: Response,
-    @GetOrgFromRequest() organization: Organization
+    @GetOrgFromRequest() organization: Organization & { users?: object[] },
+    @GetUserFromRequest() user: User
   ) {
     if (
       process.env.OPENAI_API_KEY === undefined ||
@@ -88,7 +90,24 @@ export class CopilotController {
       req?.body?.body?.forwardedProps?.integrations || []
     );
 
-    requestContext.set('organization', JSON.stringify(organization));
+    // the tools read the caller from users[0], the same shape as an MCP
+    // OAuth connection (role and the user's id), `user` is the impersonated
+    // account while a super admin impersonates
+    requestContext.set(
+      'organization',
+      JSON.stringify({
+        ...organization,
+        users: [
+          {
+            ...organization.users?.[0],
+            userId: user.id,
+            impersonating: !!(
+              req.cookies?.impersonate || req.headers.impersonate
+            ),
+          },
+        ],
+      })
+    );
     requestContext.set('ui', 'true');
 
     const agents = MastraAgent.getLocalAgents({
@@ -127,40 +146,16 @@ export class CopilotController {
 
   @Get('/:thread/list')
   @CheckPolicies([AuthorizationActions.Create, Sections.AI])
-  async getMessagesList(
+  getMessagesList(
     @GetOrgFromRequest() organization: Organization,
     @Param('thread') threadId: string
   ): Promise<any> {
-    const mastra = await this._mastraService.mastra();
-    const memory = await mastra.getAgent('postiz').getMemory();
-    try {
-      return await memory.recall({
-        resourceId: organization.id,
-        threadId,
-      });
-    } catch (err) {
-      Logger.warn(`Could not recall messages for thread ${threadId}: ${err}`);
-      return { messages: [] };
-    }
+    return this._mastraService.threadMessages(organization.id, threadId);
   }
 
   @Get('/list')
   @CheckPolicies([AuthorizationActions.Create, Sections.AI])
-  async getList(@GetOrgFromRequest() organization: Organization) {
-    const mastra = await this._mastraService.mastra();
-    const memory = await mastra.getAgent('postiz').getMemory();
-    const list = await memory.listThreads({
-      filter: { resourceId: organization.id },
-      perPage: 100000,
-      page: 0,
-      orderBy: { field: 'createdAt', direction: 'DESC' },
-    });
-
-    return {
-      threads: list.threads.map((p) => ({
-        id: p.id,
-        title: p.title,
-      })),
-    };
+  getList(@GetOrgFromRequest() organization: Organization) {
+    return this._mastraService.listThreads(organization.id);
   }
 }

@@ -1,8 +1,6 @@
 import { Body, Controller, Param, Post, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
-import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
-import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
@@ -11,7 +9,6 @@ import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/po
 @Controller('/enterprise')
 export class EnterpriseController {
   constructor(
-    private _integrationManager: IntegrationManager,
     private _organizationService: OrganizationService,
     private _integrationService: IntegrationService,
     private _postsService: PostsService
@@ -87,31 +84,17 @@ export class EnterpriseController {
         throw new Error('Organization not found');
       }
 
-      if (
-        !this._integrationManager
-          .getAllowedSocialsIntegrations()
-          .includes(load.provider)
-      ) {
-        throw new Error('Integration not allowed');
-      }
-
-      const integrationProvider = this._integrationManager.getSocialIntegration(
-        load.provider
+      const result = await this._integrationService.generateConnectUrl(
+        org.id,
+        load.provider,
+        {
+          refresh: load.refreshId,
+          redirectUrl: load.redirectUrl,
+          webhookUrl: load.webhookUrl,
+        }
       );
 
-      const { codeVerifier, state, url } =
-        await integrationProvider.generateAuthUrl();
-
-      if (load.refreshId) {
-        await ioRedis.set(`refresh:${state}`, load.refreshId, 'EX', 3600);
-      }
-
-      await ioRedis.set(`webhookUrl:${state}`, load.webhookUrl, 'EX', 3600);
-      await ioRedis.set(`redirect:${state}`, load.redirectUrl, 'EX', 3600);
-      await ioRedis.set(`organization:${state}`, org.id, 'EX', 3600);
-      await ioRedis.set(`login:${state}`, codeVerifier, 'EX', 3600);
-
-      return url;
+      return 'url' in result ? result.url : undefined;
     } catch (err) {}
   }
 
@@ -139,17 +122,7 @@ export class EnterpriseController {
         return { success: false };
       }
 
-      const isTherePosts = await this._integrationService.getPostsForChannel(
-        org.id,
-        load.id
-      );
-      if (isTherePosts.length) {
-        for (const post of isTherePosts) {
-          this._postsService.deletePost(org.id, post.group).catch(() => {});
-        }
-      }
-
-      await this._integrationService.deleteChannel(org.id, load.id);
+      await this._postsService.deleteChannelWithPosts(org.id, load.id);
       return { success: true };
     } catch (err) {
       return { success: false };

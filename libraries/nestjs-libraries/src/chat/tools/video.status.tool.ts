@@ -9,6 +9,8 @@ import { z } from 'zod';
 export class VideoStatusTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'videoStatusTool';
+  // polls a generation job, the web app waits for the finished media instead of a status route
+  mirrors = [];
 
   run() {
     return createTool({
