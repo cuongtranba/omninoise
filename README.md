@@ -8,7 +8,7 @@ public API and an MCP server for agents.
 It runs on **Postgres alone**: no Redis, no Temporal, no Elasticsearch. One
 application container and one Postgres container are the whole deployment.
 
-Production runs on Dokploy at https://postiz.lowbit.link and is deployed from
+Production runs on Dokploy and is deployed from
 this repository on every push to `main`. Runbooks, decisions and content live in
 the private repository
 [cuongtranba/omninoise-ops](https://github.com/cuongtranba/omninoise-ops).
@@ -107,13 +107,14 @@ Every push to `main` runs `.github/workflows/deploy.yml`:
    `ghcr.io/cuongtranba/omninoise:sha-<short sha>`. There is no `latest` tag.
 3. Write that tag into `deploy/compose.yaml`, push the file to Dokploy
    (`compose.update`), start a deployment (`compose.deploy`) and wait for it.
-4. Wait until `https://postiz.lowbit.link/api/public/v1/integrations` answers
-   401 again.
+4. Wait until `<site>/api/public/v1/integrations` answers 401 again.
 
 `deploy/compose.yaml` is the production compose file: the app container and
 Postgres. Variable names are in `deploy/.env.example`; the values are set in the
-Dokploy environment only. The workflow needs the repository secret
-`DOKPLOY_API_KEY`. To roll back, re-run the Deploy workflow of an earlier commit
+Dokploy environment only. The workflow needs the repository secrets
+`DOKPLOY_API_KEY`, `DOKPLOY_URL` (the Dokploy API base, ending in `/api`) and
+`SITE_URL` (the public site, no trailing slash). The URLs are secrets rather
+than variables so the public run logs mask them. To roll back, re-run the Deploy workflow of an earlier commit
 from the Actions tab.
 
 A stop or deploy is graceful: `var/docker/entrypoint.sh` runs `pm2-runtime` as
