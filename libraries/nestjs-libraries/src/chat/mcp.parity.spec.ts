@@ -150,44 +150,12 @@ const PENDING: string[] = [
   'GET /announcements',
   'POST /announcements',
   'DELETE /announcements/:id',
-  // autopost.controller
-  'GET /autopost',
-  'POST /autopost',
-  'PUT /autopost/:id',
-  'DELETE /autopost/:id',
-  'POST /autopost/:id/active',
-  'POST /autopost/send',
   // enterprise.controller
   'POST /enterprise/create-user',
   'POST /enterprise/url',
   'POST /enterprise/delete-channel',
-  // sets.controller
-  'GET /sets',
-  'POST /sets',
-  'PUT /sets',
-  'DELETE /sets/:id',
-  // signature.controller
-  'GET /signatures',
-  'GET /signatures/default',
-  'POST /signatures',
-  'DELETE /signatures/:id',
-  'PUT /signatures/:id',
-  // third-party.controller
-  'GET /third-party/list',
-  'GET /third-party',
-  'DELETE /third-party/:id',
-  'POST /third-party/:id/submit',
-  'POST /third-party/function/:id/:functionName',
-  'POST /third-party/:id/import',
-  'POST /third-party/:identifier',
   // users.controller: the search of the super admin to impersonate any user of the instance, with the admin tools
   'GET /user/impersonate',
-  // webhooks.controller
-  'GET /webhooks',
-  'POST /webhooks',
-  'PUT /webhooks',
-  'DELETE /webhooks/:id',
-  'POST /webhooks/send',
 ];
 
 const list = (dir: string, suffix: string): string[] =>

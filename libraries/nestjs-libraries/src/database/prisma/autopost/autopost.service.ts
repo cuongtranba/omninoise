@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { AutopostDto } from '@gitroom/nestjs-libraries/dtos/autopost/autopost.dto';
 import dayjs from 'dayjs';
@@ -74,7 +74,21 @@ export class AutopostService {
     return this._autopostsRepository.getAutoposts(orgId);
   }
 
+  async getAutopostById(orgId: string, id: string) {
+    const autopost = (await this.getAutoposts(orgId)).find((a) => a.id === id);
+    if (!autopost) {
+      throw new NotFoundException('The autopost was not found');
+    }
+    return autopost;
+  }
+
   async createAutopost(orgId: string, body: AutopostDto, id?: string) {
+    // an update only changes an autopost of this organization, it never saves
+    // a new one for an id it does not know
+    if (id) {
+      await this.getAutopostById(orgId, id);
+    }
+
     const data = await this._autopostsRepository.createAutopost(
       orgId,
       body,

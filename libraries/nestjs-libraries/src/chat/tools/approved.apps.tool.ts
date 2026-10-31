@@ -3,7 +3,10 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { Injectable } from '@nestjs/common';
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
-import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
+import {
+  checkAuth,
+  toolErrorMessage,
+} from '@gitroom/nestjs-libraries/chat/auth.context';
 
 const approvedAppSchema = z.object({
   id: z.string(),
@@ -97,11 +100,11 @@ If something fails, the result contains output.errors.
         } catch (err: any) {
           return {
             output: {
-              // P2025: no approval of this user with that id
-              errors:
-                err?.code === 'P2025'
-                  ? 'The approved app was not found'
-                  : err?.message || 'Failed to manage the approved apps',
+              errors: toolErrorMessage(
+                err,
+                'The approved app was not found',
+                'Failed to manage the approved apps'
+              ),
             },
           };
         }
