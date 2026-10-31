@@ -91,12 +91,21 @@ export class CopilotController {
     );
 
     // the tools read the caller from users[0], the same shape as an MCP
-    // OAuth connection (role and the user's id)
+    // OAuth connection (role and the user's id), `user` is the impersonated
+    // account while a super admin impersonates
     requestContext.set(
       'organization',
       JSON.stringify({
         ...organization,
-        users: [{ ...organization.users?.[0], userId: user.id }],
+        users: [
+          {
+            ...organization.users?.[0],
+            userId: user.id,
+            impersonating: !!(
+              req.cookies?.impersonate || req.headers.impersonate
+            ),
+          },
+        ],
       })
     );
     requestContext.set('ui', 'true');

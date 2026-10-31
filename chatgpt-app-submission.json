@@ -607,6 +607,246 @@
         "open_world_justification": "Notifications stay inside Postiz and nothing reaches an external system.",
         "destructive_justification": "Does not delete or overwrite any notification, revoke access, or send content; it only moves the user's last-read time forward."
       }
+    },
+    "teamTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists the members of the organization, creates invitation links and removes members.",
+        "open_world_justification": "Members and invitations stay inside Postiz; the optional invitation email is sent only when the user asks for it, to the address they give.",
+        "destructive_justification": "Removing a member takes their access to the organization away immediately, including the connections they approved, and cannot be undone."
+      }
+    },
+    "teamAddMemberTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Adds an existing Postiz account to the organization; only the super admin of the instance is allowed.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Only adds a member; nothing is deleted, overwritten, revoked or sent."
+      }
+    },
+    "shortlinkPreferenceGetTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads the short link preference of the organization.",
+        "open_world_justification": "Reads internal Postiz data for the user's workspace only.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "shortlinkPreferenceSetTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Saves the short link preference of the organization.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Overwrites a single setting that can be set back to any value; nothing is deleted, revoked or sent."
+      }
+    },
+    "userAccountTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Reads the account of the connected user and saves their name, bio, email notification flags and timezone.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Overwrites the user's own profile settings, which can be set again; nothing is deleted, revoked or sent. It never returns a password or an API key."
+      }
+    },
+    "apiKeyRotateTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Replaces the API key of the organization with a new one and returns it.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "The old API key stops working immediately and everything using it breaks until it is given the new key; it cannot be undone."
+      }
+    },
+    "subscriptionTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads the subscription of the organization and the plans that can be bought; nothing is bought or changed.",
+        "open_world_justification": "The plans that can be bought are read from the payment provider.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content."
+      }
+    },
+    "userOrganizationsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists the organizations of the connected user and lets them accept an invitation they were given.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Joining only adds the user to an organization; nothing is deleted, overwritten, revoked or sent."
+      }
+    },
+    "accountDeleteTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Reads what deleting the account takes with it and deletes the account of the connected user.",
+        "open_world_justification": "Deleting the account cancels the subscription at the payment provider.",
+        "destructive_justification": "Deletes the account, the organizations the user owns alone with their channels and posts, and cancels the subscription; it cannot be undone and only goes ahead after the user confirmed what it takes with it."
+      }
+    },
+    "oauthAppTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Reads, creates, updates and deletes the OAuth application of the organization and rotates its client secret.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Rotating the secret makes the old one stop working immediately, and deleting the application revokes every connection made through it; neither can be undone."
+      }
+    },
+    "approvedAppsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists the apps the user approved and revokes approvals.",
+        "open_world_justification": "Settings stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Revoking an approval makes that app stop working immediately; the user can approve it again later."
+      }
+    },
+    "signaturesTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists, creates, updates and deletes the signatures of the organization.",
+        "open_world_justification": "Signatures stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Deleting a signature removes it for good, and saving one as the default makes the previous default stop being it."
+      }
+    },
+    "setsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists, creates, updates and deletes the sets (post templates) of the organization.",
+        "open_world_justification": "Sets stay inside Postiz and nothing reaches an external system; a set schedules nothing.",
+        "destructive_justification": "Deleting a set removes it for good, and updating one replaces its name and content."
+      }
+    },
+    "autopostTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists, updates, starts, pauses and deletes autoposts and tests an RSS feed.",
+        "open_world_justification": "The test and an active autopost read an RSS feed at a public https address the user gave; internal network addresses are refused.",
+        "destructive_justification": "Deleting an autopost removes it and stops it for good; updating replaces its settings."
+      }
+    },
+    "autopostCreateTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates an autopost that follows an RSS feed and creates draft posts out of its new items.",
+        "open_world_justification": "An active autopost reads an RSS feed at a public https address the user gave; internal network addresses are refused.",
+        "destructive_justification": "Only adds an autopost; nothing is deleted or overwritten, and it only creates drafts, nothing is published."
+      }
+    },
+    "webhooksTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists, updates and deletes webhooks and sends a test request to one.",
+        "open_world_justification": "The send action posts a JSON body the user asked for to a public https address they gave; internal network addresses are refused.",
+        "destructive_justification": "Deleting a webhook stops what is sent to it and cannot be undone; updating replaces its name, address and channels."
+      }
+    },
+    "webhookCreateTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates a webhook that receives the posts published on its channels.",
+        "open_world_justification": "Published posts are sent to the public https address the user gave; internal network addresses are refused.",
+        "destructive_justification": "Only adds a webhook; nothing is deleted or overwritten."
+      }
+    },
+    "thirdPartyTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists the third-party apps, connects one with the API key the user gave, disconnects it, runs its functions and brings its media into the library.",
+        "open_world_justification": "Connecting, running a function, submitting and importing call the third-party service the user connected; the stored API key is never returned.",
+        "destructive_justification": "Disconnecting forgets the stored API key and cannot be undone; the media already made stays."
+      }
+    },
+    "adminTool": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads the failed posts, the usage statistics and the user search of the whole instance, and only for the super admin of the instance; everyone else is refused.",
+        "open_world_justification": "Reads Postiz's own database and nothing reaches an external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, or send content; it cannot start an impersonation."
+      }
+    },
+    "announcementsTool": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Lists the announcements and, for the super admin of the instance only, creates and deletes them.",
+        "open_world_justification": "Announcements stay inside Postiz and nothing reaches an external system.",
+        "destructive_justification": "Deleting an announcement removes it for every user and cannot be undone; only the super admin of the instance can do it."
+      }
     }
   },
   "test_cases": [

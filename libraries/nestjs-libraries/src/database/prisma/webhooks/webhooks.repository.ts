@@ -5,7 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class WebhooksRepository {
-  constructor(private _webhooks: PrismaRepository<'webhooks'>) {}
+  constructor(
+    private _webhooks: PrismaRepository<'webhooks'>,
+    private _integration: PrismaRepository<'integration'>
+  ) {}
 
   getTotal(orgId: string) {
     return this._webhooks.model.webhooks.count({
@@ -13,6 +16,12 @@ export class WebhooksRepository {
         organizationId: orgId,
         deletedAt: null,
       },
+    });
+  }
+
+  countIntegrations(orgId: string, ids: string[]) {
+    return this._integration.model.integration.count({
+      where: { id: { in: ids }, organizationId: orgId },
     });
   }
 
@@ -75,9 +84,9 @@ export class WebhooksRepository {
       data: {
         integrations: {
           deleteMany: {},
-          create: body.integrations.map((integration) => ({
-            integrationId: integration.id,
-          })),
+          create: [...new Set(body.integrations.map((i) => i.id))].map(
+            (integrationId) => ({ integrationId })
+          ),
         },
       },
     });
