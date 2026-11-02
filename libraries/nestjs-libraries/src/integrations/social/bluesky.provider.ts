@@ -1,4 +1,5 @@
 import {
+  AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
   PostDetails,
@@ -240,6 +241,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     'We don’t currently support two-factor authentication. If it’s enabled on Bluesky, you’ll need to disable it.';
   isBetweenSteps = false;
   scopes = ['write:statuses', 'profile', 'write:media'];
+  analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
   editor = 'normal' as const;
   maxLength() {
     return 300;
@@ -962,6 +964,93 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     }
 
     return true;
+  }
+
+  // The public AppView answers without a token
+  async analytics(id: string, accessToken: string, date: number) {
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      const profile = await (
+        await fetch(
+          `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(
+            id
+          )}`
+        )
+      ).json();
+
+      const metrics = [
+        ['Followers', 'followers', profile.followersCount, 'last'],
+        ['Following', 'following', profile.followsCount, undefined],
+        ['Posts', 'posts_count', profile.postsCount, undefined],
+      ] as const;
+
+      return metrics.flatMap(([label, key, total, aggregate]) =>
+        total === undefined
+          ? []
+          : [
+              {
+                label,
+                key,
+                ...(aggregate ? { aggregate } : {}),
+                percentageChange: 0,
+                data: [{ total: String(total), date: today }],
+              },
+            ]
+      );
+    } catch (err) {
+      console.error('Error fetching Bluesky analytics:', err);
+      return [];
+    }
+  }
+
+  async postAnalytics(
+    integrationId: string,
+    accessToken: string,
+    postId: string,
+    date: number
+  ): Promise<AnalyticsData[]> {
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      // The stored post id is the at:// uri of the post
+      const { posts } = await (
+        await fetch(
+          `https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris=${encodeURIComponent(
+            postId
+          )}`
+        )
+      ).json();
+
+      const post = posts?.[0];
+      if (!post) {
+        return [];
+      }
+
+      const metrics = [
+        ['Likes', 'likes', post.likeCount],
+        ['Reposts', 'reposts', post.repostCount],
+        ['Replies', 'replies', post.replyCount],
+        ['Quotes', 'quotes', post.quoteCount],
+        ['Bookmarks', 'saves', post.bookmarkCount],
+      ] as const;
+
+      return metrics.flatMap(([label, key, total]) =>
+        total === undefined
+          ? []
+          : [
+              {
+                label,
+                key,
+                percentageChange: 0,
+                data: [{ total: String(total), date: today }],
+              },
+            ]
+      );
+    } catch (err) {
+      console.error('Error fetching Bluesky post analytics:', err);
+      return [];
+    }
   }
 
   override async mention(

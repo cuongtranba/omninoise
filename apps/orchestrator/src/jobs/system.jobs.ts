@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PostActivity } from '@gitroom/orchestrator/activities/post.activity';
 import { AutopostActivity } from '@gitroom/orchestrator/activities/autopost.activity';
+import { AnalyticsWebhookActivity } from '@gitroom/orchestrator/activities/analytics.webhook.activity';
+import { analyticsWebhookRunAt } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { IntegrationsActivity } from '@gitroom/orchestrator/activities/integrations.activity';
 import { EmailActivity } from '@gitroom/orchestrator/activities/email.activity';
 import { JobWorker } from '@gitroom/nestjs-libraries/jobs/job.worker';
@@ -25,6 +27,7 @@ export class SystemJobs {
   constructor(
     private _post: PostActivity,
     private _autopost: AutopostActivity,
+    private _analyticsWebhook: AnalyticsWebhookActivity,
     private _integrations: IntegrationsActivity,
     private _email: EmailActivity
   ) {}
@@ -33,6 +36,7 @@ export class SystemJobs {
     worker
       .register(MISSING_POSTS_KEY, (job) => this.missingPosts(job))
       .register('autopost', (job) => this.autopost(job))
+      .register('analytics.webhook', (job) => this.analyticsWebhook(job))
       .register('integration.refresh', (job) => this.refresh(job))
       .register('streak', (job) => this.streak(job))
       .register('digest', (job) => this.digest(job));
@@ -77,6 +81,38 @@ export class SystemJobs {
             mode: 'keep',
             organizationId,
             runAt: new Date(Date.now() + HOUR),
+          },
+        },
+      ],
+    };
+  }
+
+  // reads the webhook settings on every run, and stops when the webhook is
+  // gone or is not an analytics one any more
+  private async analyticsWebhook(
+    job: Job<{ id: string; organizationId?: string }>
+  ): Promise<JobOutcome> {
+    const { id, organizationId } = job.payload;
+    let result: Awaited<ReturnType<AnalyticsWebhookActivity['send']>>;
+    try {
+      result = await this._analyticsWebhook.send(id);
+    } catch (err) {
+      // a failed run must not end the cycle
+      result = { active: true };
+    }
+    if (!result.active) {
+      return {};
+    }
+    return {
+      next: [
+        {
+          kind: 'analytics.webhook',
+          payload: job.payload,
+          opts: {
+            dedupeKey: `analytics.webhook:${id}`,
+            mode: 'keep',
+            organizationId,
+            runAt: analyticsWebhookRunAt(result.schedule),
           },
         },
       ],

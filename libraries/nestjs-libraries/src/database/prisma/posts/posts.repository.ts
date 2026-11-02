@@ -1253,4 +1253,50 @@ export class PostsRepository {
       },
     });
   }
+
+  // Published top-level posts of the given channels, newest first, for analytics
+  async getPublishedPostsForAnalytics(
+    orgId: string,
+    integrationIds: string[],
+    since: Date,
+    limitPerIntegration: number
+  ) {
+    const posts = await Promise.all(
+      integrationIds.map((id) =>
+        this._post.model.post.findMany({
+          where: {
+            organizationId: orgId,
+            integrationId: id,
+            integration: { deletedAt: null, disabled: false },
+            state: 'PUBLISHED',
+            deletedAt: null,
+            parentPostId: null,
+            publishDate: { gte: since },
+            AND: [
+              { releaseId: { not: null } },
+              { releaseId: { not: 'missing' } },
+            ],
+          },
+          orderBy: { publishDate: 'desc' },
+          take: limitPerIntegration,
+          select: {
+            id: true,
+            content: true,
+            publishDate: true,
+            releaseURL: true,
+            integration: {
+              select: {
+                id: true,
+                name: true,
+                providerIdentifier: true,
+                picture: true,
+              },
+            },
+          },
+        })
+      )
+    );
+
+    return posts.flat();
+  }
 }

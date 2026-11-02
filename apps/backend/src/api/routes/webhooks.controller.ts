@@ -14,7 +14,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import {
-  OnlyURL, UpdateDto, WebhooksDto
+  AnalyticsPreviewDto, OnlyURL, UpdateDto, WebhooksDto
 } from '@gitroom/nestjs-libraries/dtos/webhooks/webhooks.dto';
 import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
@@ -43,6 +43,14 @@ export class WebhookController {
     @Body() body: UpdateDto
   ) {
     return this._webhooksService.createWebhook(org.id, body);
+  }
+
+  @Post('/analytics/preview')
+  async previewAnalytics(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: AnalyticsPreviewDto
+  ) {
+    return this._webhooksService.preview(org.id, body);
   }
 
   @Delete('/:id')

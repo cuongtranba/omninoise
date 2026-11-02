@@ -25,6 +25,9 @@ const ENTERPRISE =
   "server-to-server enterprise provisioning authenticated by a signed partner token in the body, not an organization user's action";
 
 const EXCLUDED: Record<string, string> = {
+  // analytics.controller
+  'GET /analytics/overview':
+    'dashboard aggregate of every channel for the browser overview page, the MCP reads the analytics of each channel and post with analyticsTool',
   // auth.controller
   'GET /auth/can-register': AUTH_FLOW,
   'POST /auth/register': AUTH_FLOW,
@@ -143,6 +146,9 @@ const EXCLUDED: Record<string, string> = {
     'sets the selected-organization cookie of the browser',
   'POST /user/logout': 'clears the session cookie of the browser',
   'POST /user/t': 'browser tracking pixel',
+  // webhooks.controller
+  'POST /webhooks/analytics/preview':
+    'helper of the webhook form in the browser that shows the report while a webhook is built, the MCP creates the webhook and tries it with webhooksTool',
 };
 
 const list = (dir: string, suffix: string): string[] =>

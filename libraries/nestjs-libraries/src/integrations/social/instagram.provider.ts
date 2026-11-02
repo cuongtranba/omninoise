@@ -46,6 +46,8 @@ export class InstagramProvider
   override maxConcurrentJob = 400;
   editor = 'normal' as const;
   dto = InstagramDto;
+  analyticsDays = [7, 30]; // Instagram serves at most 30 days per request
+  analyticsPreviousPeriod = true;
   maxLength() {
     return 2200;
   }
@@ -1173,38 +1175,112 @@ export class InstagramProvider
       case 'replies': {
         return 'Replies';
       }
+
+      case 'accounts_engaged': {
+        return 'Accounts Engaged';
+      }
+
+      case 'total_interactions': {
+        return 'Total Interactions';
+      }
+
+      case 'profile_links_taps': {
+        return 'Profile Link Taps';
+      }
+
+      case 'reposts': {
+        return 'Reposts';
+      }
+
+      case 'followers_count': {
+        return 'Followers';
+      }
     }
 
     return '';
+  }
+
+  // Metric id (analytics.metrics.ts) of an Instagram metric
+  private setKey(name: string) {
+    const keys: Record<string, string> = {
+      follower_count: 'follower_change', // New followers per day
+      followers_count: 'followers',
+      reach: 'reach',
+      views: 'impressions',
+      likes: 'likes',
+      comments: 'comments',
+      shares: 'shares',
+      saved: 'saves',
+      saves: 'saves',
+      replies: 'replies',
+      reposts: 'reposts',
+      accounts_engaged: 'engaged_accounts',
+      total_interactions: 'engagements',
+      profile_links_taps: 'clicks',
+      follows: 'follower_change',
+      profile_visits: 'profile_views',
+    };
+
+    return keys[name];
+  }
+
+  // Insights that are allowed to fail: an invalid metric or media type makes
+  // Graph refuse the whole request, which must never hide the other metrics.
+  private async optionalInsights(url: string): Promise<any[]> {
+    try {
+      const { data } = await (await fetch(url)).json();
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      return [];
+    }
   }
 
   async analytics(
     id: string,
     token: string,
     date: number,
+    offset = 0,
     type = 'graph.facebook.com'
   ): Promise<AnalyticsData[]> {
     const [accessToken, userToken] = token.split('___');
-    const until = dayjs().startOf('day').unix();
-    const since = dayjs().subtract(date, 'day').unix();
+    // The window ends `offset` days ago (the previous period of a trend)
+    const untilDay = dayjs().subtract(offset, 'day').startOf('day');
+    const until = untilDay.unix();
+    const since = untilDay.subtract(date, 'day').unix();
+    const base = `https://${type}/${META_GRAPH_API_VERSION}/${id}`;
+    const window = `access_token=${accessToken}&period=day&since=${since}&until=${until}`;
 
     const { data, ...all } = await (
-      await fetch(
-        `https://${type}/${META_GRAPH_API_VERSION}/${id}/insights?metric=follower_count,reach&access_token=${accessToken}&period=day&since=${since}&until=${until}`
-      )
+      await fetch(`${base}/insights?metric=follower_count,reach&${window}`)
     ).json();
 
     const { data: data2, ...all2 } = await (
       await fetch(
-        `https://${type}/${META_GRAPH_API_VERSION}/${id}/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&access_token=${accessToken}&period=day&since=${since}&until=${until}`
+        `${base}/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&${window}`
       )
     ).json();
-    const analytics = [];
+
+    const [engaged, reposts, followers] = await Promise.all([
+      this.optionalInsights(
+        `${base}/insights?metric_type=total_value&metric=accounts_engaged,total_interactions,profile_links_taps&${window}`
+      ),
+      this.optionalInsights(
+        `${base}/insights?metric_type=total_value&metric=reposts&${window}`
+      ),
+      // Only the current count exists, so no previous window has one
+      offset
+        ? Promise.resolve(null)
+        : fetch(`${base}?fields=followers_count&access_token=${accessToken}`)
+            .then((res) => res.json())
+            .catch(() => null),
+    ]);
+    const analytics: AnalyticsData[] = [];
 
     analytics.push(
       ...(data?.map((d: any) => ({
         label: this.setTitle(d.name),
-        percentageChange: 5,
+        key: this.setKey(d.name),
+        percentageChange: 0,
         data: d.values.map((v: any) => ({
           total: v.value,
           date: dayjs(v.end_time).format('YYYY-MM-DD'),
@@ -1212,18 +1288,36 @@ export class InstagramProvider
       })) || [])
     );
 
+    // A single total for the window, dated at its end
     analytics.push(
-      ...data2.map((d: any) => ({
-        label: this.setTitle(d.name),
-        percentageChange: 5,
+      ...[...data2, ...engaged, ...reposts]
+        .filter((d: any) => d.total_value?.value !== undefined)
+        .map((d: any) => ({
+          label: this.setTitle(d.name),
+          key: this.setKey(d.name),
+          percentageChange: 0,
+          data: [
+            {
+              total: d.total_value.value,
+              date: untilDay.format('YYYY-MM-DD'),
+            },
+          ],
+        }))
+    );
+
+    if (followers?.followers_count !== undefined) {
+      analytics.push({
+        label: this.setTitle('followers_count'),
+        key: this.setKey('followers_count'),
+        percentageChange: 0,
         data: [
           {
-            total: d.total_value.value,
-            date: dayjs().format('YYYY-MM-DD'),
+            total: String(followers.followers_count),
+            date: untilDay.format('YYYY-MM-DD'),
           },
         ],
-      }))
-    );
+      });
+    }
 
     return analytics;
   }
@@ -1342,8 +1436,70 @@ export class InstagramProvider
         if (label) {
           result.push({
             label,
+            key: this.setKey(metric.name),
             percentageChange: 0,
             data: [{ total: String(value), date: today }],
+          });
+        }
+      }
+
+      // Newer metrics, asked apart so they can't fail the ones above
+      const base = `https://${type}/${META_GRAPH_API_VERSION}/${postId}`;
+      const { media_product_type } = await fetch(
+        `${base}?fields=media_product_type&access_token=${accessToken}`
+      )
+        .then((res) => res.json())
+        .catch(() => ({} as { media_product_type?: string }));
+
+      const [more, reels] = await Promise.all([
+        this.optionalInsights(
+          `${base}/insights?metric=total_interactions,follows,profile_visits&access_token=${accessToken}`
+        ),
+        media_product_type === 'REELS'
+          ? this.optionalInsights(
+              `${base}/insights?metric=ig_reels_avg_watch_time,ig_reels_video_view_total_time&access_token=${accessToken}`
+            )
+          : Promise.resolve([]),
+      ]);
+
+      for (const metric of [...more, ...reels]) {
+        const value = metric.values?.[0]?.value;
+        if (value === undefined) continue;
+
+        const extra: Record<
+          string,
+          { label: string; key: string; scale?: number }
+        > = {
+          total_interactions: {
+            label: 'Total Interactions',
+            key: 'engagements',
+          },
+          follows: { label: 'Follows', key: 'follower_change' },
+          profile_visits: { label: 'Profile Visits', key: 'profile_views' },
+          // Reels report the watch time in milliseconds
+          ig_reels_avg_watch_time: {
+            label: 'Average Watch Time',
+            key: 'avg_watch_time',
+            scale: 1 / 1000,
+          },
+          ig_reels_video_view_total_time: {
+            label: 'Watch Time',
+            key: 'watch_time',
+            scale: 1 / 1000,
+          },
+        };
+
+        if (extra[metric.name]) {
+          result.push({
+            label: extra[metric.name].label,
+            key: extra[metric.name].key,
+            percentageChange: 0,
+            data: [
+              {
+                total: String(Number(value) * (extra[metric.name].scale ?? 1)),
+                date: today,
+              },
+            ],
           });
         }
       }

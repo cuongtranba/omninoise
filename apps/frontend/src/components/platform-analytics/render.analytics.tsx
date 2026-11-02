@@ -1,29 +1,33 @@
-import { FC, useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo } from 'react';
 import { Integration } from '@prisma/client';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { ChartSocial } from '@gitroom/frontend/components/analytics/chart-social';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  AnalyticsDataItem,
+  categoryOrder,
+  formatAnalyticsItem,
+  getAnalyticsMetricName,
+  getCategoryTitles,
+} from '@gitroom/frontend/components/platform-analytics/analytics.format';
 
-interface AnalyticsDataItem {
-  label: string;
-  data: Array<{ total: number; date: string }>;
-  average?: boolean;
-  percentageChange?: number;
-}
-
-const TrendIndicator: FC<{ value: number; average?: boolean }> = ({
-  value,
-  average,
-}) => {
-  if (value === 0) return null;
+export const TrendIndicator: FC<{
+  value?: number;
+  percentagePoints?: boolean;
+  days: number;
+}> = ({ value, percentagePoints, days }) => {
+  const t = useT();
+  // 0 means there is no previous period to compare with
+  if (!value) return null;
 
   const isPositive = value > 0;
   const displayValue = Math.abs(value).toFixed(1);
 
   return (
     <div
+      title={t('vs_previous_days', 'vs previous {{days}} days', { days })}
       className={`flex items-center gap-[4px] text-[13px] font-medium ${
         isPositive ? 'text-[#32d583]' : 'text-[#f97066]'
       }`}
@@ -35,14 +39,11 @@ const TrendIndicator: FC<{ value: number; average?: boolean }> = ({
         fill="none"
         className={isPositive ? '' : 'rotate-180'}
       >
-        <path
-          d="M6 2.5L10 7.5H2L6 2.5Z"
-          fill="currentColor"
-        />
+        <path d="M6 2.5L10 7.5H2L6 2.5Z" fill="currentColor" />
       </svg>
       <span>
         {displayValue}
-        {average ? 'pp' : '%'}
+        {percentagePoints ? 'pp' : '%'}
       </span>
     </div>
   );
@@ -50,9 +51,11 @@ const TrendIndicator: FC<{ value: number; average?: boolean }> = ({
 
 const AnalyticsCard: FC<{
   item: AnalyticsDataItem;
-  total: string | number;
+  total: string;
   index: number;
-}> = ({ item, total, index }) => {
+  days: number;
+}> = ({ item, total, index, days }) => {
+  const t = useT();
   const colorVariants = ['purple', 'green', 'blue'] as const;
   const color = colorVariants[index % colorVariants.length];
 
@@ -83,12 +86,14 @@ const AnalyticsCard: FC<{
               `}
             />
             <span className="text-[15px] font-medium text-newTableText">
-              {item.label}
+              {getAnalyticsMetricName(t, item)}
             </span>
           </div>
-          {item.percentageChange !== undefined && (
-            <TrendIndicator value={item.percentageChange} average={item.average} />
-          )}
+          <TrendIndicator
+            value={item.percentageChange}
+            percentagePoints={item.format === 'percent' || item.average}
+            days={days}
+          />
         </div>
 
         {/* Content */}
@@ -97,7 +102,14 @@ const AnalyticsCard: FC<{
             {/* Chart */}
             <div className="flex-1 px-[12px] py-[8px]">
               <div className="h-[120px] relative">
-                <ChartSocial data={item.data} color={color} key={`chart-${index}`} />
+                <ChartSocial
+                  data={item.data}
+                  color={color}
+                  aggregate={
+                    item.aggregate || (item.average ? 'average' : 'sum')
+                  }
+                  key={`chart-${index}`}
+                />
               </div>
             </div>
 
@@ -106,6 +118,11 @@ const AnalyticsCard: FC<{
               <div className="text-[36px] leading-[42px] font-semibold tracking-tight">
                 {total}
               </div>
+              {item.data.length === 1 && (
+                <div className="text-[12px] text-newTableText opacity-60">
+                  {t('current_total', 'Current total')}
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -167,32 +184,35 @@ const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
   );
 };
 
+const useIntegrationAnalytics = (integrationId: string, date: number) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return (await fetch(`/analytics/${integrationId}?date=${date}`)).json();
+  }, [integrationId, date]);
+
+  return useSWR<AnalyticsDataItem[]>(
+    `/analytics-${integrationId}-${date}`,
+    load,
+    {
+      refreshInterval: 0,
+      refreshWhenHidden: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateIfStale: false,
+      refreshWhenOffline: false,
+      revalidateOnMount: true,
+    }
+  );
+};
+
 export const RenderAnalytics: FC<{
   integration: Integration;
   date: number;
 }> = (props) => {
   const { integration, date } = props;
-  const [loading, setLoading] = useState(true);
   const fetch = useFetch();
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const load = (
-      await fetch(`/analytics/${integration.id}?date=${date}`)
-    ).json();
-    setLoading(false);
-    return load;
-  }, [integration, date]);
-
-  const { data } = useSWR(`/analytics-${integration?.id}-${date}`, load, {
-    refreshInterval: 0,
-    refreshWhenHidden: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    revalidateIfStale: false,
-    refreshWhenOffline: false,
-    revalidateOnMount: true,
-  });
+  const t = useT();
+  const { data, isLoading } = useIntegrationAnalytics(integration.id, date);
 
   const refreshChannel = useCallback(
     (
@@ -214,21 +234,29 @@ export const RenderAnalytics: FC<{
     []
   );
 
-  const t = useT();
-
-  const totals = useMemo(() => {
-    return data?.map((p: AnalyticsDataItem) => {
-      const value =
-        (p?.data.reduce((acc: number, curr: { total: number }) => acc + curr.total, 0) || 0) /
-        (p.average ? p.data.length : 1);
-      if (p.average) {
-        return value.toFixed(2) + '%';
-      }
-      return new Intl.NumberFormat().format(Math.round(value));
+  const sections = useMemo(() => {
+    const titles = getCategoryTitles(t);
+    const grouped = new Map<
+      string,
+      Array<{ item: AnalyticsDataItem; index: number }>
+    >();
+    (data || []).forEach((item, index) => {
+      const category = item.category || 'other';
+      grouped.set(category, [
+        ...(grouped.get(category) || []),
+        { item, index },
+      ]);
     });
-  }, [data]);
+    return [...categoryOrder, 'other']
+      .filter((category) => grouped.has(category))
+      .map((category) => ({
+        category,
+        title: titles[category],
+        items: grouped.get(category)!,
+      }));
+  }, [data, t]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-[48px]">
         <LoadingComponent />
@@ -237,17 +265,27 @@ export const RenderAnalytics: FC<{
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
+    <div className="flex flex-col gap-[24px]">
       {data?.length === 0 && (
-        <EmptyState onRefresh={refreshChannel(integration as any)} />
+        <div className="grid grid-cols-1">
+          <EmptyState onRefresh={refreshChannel(integration as any)} />
+        </div>
       )}
-      {data?.map((item: AnalyticsDataItem, index: number) => (
-        <AnalyticsCard
-          key={`analytics-${index}`}
-          item={item}
-          total={totals[index]}
-          index={index}
-        />
+      {sections.map((section) => (
+        <div key={section.category} className="flex flex-col gap-[12px]">
+          <h3 className="text-[16px] font-[500]">{section.title}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
+            {section.items.map(({ item, index }) => (
+              <AnalyticsCard
+                key={`analytics-${index}`}
+                item={item}
+                total={formatAnalyticsItem(item)}
+                index={index}
+                days={date}
+              />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

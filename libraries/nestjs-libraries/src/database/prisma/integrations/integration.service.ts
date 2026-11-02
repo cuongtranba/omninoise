@@ -15,6 +15,7 @@ import { Integration, Organization } from '@prisma/client';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
 import dayjs from 'dayjs';
 import { timer } from '@gitroom/helpers/utils/timer';
+import { analyticsMetrics } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import {
   Disconnect,
@@ -208,6 +209,8 @@ export class IntegrationService {
           type: p.type,
           time: JSON.parse(p.postingTimes),
           changeProfilePicture: !!findIntegration?.changeProfilePicture,
+          analytics: !!findIntegration?.analytics,
+          analyticsDays: findIntegration?.analyticsDays || [7, 30],
           changeNickName: !!findIntegration?.changeNickname,
           customer: p.customer,
           additionalSettings: p.additionalSettings || '[]',
@@ -832,7 +835,7 @@ export class IntegrationService {
   }
 
   async checkAnalytics(
-    org: Organization,
+    org: Pick<Organization, 'id'>,
     integration: string,
     date: string,
     forceRefresh = false
@@ -878,29 +881,27 @@ export class IntegrationService {
       }
     }
 
-    const getIntegrationData = await ioRedis.get(
-      `integration:${org.id}:${integration}:${days}`
-    );
-    if (getIntegrationData) {
-      return JSON.parse(getIntegrationData);
-    }
-
     if (integrationProvider.analytics) {
+      const cacheKey = `integration:${org.id}:${integration}:${days}`;
       try {
-        const loadAnalytics = await integrationProvider.analytics(
-          getIntegration.internalId,
-          getIntegration.token,
-          days
-        );
-        await ioRedis.set(
-          `integration:${org.id}:${integration}:${days}`,
-          JSON.stringify(loadAnalytics),
-          'EX',
-          !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
-            ? 1
-            : 3600
-        );
-        return loadAnalytics;
+        const [loadAnalytics, previousAnalytics] = await Promise.all([
+          this.loadAnalyticsWindow(
+            integrationProvider,
+            getIntegration,
+            cacheKey,
+            days
+          ),
+          integrationProvider.analyticsPreviousPeriod
+            ? this.loadAnalyticsWindow(
+                integrationProvider,
+                getIntegration,
+                `${cacheKey}:prev`,
+                days,
+                days
+              ).catch((): AnalyticsData[] => [])
+            : [],
+        ]);
+        return this.enrichAnalytics(loadAnalytics, previousAnalytics, days);
       } catch (e) {
         if (e instanceof RefreshToken) {
           return this.checkAnalytics(org, integration, date, true);
@@ -909,6 +910,182 @@ export class IntegrationService {
     }
 
     return [];
+  }
+
+  // One analytics window of the provider, cached for an hour
+  private async loadAnalyticsWindow(
+    provider: SocialProvider,
+    integration: Integration,
+    cacheKey: string,
+    days: number,
+    offset?: number
+  ): Promise<AnalyticsData[]> {
+    const cached = await ioRedis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    const loadAnalytics = await provider.analytics!(
+      integration.internalId,
+      integration.token,
+      days,
+      offset
+    );
+    await ioRedis.set(
+      cacheKey,
+      JSON.stringify(loadAnalytics),
+      'EX',
+      !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
+        ? 1
+        : 3600
+    );
+    return loadAnalytics;
+  }
+
+  private analyticsAggregate(item: AnalyticsData) {
+    return (
+      item.aggregate ??
+      (item.key ? analyticsMetrics[item.key]?.aggregate : undefined) ??
+      (item.average ? 'average' : 'sum')
+    );
+  }
+
+  // The value of a metric over its points: summed, averaged or the latest one
+  analyticsTotal(item: AnalyticsData): number {
+    const points = item.data.map((point) => ({
+      total: Number(point.total) || 0,
+      time: dayjs(point.date).valueOf(),
+    }));
+    if (!points.length) {
+      return 0;
+    }
+
+    const aggregate = this.analyticsAggregate(item);
+    if (aggregate === 'last') {
+      return points.reduce((a, b) => (b.time >= a.time ? b : a)).total;
+    }
+
+    const sum = points.reduce((all, point) => all + point.total, 0);
+    return aggregate === 'average' ? sum / points.length : sum;
+  }
+
+  // A value as a percent of another one, 2 decimals
+  analyticsRate(value: number, of: number): number {
+    return of > 0 ? Math.round((value / of) * 10000) / 100 : 0;
+  }
+
+  // Percent change, or the difference in points for a rate
+  analyticsChange(
+    format: AnalyticsData['format'],
+    current: number,
+    previous: number
+  ): number {
+    if (format === 'percent') {
+      return Math.round((current - previous) * 100) / 100;
+    }
+
+    return previous > 0
+      ? Math.round(((current - previous) / previous) * 10000) / 100
+      : 0;
+  }
+
+  // Tags the metrics from the catalog and compares them with the previous
+  // window, only when that window ends before the current one starts
+  private enrichAnalytics(
+    current: AnalyticsData[],
+    previous: AnalyticsData[],
+    days: number
+  ): AnalyticsData[] {
+    // The windows are `days` days with inclusive bounds, the previous one
+    // ends the day before the current one starts. The start moves 2 days
+    // forward from `today - days`: one for the inclusive first day, one for
+    // the platforms that date a daily value by its end_time, the next day
+    const windowStart = dayjs()
+      .subtract(days, 'day')
+      .startOf('day')
+      .add(Math.min(2, days), 'day');
+    const enriched = current.map((item) => {
+      const catalog = item.key ? analyticsMetrics[item.key] : undefined;
+      const metric: AnalyticsData = {
+        ...item,
+        category: item.category ?? catalog?.category,
+        format: item.format ?? catalog?.format,
+        aggregate: this.analyticsAggregate(item),
+        percentageChange: 0,
+        previousTotal: undefined,
+      };
+
+      const before =
+        previous.find((p) => !!item.key && p.key === item.key) ??
+        previous.find((p) => p.label === item.label);
+      if (
+        !before?.data.length ||
+        !before.data.every((point) => dayjs(point.date).isBefore(windowStart))
+      ) {
+        return metric;
+      }
+
+      const previousTotal = this.analyticsTotal({
+        ...before,
+        aggregate: metric.aggregate,
+      });
+      return {
+        ...metric,
+        previousTotal,
+        percentageChange: this.analyticsChange(
+          metric.format,
+          this.analyticsTotal(metric),
+          previousTotal
+        ),
+      };
+    });
+
+    return this.withEngagementRate(enriched);
+  }
+
+  // Engagements over impressions (or reach), when the platform has no rate
+  private withEngagementRate(items: AnalyticsData[]): AnalyticsData[] {
+    const engagements = items.find((p) => p.key === 'engagements');
+    const base =
+      items.find((p) => p.key === 'impressions') ??
+      items.find((p) => p.key === 'reach');
+    if (
+      !engagements ||
+      !base ||
+      items.some((p) => p.key === 'engagement_rate')
+    ) {
+      return items;
+    }
+
+    const total = this.analyticsRate(
+      this.analyticsTotal(engagements),
+      this.analyticsTotal(base)
+    );
+    const previousTotal =
+      engagements.previousTotal !== undefined &&
+      base.previousTotal !== undefined
+        ? this.analyticsRate(engagements.previousTotal, base.previousTotal)
+        : undefined;
+    const catalog = analyticsMetrics.engagement_rate;
+
+    return [
+      ...items,
+      {
+        key: 'engagement_rate',
+        label: catalog.label,
+        category: catalog.category,
+        format: catalog.format,
+        aggregate: catalog.aggregate,
+        data: [
+          { total: String(total), date: dayjs.utc().format('YYYY-MM-DD') },
+        ],
+        previousTotal,
+        percentageChange:
+          previousTotal === undefined
+            ? 0
+            : this.analyticsChange(catalog.format, total, previousTotal),
+      },
+    ];
   }
 
   customers(orgId: string) {

@@ -1,4 +1,5 @@
 import {
+  AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
   PostDetails,
@@ -37,6 +38,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
   name = 'Mastodon';
   isBetweenSteps = false;
   scopes = ['write:statuses', 'profile', 'write:media'];
+  analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
   editor = 'normal' as const;
   maxLength() {
     return 500;
@@ -544,6 +546,103 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       process.env.MASTODON_URL || 'https://mastodon.social',
       postDetails
     );
+  }
+
+  // Only the default instance: the instance of a custom channel is not known
+  // to analytics, see MastodonCustomProvider
+  async analytics(
+    id: string,
+    accessToken: string,
+    date: number
+  ): Promise<AnalyticsData[]> {
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      const account = await (
+        await this.fetch(
+          `${
+            process.env.MASTODON_URL || 'https://mastodon.social'
+          }/api/v1/accounts/verify_credentials`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+          this.identifier
+        )
+      ).json();
+
+      const metrics = [
+        ['Followers', 'followers', account.followers_count, 'last'],
+        ['Following', 'following', account.following_count, undefined],
+        ['Posts', 'posts_count', account.statuses_count, undefined],
+      ] as const;
+
+      return metrics.flatMap(([label, key, total, aggregate]) =>
+        total === undefined
+          ? []
+          : [
+              {
+                label,
+                key,
+                ...(aggregate ? { aggregate } : {}),
+                percentageChange: 0,
+                data: [{ total: String(total), date: today }],
+              },
+            ]
+      );
+    } catch (err) {
+      if (err instanceof RefreshToken) {
+        throw err;
+      }
+      console.error('Error fetching Mastodon analytics:', err);
+      return [];
+    }
+  }
+
+  async postAnalytics(
+    integrationId: string,
+    accessToken: string,
+    postId: string,
+    date: number
+  ): Promise<AnalyticsData[]> {
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      // A public status, read without a token: the app has no read scope
+      const status = await (
+        await this.fetch(
+          `${
+            process.env.MASTODON_URL || 'https://mastodon.social'
+          }/api/v1/statuses/${encodeURIComponent(postId)}`,
+          {},
+          this.identifier
+        )
+      ).json();
+
+      const metrics = [
+        ['Favourites', 'likes', status.favourites_count],
+        ['Boosts', 'reposts', status.reblogs_count],
+        ['Replies', 'replies', status.replies_count],
+        ['Quotes', 'quotes', status.quotes_count],
+      ] as const;
+
+      return metrics.flatMap(([label, key, total]) =>
+        total === undefined
+          ? []
+          : [
+              {
+                label,
+                key,
+                percentageChange: 0,
+                data: [{ total: String(total), date: today }],
+              },
+            ]
+      );
+    } catch (err) {
+      console.error('Error fetching Mastodon post analytics:', err);
+      return [];
+    }
   }
 
   async comment(

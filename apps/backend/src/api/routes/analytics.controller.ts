@@ -3,6 +3,8 @@ import { Organization } from '@prisma/client';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { ApiTags } from '@nestjs/swagger';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
+import { AnalyticsReportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.report.service';
+import { AnalyticsOverviewDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.overview.dto';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 
 @ApiTags('Analytics')
@@ -10,8 +12,17 @@ import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/po
 export class AnalyticsController {
   constructor(
     private _integrationService: IntegrationService,
-    private _postsService: PostsService
+    private _postsService: PostsService,
+    private _analyticsReportService: AnalyticsReportService
   ) {}
+
+  @Get('/overview')
+  getOverview(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: AnalyticsOverviewDto
+  ) {
+    return this._analyticsReportService.overview(org.id, query.date);
+  }
 
   @Get('/:integration')
   async getIntegration(

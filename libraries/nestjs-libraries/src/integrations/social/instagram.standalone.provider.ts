@@ -37,6 +37,8 @@ export class InstagramStandaloneProvider
   ];
     override maxConcurrentJob = 200; // Instagram standalone has stricter limits
   dto = InstagramDto;
+  analyticsDays = [7, 30]; // Instagram serves at most 30 days per request
+  analyticsPreviousPeriod = true;
 
   editor = 'normal' as const;
   maxLength() {
@@ -250,11 +252,17 @@ export class InstagramStandaloneProvider
     );
   }
 
-  async analytics(id: string, accessToken: string, date: number) {
+  async analytics(
+    id: string,
+    accessToken: string,
+    date: number,
+    offset?: number
+  ) {
     return instagramProvider.analytics(
       id,
       accessToken,
       date,
+      offset,
       'graph.instagram.com'
     );
   }

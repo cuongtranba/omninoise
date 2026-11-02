@@ -1,5 +1,4 @@
 import {
-  AnalyticsData,
   AuthTokenDetails,
   PostDetails,
   PostResponse,
@@ -218,23 +217,5 @@ export class DribbbleProvider extends SocialAbstract implements SocialProvider {
         releaseURL: `https://dribbble.com/shots/${newId}`,
       },
     ];
-  }
-
-  analytics(
-    id: string,
-    accessToken: string,
-    date: number
-  ): Promise<AnalyticsData[]> {
-    return Promise.resolve([]);
-  }
-
-  async postAnalytics(
-    integrationId: string,
-    accessToken: string,
-    postId: string,
-    date: number
-  ): Promise<AnalyticsData[]> {
-    // Dribbble doesn't provide detailed post-level analytics via their API
-    return [];
   }
 }

@@ -21,6 +21,8 @@ import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 
 export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   identifier = 'threads';
+  analyticsDays = [7, 30, 90];
+  analyticsPreviousPeriod = true;
   name = 'Threads';
   isBetweenSteps = false;
   scopes = [
@@ -727,29 +729,92 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset = 0
   ): Promise<AnalyticsData[]> {
-    const until = dayjs().endOf('day').unix();
-    const since = dayjs().subtract(date, 'day').unix();
+    // The window ends `offset` days ago (the previous period of a trend)
+    const untilDay = dayjs().subtract(offset, 'day').endOf('day');
+    const until = untilDay.unix();
+    const since = untilDay.subtract(date, 'day').unix();
+    const base = `https://graph.threads.net/v1.0/${id}/threads_insights`;
 
     const { data, ...all } = await (
       await fetch(
-        `https://graph.threads.net/v1.0/${id}/threads_insights?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}&period=day&since=${since}&until=${until}`
+        `${base}?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}&period=day&since=${since}&until=${until}`
       )
     ).json();
 
-    return (
+    // Not part of the call above, so a failure here can't hide those metrics
+    const [clicks, followers] = await Promise.all([
+      fetch(
+        `${base}?metric=clicks&access_token=${accessToken}&period=day&since=${since}&until=${until}`
+      )
+        .then((res) => res.json())
+        .catch(() => ({} as { data?: any[] })),
+      // Only the current count exists, so no previous window has one
+      offset
+        ? Promise.resolve({} as { data?: any[] })
+        : fetch(`${base}?metric=followers_count&access_token=${accessToken}`)
+            .then((res) => res.json())
+            .catch(() => ({} as { data?: any[] })),
+    ]);
+
+    // A single total for the window, dated at its end
+    const day = untilDay.format('YYYY-MM-DD');
+    const keys: Record<string, string> = {
+      views: 'profile_views',
+      likes: 'likes',
+      replies: 'replies',
+      reposts: 'reposts',
+      quotes: 'quotes',
+    };
+    const analytics: AnalyticsData[] =
       data?.map((d: any) => ({
         label: capitalize(d.name),
-        percentageChange: 5,
+        key: keys[d.name],
+        percentageChange: 0,
         data: d.total_value
-          ? [{ total: d.total_value.value, date: dayjs().format('YYYY-MM-DD') }]
+          ? [{ total: d.total_value.value, date: day }]
           : d.values.map((v: any) => ({
               total: v.value,
               date: dayjs(v.end_time).format('YYYY-MM-DD'),
             })),
-      })) || []
-    );
+      })) || [];
+
+    // Clicks come per link, the total is all of them
+    const linkClicks = clicks?.data?.find((d: any) => d.name === 'clicks');
+    if (linkClicks?.link_total_values) {
+      analytics.push({
+        label: 'Clicks',
+        key: 'clicks',
+        percentageChange: 0,
+        data: [
+          {
+            total: String(
+              linkClicks.link_total_values.reduce(
+                (sum: number, link: any) => sum + (Number(link.value) || 0),
+                0
+              )
+            ),
+            date: day,
+          },
+        ],
+      });
+    }
+
+    const followersCount = followers?.data?.find(
+      (d: any) => d.name === 'followers_count'
+    )?.total_value?.value;
+    if (followersCount !== undefined) {
+      analytics.push({
+        label: 'Followers',
+        key: 'followers',
+        percentageChange: 0,
+        data: [{ total: String(followersCount), date: day }],
+      });
+    }
+
+    return analytics;
   }
 
   @Plug({
@@ -841,35 +906,53 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         return [];
       }
 
+      // Shares are asked apart so they can't fail the metrics above
+      const shares = await fetch(
+        `https://graph.threads.net/v1.0/${postId}/insights?metric=shares&access_token=${accessToken}`
+      )
+        .then((res) => res.json())
+        .catch(() => ({} as { data?: any[] }));
+
       const result: AnalyticsData[] = [];
 
-      for (const metric of data) {
+      for (const metric of [...data, ...(shares?.data || [])]) {
         const value = metric.values?.[0]?.value ?? metric.total_value?.value;
         if (value === undefined) continue;
 
         let label = '';
+        let key = '';
 
         switch (metric.name) {
           case 'views':
             label = 'Views';
+            key = 'impressions';
             break;
           case 'likes':
             label = 'Likes';
+            key = 'likes';
             break;
           case 'replies':
             label = 'Replies';
+            key = 'replies';
             break;
           case 'reposts':
             label = 'Reposts';
+            key = 'reposts';
             break;
           case 'quotes':
             label = 'Quotes';
+            key = 'quotes';
+            break;
+          case 'shares':
+            label = 'Shares';
+            key = 'shares';
             break;
         }
 
         if (label) {
           result.push({
             label,
+            key,
             percentageChange: 0,
             data: [{ total: String(value), date: today }],
           });

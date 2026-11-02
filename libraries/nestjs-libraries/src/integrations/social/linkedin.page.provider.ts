@@ -37,6 +37,8 @@ export class LinkedinPageProvider
   ];
 
   override editor = 'normal' as const;
+  analyticsDays = [7, 30, 90];
+  analyticsPreviousPeriod = true;
 
   override async refreshToken(
     refresh_token: string
@@ -322,10 +324,13 @@ export class LinkedinPageProvider
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset = 0
   ): Promise<AnalyticsData[]> {
-    const endDate = dayjs().unix() * 1000;
-    const startDate = dayjs().subtract(date, 'days').unix() * 1000;
+    // The window ends `offset` days ago (the previous period of a trend)
+    const endDay = dayjs().subtract(offset, 'days');
+    const endDate = endDay.unix() * 1000;
+    const startDate = endDay.subtract(date, 'days').unix() * 1000;
 
     const { elements }: { elements: Root[]; paging: any } = await (
       await fetch(
@@ -371,6 +376,25 @@ export class LinkedinPageProvider
         }
       )
     ).json();
+
+    // Only the current count exists, so no previous window has one. Never
+    // fails the statistics above.
+    const followers = offset
+      ? null
+      : await fetch(
+          `https://api.linkedin.com/rest/networkSizes/${encodeURIComponent(
+            `urn:li:organization:${id}`
+          )}?edgeType=COMPANY_FOLLOWED_BY_MEMBER`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Linkedin-Version': '202601',
+              'X-Restli-Protocol-Version': '2.0.0',
+            },
+          }
+        )
+          .then((res) => res.json())
+          .catch(() => null);
 
     const analytics = [...elements2, ...elements, ...elements3].reduce(
       (all, current) => {
@@ -420,6 +444,21 @@ export class LinkedinPageProvider
             total: current?.totalShareStatistics.commentCount,
             date: dayjs(current.timeRange.start).format('YYYY-MM-DD'),
           });
+
+          all['Impressions'].push({
+            total: current?.totalShareStatistics.impressionCount || 0,
+            date: dayjs(current.timeRange.start).format('YYYY-MM-DD'),
+          });
+
+          all['Unique Impressions'].push({
+            total: current?.totalShareStatistics.uniqueImpressionsCount || 0,
+            date: dayjs(current.timeRange.start).format('YYYY-MM-DD'),
+          });
+
+          all['Likes'].push({
+            total: current?.totalShareStatistics.likeCount || 0,
+            date: dayjs(current.timeRange.start).format('YYYY-MM-DD'),
+          });
         }
 
         return all;
@@ -432,16 +471,47 @@ export class LinkedinPageProvider
         Comments: [] as any[],
         'Organic Followers': [] as any[],
         'Paid Followers': [] as any[],
+        Impressions: [] as any[],
+        'Unique Impressions': [] as any[],
+        Likes: [] as any[],
       }
     );
 
-    return Object.keys(analytics).map((key) => ({
-      label: key,
-      data: analytics[
-        key as 'Page Views' | 'Organic Followers' | 'Paid Followers'
-      ],
-      percentageChange: 5,
+    // Metric id (analytics.metrics.ts) of each series. Paid Followers has none,
+    // neither has Engagement: it is a fraction, not a percent (public API)
+    const keys: Record<string, string> = {
+      'Page Views': 'profile_views',
+      'Organic Followers': 'follower_change',
+      Clicks: 'clicks',
+      Shares: 'shares',
+      Comments: 'comments',
+      Impressions: 'impressions',
+      'Unique Impressions': 'reach',
+      Likes: 'likes',
+    };
+
+    const result: AnalyticsData[] = Object.keys(analytics).map((label) => ({
+      label,
+      ...(keys[label] ? { key: keys[label] } : {}),
+      data: analytics[label as keyof typeof analytics],
+      percentageChange: 0,
     }));
+
+    if (typeof followers?.firstDegreeSize !== 'undefined') {
+      result.push({
+        label: 'Followers',
+        key: 'followers',
+        data: [
+          {
+            total: String(followers.firstDegreeSize),
+            date: endDay.format('YYYY-MM-DD'),
+          },
+        ],
+        percentageChange: 0,
+      });
+    }
+
+    return result;
   }
 
   async postAnalytics(
@@ -557,11 +627,21 @@ export class LinkedinPageProvider
       });
     }
 
+    const keys: Record<string, string> = {
+      Impressions: 'impressions',
+      'Unique Impressions': 'reach',
+      Clicks: 'clicks',
+      Likes: 'likes',
+      Comments: 'comments',
+      Shares: 'shares',
+    };
+
     // Filter out empty analytics
     const result = Object.entries(analytics)
       .filter(([_, data]) => data.length > 0)
       .map(([label, data]) => ({
         label,
+        key: keys[label],
         data,
         percentageChange: 0,
       }));

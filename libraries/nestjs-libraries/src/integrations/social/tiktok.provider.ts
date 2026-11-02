@@ -45,6 +45,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     'user.info.stats',
   ];
   override maxConcurrentJob = 10000;
+  analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
   dto = TikTokDto;
   editor = 'normal' as const;
   maxLength() {
@@ -1008,6 +1009,8 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         if (userStats.follower_count !== undefined) {
           result.push({
             label: 'Followers',
+            key: 'followers',
+            aggregate: 'last',
             percentageChange: 0,
             data: [{ total: String(userStats.follower_count), date: today }],
           });
@@ -1016,6 +1019,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         if (userStats.following_count !== undefined) {
           result.push({
             label: 'Following',
+            key: 'following',
             percentageChange: 0,
             data: [{ total: String(userStats.following_count), date: today }],
           });
@@ -1024,6 +1028,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         if (userStats.likes_count !== undefined) {
           result.push({
             label: 'Total Likes',
+            key: 'total_likes',
             percentageChange: 0,
             data: [{ total: String(userStats.likes_count), date: today }],
           });
@@ -1032,6 +1037,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         if (userStats.video_count !== undefined) {
           result.push({
             label: 'Videos',
+            key: 'videos_count',
             percentageChange: 0,
             data: [{ total: String(userStats.video_count), date: today }],
           });
@@ -1090,24 +1096,28 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
 
           result.push({
             label: 'Views',
+            key: 'video_views',
             percentageChange: 0,
             data: [{ total: String(totalViews), date: today }],
           });
 
           result.push({
             label: 'Recent Likes',
+            key: 'likes',
             percentageChange: 0,
             data: [{ total: String(totalLikes), date: today }],
           });
 
           result.push({
             label: 'Recent Comments',
+            key: 'comments',
             percentageChange: 0,
             data: [{ total: String(totalComments), date: today }],
           });
 
           result.push({
             label: 'Recent Shares',
+            key: 'shares',
             percentageChange: 0,
             data: [{ total: String(totalShares), date: today }],
           });
@@ -1277,6 +1287,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       if (video.view_count !== undefined) {
         result.push({
           label: 'Views',
+          key: 'video_views',
           percentageChange: 0,
           data: [{ total: String(video.view_count), date: today }],
         });
@@ -1285,6 +1296,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       if (video.like_count !== undefined) {
         result.push({
           label: 'Likes',
+          key: 'likes',
           percentageChange: 0,
           data: [{ total: String(video.like_count), date: today }],
         });
@@ -1293,6 +1305,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       if (video.comment_count !== undefined) {
         result.push({
           label: 'Comments',
+          key: 'comments',
           percentageChange: 0,
           data: [{ total: String(video.comment_count), date: today }],
         });
@@ -1301,6 +1314,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       if (video.share_count !== undefined) {
         result.push({
           label: 'Shares',
+          key: 'shares',
           percentageChange: 0,
           data: [{ total: String(video.share_count), date: today }],
         });

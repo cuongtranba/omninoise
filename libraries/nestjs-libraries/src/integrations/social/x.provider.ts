@@ -77,6 +77,8 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   name = 'X';
   isBetweenSteps = false;
   scopes = [] as string[];
+  // No previous period: reading tweets is billed per call
+  analyticsDays = [7, 30, 90];
   stripLinks = () => !!process.env.STRIP_LINKS_FROM_X_POSTS;
   // X rate limits are per user (300 posts / 3 hours), not per app, so the cap
   // only needs to keep bursts polite. With the pending flow the slot is held
@@ -91,6 +93,15 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   // regular tweets are stripped to plain text inside the provider.
   editor = 'html' as const;
   dto = XDto;
+
+  constructor() {
+    super();
+    // Reading tweets is billed per call: no analytics at all when disabled
+    if (process.env.DISABLE_X_ANALYTICS) {
+      this.analytics = undefined;
+      this.postAnalytics = undefined;
+    }
+  }
 
   maxLength(additionalSettings?: any, settings?: any) {
     // Articles are long-form content, the tweet character limit doesn't apply.
@@ -1570,59 +1581,93 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         (p) => p.id
       );
 
-      if (tweets.length === 0) {
-        return [];
+      const result: AnalyticsData[] = [];
+
+      if (tweets.length > 0) {
+        const data = await client.v2.tweets(
+          tweets.map((p) => p.id),
+          {
+            'tweet.fields': ['public_metrics'],
+          }
+        );
+
+        const metrics = data.data.reduce(
+          (all, current) => {
+            all.impression_count =
+              (all.impression_count || 0) +
+              +current.public_metrics.impression_count;
+            all.bookmark_count =
+              (all.bookmark_count || 0) +
+              +current.public_metrics.bookmark_count;
+            all.like_count =
+              (all.like_count || 0) + +current.public_metrics.like_count;
+            all.quote_count =
+              (all.quote_count || 0) + +current.public_metrics.quote_count;
+            all.reply_count =
+              (all.reply_count || 0) + +current.public_metrics.reply_count;
+            all.retweet_count =
+              (all.retweet_count || 0) + +current.public_metrics.retweet_count;
+
+            return all;
+          },
+          {
+            impression_count: 0,
+            bookmark_count: 0,
+            like_count: 0,
+            quote_count: 0,
+            reply_count: 0,
+            retweet_count: 0,
+          }
+        );
+
+        // Same labels and the same two points as always (public API)
+        const labels = [
+          ['impression_count', 'IMPRESSION', 'impressions'],
+          ['bookmark_count', 'BOOKMARK', 'saves'],
+          ['like_count', 'LIKE', 'likes'],
+          ['quote_count', 'QUOTE', 'quotes'],
+          ['reply_count', 'REPLY', 'replies'],
+          ['retweet_count', 'RETWEET', 'reposts'],
+        ] as const;
+
+        result.push(
+          ...labels.map(([field, label, key]) => ({
+            label,
+            key,
+            percentageChange: 0,
+            data: [
+              {
+                total: String(0),
+                date: since.format('YYYY-MM-DD'),
+              },
+              {
+                total: String(metrics[field]),
+                date: until.format('YYYY-MM-DD'),
+              },
+            ],
+          }))
+        );
       }
 
-      const data = await client.v2.tweets(
-        tweets.map((p) => p.id),
-        {
-          'tweet.fields': ['public_metrics'],
+      try {
+        const me = await client.v2.me({ 'user.fields': ['public_metrics'] });
+        const followers = me?.data?.public_metrics?.followers_count;
+        if (followers !== undefined) {
+          result.push({
+            label: 'Followers',
+            key: 'followers',
+            aggregate: 'last',
+            percentageChange: 0,
+            data: [
+              { total: String(followers), date: until.format('YYYY-MM-DD') },
+            ],
+          });
         }
-      );
+      } catch (err) {
+        console.log('Error fetching X followers:', err);
+      }
 
-      const metrics = data.data.reduce(
-        (all, current) => {
-          all.impression_count =
-            (all.impression_count || 0) +
-            +current.public_metrics.impression_count;
-          all.bookmark_count =
-            (all.bookmark_count || 0) + +current.public_metrics.bookmark_count;
-          all.like_count =
-            (all.like_count || 0) + +current.public_metrics.like_count;
-          all.quote_count =
-            (all.quote_count || 0) + +current.public_metrics.quote_count;
-          all.reply_count =
-            (all.reply_count || 0) + +current.public_metrics.reply_count;
-          all.retweet_count =
-            (all.retweet_count || 0) + +current.public_metrics.retweet_count;
-
-          return all;
-        },
-        {
-          impression_count: 0,
-          bookmark_count: 0,
-          like_count: 0,
-          quote_count: 0,
-          reply_count: 0,
-          retweet_count: 0,
-        }
-      );
-
-      return Object.entries(metrics).map(([key, value]) => ({
-        label: key.replace('_count', '').replace('_', ' ').toUpperCase(),
-        percentageChange: 5,
-        data: [
-          {
-            total: String(0),
-            date: since.format('YYYY-MM-DD'),
-          },
-          {
-            total: String(value),
-            date: until.format('YYYY-MM-DD'),
-          },
-        ],
-      }));
+      return result;
     } catch (err) {
       console.log(err);
     }
@@ -1666,6 +1711,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       if (metrics.impression_count !== undefined) {
         result.push({
           label: 'Impressions',
+          key: 'impressions',
           percentageChange: 0,
           data: [{ total: String(metrics.impression_count), date: today }],
         });
@@ -1674,6 +1720,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       if (metrics.like_count !== undefined) {
         result.push({
           label: 'Likes',
+          key: 'likes',
           percentageChange: 0,
           data: [{ total: String(metrics.like_count), date: today }],
         });
@@ -1682,6 +1729,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       if (metrics.retweet_count !== undefined) {
         result.push({
           label: 'Retweets',
+          key: 'reposts',
           percentageChange: 0,
           data: [{ total: String(metrics.retweet_count), date: today }],
         });
@@ -1690,6 +1738,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       if (metrics.reply_count !== undefined) {
         result.push({
           label: 'Replies',
+          key: 'replies',
           percentageChange: 0,
           data: [{ total: String(metrics.reply_count), date: today }],
         });
@@ -1698,6 +1747,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       if (metrics.quote_count !== undefined) {
         result.push({
           label: 'Quotes',
+          key: 'quotes',
           percentageChange: 0,
           data: [{ total: String(metrics.quote_count), date: today }],
         });
@@ -1706,9 +1756,44 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       if (metrics.bookmark_count !== undefined) {
         result.push({
           label: 'Bookmarks',
+          key: 'saves',
           percentageChange: 0,
           data: [{ total: String(metrics.bookmark_count), date: today }],
         });
+      }
+
+      // Private metrics exist only for tweets younger than 30 days, so the
+      // lookup is separate and any refusal just leaves them out
+      if (dayjs().diff(dayjs(tweet.data.created_at), 'day') < 30) {
+        try {
+          const privateTweet = await client.v2.singleTweet(postId, {
+            'tweet.fields': ['non_public_metrics'],
+          });
+          const nonPublic: {
+            url_link_clicks?: number;
+            user_profile_clicks?: number;
+            engagements?: number;
+          } = privateTweet?.data?.non_public_metrics || {};
+
+          const extra = [
+            ['Link Clicks', 'clicks', nonPublic.url_link_clicks],
+            ['Profile Clicks', 'profile_views', nonPublic.user_profile_clicks],
+            ['Engagements', 'engagements', nonPublic.engagements],
+          ] as const;
+
+          for (const [label, key, value] of extra) {
+            if (value !== undefined) {
+              result.push({
+                label,
+                key,
+                percentageChange: 0,
+                data: [{ total: String(value), date: today }],
+              });
+            }
+          }
+        } catch (err) {
+          // Not available for this tweet or token, public metrics still show
+        }
       }
 
       return result;

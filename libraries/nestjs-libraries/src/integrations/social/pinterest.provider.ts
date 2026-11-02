@@ -62,6 +62,8 @@ export class PinterestProvider
     'user_accounts:read',
   ];
   override maxConcurrentJob = 10; // Pinterest limits are per user
+  analyticsDays = [7, 30, 90];
+  analyticsPreviousPeriod = true;
   maxLength() {
     return 500;
   }
@@ -560,13 +562,26 @@ export class PinterestProvider
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset = 0
   ): Promise<AnalyticsData[]> {
-    const until = dayjs().format('YYYY-MM-DD');
     // Pinterest analytics only cover the last 90 days (89 for a UTC safety margin)
+    const days = Math.min(date, 89);
+    if (days + offset > 89) {
+      return [];
+    }
+
+    // The window is `days` days (both bounds are inclusive) ending `offset`
+    // days ago, so the previous period never shares a day with this one
+    const until = dayjs().subtract(offset, 'day').format('YYYY-MM-DD');
     const since = dayjs()
-      .subtract(Math.min(date, 89), 'day')
+      .subtract(days + offset - 1, 'day')
       .format('YYYY-MM-DD');
+
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
 
     const {
       all: { daily_metrics },
@@ -575,53 +590,144 @@ export class PinterestProvider
         `https://api.pinterest.com/v5/user_account/analytics?start_date=${since}&end_date=${until}`,
         {
           method: 'GET',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       )
     ).json();
 
-    return daily_metrics.reduce(
-      (acc: any, item: any) => {
-        if (typeof item.metrics.PIN_CLICK_RATE !== 'undefined') {
-          acc[0].data.push({
-            date: item.date,
-            total: item.metrics.PIN_CLICK_RATE,
-          });
+    // The original metrics keep their label and scale (public API), Pinterest
+    // sends the rates as fractions. The click rate is added again as a percent.
+    const metrics: Array<{
+      type: string;
+      label: string;
+      key?: string;
+      scale: number;
+      aggregate?: 'average';
+    }> = [
+      { type: 'PIN_CLICK_RATE', label: 'Pin click rate', scale: 1 },
+      {
+        type: 'IMPRESSION',
+        label: 'Impressions',
+        key: 'impressions',
+        scale: 1,
+      },
+      { type: 'PIN_CLICK', label: 'Pin Clicks', key: 'pin_clicks', scale: 1 },
+      { type: 'ENGAGEMENT', label: 'Engagement', key: 'engagements', scale: 1 },
+      { type: 'SAVE', label: 'Saves', key: 'saves', scale: 1 },
+      {
+        type: 'PIN_CLICK_RATE',
+        label: 'Click Rate',
+        key: 'click_rate',
+        scale: 100,
+        aggregate: 'average',
+      },
+    ];
 
-          acc[1].data.push({
-            date: item.date,
-            total: item.metrics.IMPRESSION,
-          });
+    const result: AnalyticsData[] = metrics.map(
+      ({ label, key, aggregate }) => ({
+        label,
+        ...(key ? { key } : {}),
+        ...(aggregate ? { aggregate } : {}),
+        percentageChange: 0,
+        data: [] as Array<{ total: string; date: string }>,
+      })
+    );
 
-          acc[2].data.push({
-            date: item.date,
-            total: item.metrics.PIN_CLICK,
-          });
+    for (const item of daily_metrics) {
+      if (typeof item.metrics.PIN_CLICK_RATE === 'undefined') {
+        continue;
+      }
 
-          acc[3].data.push({
-            date: item.date,
-            total: item.metrics.ENGAGEMENT,
-          });
+      metrics.forEach(({ type, scale }, index) => {
+        result[index].data.push({
+          date: item.date,
+          total: String((item.metrics[type] ?? 0) * scale),
+        });
+      });
+    }
 
-          acc[4].data.push({
+    // Asked on their own so a refusal never takes the standard metrics down
+    try {
+      const extra = await (
+        await fetch(
+          `https://api.pinterest.com/v5/user_account/analytics?start_date=${since}&end_date=${until}&metric_types=OUTBOUND_CLICK,ENGAGEMENT_RATE,SAVE_RATE`,
+          {
+            method: 'GET',
+            headers,
+          }
+        )
+      ).json();
+
+      const extraMetrics = [
+        {
+          type: 'OUTBOUND_CLICK',
+          label: 'Outbound Clicks',
+          key: 'outbound_clicks',
+          scale: 1,
+        },
+        {
+          type: 'ENGAGEMENT_RATE',
+          label: 'Engagement Rate',
+          key: 'engagement_rate',
+          scale: 100,
+          aggregate: 'average' as const,
+        },
+        {
+          type: 'SAVE_RATE',
+          label: 'Save Rate',
+          key: 'save_rate',
+          scale: 100,
+          aggregate: 'average' as const,
+        },
+      ];
+
+      for (const { type, label, key, scale, aggregate } of extraMetrics) {
+        const data = (extra?.all?.daily_metrics || [])
+          .filter((item: any) => typeof item?.metrics?.[type] !== 'undefined')
+          .map((item: any) => ({
             date: item.date,
-            total: item.metrics.SAVE,
+            total: String((item.metrics[type] ?? 0) * scale),
+          }));
+
+        if (data.length) {
+          result.push({
+            label,
+            key,
+            ...(aggregate ? { aggregate } : {}),
+            percentageChange: 0,
+            data,
           });
         }
+      }
+    } catch (err) {
+      console.error('Error fetching Pinterest extra analytics:', err);
+    }
 
-        return acc;
-      },
-      [
-        { label: 'Pin click rate', data: [] as any[] },
-        { label: 'Impressions', data: [] as any[] },
-        { label: 'Pin Clicks', data: [] as any[] },
-        { label: 'Engagement', data: [] as any[] },
-        { label: 'Saves', data: [] as any[] },
-      ]
-    );
+    // Followers are a current snapshot, it has no previous period
+    if (!offset) {
+      try {
+        const account = await (
+          await fetch('https://api.pinterest.com/v5/user_account', {
+            method: 'GET',
+            headers,
+          })
+        ).json();
+
+        if (typeof account?.follower_count !== 'undefined') {
+          result.push({
+            label: 'Followers',
+            key: 'followers',
+            aggregate: 'last',
+            percentageChange: 0,
+            data: [{ total: String(account.follower_count), date: until }],
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching Pinterest followers:', err);
+      }
+    }
+
+    return result;
   }
 
   async postAnalytics(
@@ -665,6 +771,7 @@ export class PinterestProvider
         if (summaryMetrics.IMPRESSION !== undefined) {
           result.push({
             label: 'Impressions',
+            key: 'impressions',
             percentageChange: 0,
             data: [{ total: String(summaryMetrics.IMPRESSION), date: today }],
           });
@@ -673,6 +780,7 @@ export class PinterestProvider
         if (summaryMetrics.PIN_CLICK !== undefined) {
           result.push({
             label: 'Pin Clicks',
+            key: 'pin_clicks',
             percentageChange: 0,
             data: [{ total: String(summaryMetrics.PIN_CLICK), date: today }],
           });
@@ -681,6 +789,7 @@ export class PinterestProvider
         if (summaryMetrics.OUTBOUND_CLICK !== undefined) {
           result.push({
             label: 'Outbound Clicks',
+            key: 'outbound_clicks',
             percentageChange: 0,
             data: [
               { total: String(summaryMetrics.OUTBOUND_CLICK), date: today },
@@ -691,10 +800,53 @@ export class PinterestProvider
         if (summaryMetrics.SAVE !== undefined) {
           result.push({
             label: 'Saves',
+            key: 'saves',
             percentageChange: 0,
             data: [{ total: String(summaryMetrics.SAVE), date: today }],
           });
         }
+      }
+
+      // Asked on their own so a refusal never takes the standard metrics down
+      try {
+        const extra = await (
+          await fetch(
+            `https://api.pinterest.com/v5/pins/${postId}/analytics?start_date=${since}&end_date=${today}&metric_types=TOTAL_COMMENTS,TOTAL_REACTIONS,USER_FOLLOW,PROFILE_VISIT`,
+            {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+        ).json();
+
+        // Comments and reactions are lifetime totals, the rest are period ones
+        const values = {
+          ...extra?.all?.summary_metrics,
+          ...extra?.all?.lifetime_metrics,
+        };
+
+        const extraMetrics = [
+          ['TOTAL_COMMENTS', 'Comments', 'comments'],
+          ['TOTAL_REACTIONS', 'Reactions', 'likes'],
+          ['USER_FOLLOW', 'Follows', 'follower_change'],
+          ['PROFILE_VISIT', 'Profile Visits', 'profile_views'],
+        ] as const;
+
+        for (const [type, label, key] of extraMetrics) {
+          if (values[type] !== undefined) {
+            result.push({
+              label,
+              key,
+              percentageChange: 0,
+              data: [{ total: String(values[type]), date: today }],
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching Pinterest extra pin analytics:', err);
       }
 
       return result;

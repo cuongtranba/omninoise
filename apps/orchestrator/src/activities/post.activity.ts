@@ -550,8 +550,9 @@ export class PostActivity {
       const webhooks = (await this._webhookService.getWebhooks(orgId)).filter(
         (f) => {
           return (
-            f.integrations.length === 0 ||
-            f.integrations.some((i) => i.integration.id === integrationId)
+            f.type === 'post.published' &&
+            (f.integrations.length === 0 ||
+              f.integrations.some((i) => i.integration.id === integrationId))
           );
         }
       );
