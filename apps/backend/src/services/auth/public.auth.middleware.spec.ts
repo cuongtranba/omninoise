@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
 import { JobsModule } from '@gitroom/nestjs-libraries/jobs/job.queue';
@@ -16,7 +17,7 @@ import { PublicAuthMiddleware } from '@gitroom/backend/services/auth/public.auth
 
 process.env.JWT_SECRET ||= 'public-auth-middleware-spec-secret';
 
-const run = Math.random().toString(36).slice(2);
+const run = randomBytes(6).toString('hex');
 const stripeBefore = process.env.STRIPE_PUBLISHABLE_KEY;
 const secretBefore = process.env.STRIPE_SECRET_KEY;
 let moduleRef: Awaited<

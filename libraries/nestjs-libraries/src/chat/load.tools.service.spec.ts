@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { RequestContext } from '@mastra/core/di';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
@@ -9,7 +10,7 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 
-const run = Math.random().toString(36).slice(2);
+const run = randomBytes(6).toString('hex');
 const stripeKey = process.env.STRIPE_PUBLISHABLE_KEY;
 let moduleRef: Awaited<
   ReturnType<ReturnType<typeof Test.createTestingModule>['compile']>
