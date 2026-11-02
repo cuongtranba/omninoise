@@ -1,0 +1,64 @@
+---
+name: Publish CLI
+
+# Releases the `omninoise` CLI (apps/cli) to npm. A release is a version bump in
+# apps/cli/package.json merged to main; a version already on npm is skipped.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/cli/**'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-cli
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.12.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+          run_install: false
+
+      - name: Skip a version that is already published
+        id: version
+        working-directory: apps/cli
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "omninoise@$VERSION" version >/dev/null 2>&1; then
+            echo "omninoise@$VERSION is already on npm"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.version.outputs.publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.version.outputs.publish == 'true'
+        run: pnpm --filter ./apps/cli build
+
+      - name: Publish
+        if: steps.version.outputs.publish == 'true'
+        working-directory: apps/cli
+        run: pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
