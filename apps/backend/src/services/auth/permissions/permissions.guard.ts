@@ -3,14 +3,14 @@ import { Reflector } from '@nestjs/core';
 import {
   AppAbility,
   PermissionsService,
-} from '@gitroom/backend/services/auth/permissions/permissions.service';
+} from '@gitroom/nestjs-libraries/permissions/permissions.service';
 import {
   AbilityPolicy,
   CHECK_POLICIES_KEY,
-} from '@gitroom/backend/services/auth/permissions/permissions.ability';
+} from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import { Organization } from '@prisma/client';
 import { Request } from 'express';
-import { SubscriptionException } from './permission.exception.class';
+import { SubscriptionException } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 @Injectable()
 export class PoliciesGuard implements CanActivate {

@@ -9,6 +9,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class UploadFromUrlTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'uploadFromUrlTool';
+  mirrors = ['POST /public/v1/upload-from-url'];
 
   run() {
     return createTool({

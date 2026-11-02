@@ -27,7 +27,7 @@ import {
   AuthorizationActions,
   Sections,
   SubscriptionException,
-} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+} from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 // A reason retrying can't change (private video, no minutes left, no speech):
 // the workflow stops and the message is what the customer reads

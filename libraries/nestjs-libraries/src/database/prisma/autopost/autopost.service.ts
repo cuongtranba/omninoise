@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { AutopostDto } from '@gitroom/nestjs-libraries/dtos/autopost/autopost.dto';
 import dayjs from 'dayjs';
@@ -15,6 +15,7 @@ import Parser from 'rss-parser';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 const parser = new Parser();
 
 interface WorkflowChannelsState {
@@ -74,7 +75,21 @@ export class AutopostService {
     return this._autopostsRepository.getAutoposts(orgId);
   }
 
+  async getAutopostById(orgId: string, id: string) {
+    const autopost = (await this.getAutoposts(orgId)).find((a) => a.id === id);
+    if (!autopost) {
+      throw new NotFoundException('The autopost was not found');
+    }
+    return autopost;
+  }
+
   async createAutopost(orgId: string, body: AutopostDto, id?: string) {
+    // an update only changes an autopost of this organization, it never saves
+    // a new one for an id it does not know
+    if (id) {
+      await this.getAutopostById(orgId, id);
+    }
+
     const data = await this._autopostsRepository.createAutopost(
       orgId,
       body,
@@ -131,7 +146,21 @@ export class AutopostService {
 
   async loadXML(url: string) {
     try {
-      const { items } = await parser.parseURL(url);
+      // fetched here and not by rss-parser, so every connection (redirects
+      // included) goes through the SSRF-safe dispatcher
+      const response = await fetch(url, {
+        headers: {
+          Accept:
+            'application/rss+xml, application/rdf+xml;q=0.8, application/atom+xml;q=0.6, application/xml;q=0.4, text/xml;q=0.4',
+        },
+        signal: AbortSignal.timeout(60000),
+        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+        dispatcher: getSsrfSafeDispatcher(),
+      });
+      if (!response.ok) {
+        throw new Error(`Status code ${response.status}`);
+      }
+      const { items } = await parser.parseString(await response.text());
       const findLast = items.reduce(
         (all: any, current: any) => {
           if (dayjs(current.pubDate).isAfter(all.pubDate)) {
@@ -181,7 +210,14 @@ export class AutopostService {
 
   async loadUrl(url: string) {
     try {
-      const loadDom = new JSDOM(await (await fetch(url)).text());
+      const loadDom = new JSDOM(
+        await (
+          await fetch(url, {
+            // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+            dispatcher: getSsrfSafeDispatcher(),
+          })
+        ).text()
+      );
       loadDom.window.document
         .querySelectorAll('script')
         .forEach((s) => s.remove());

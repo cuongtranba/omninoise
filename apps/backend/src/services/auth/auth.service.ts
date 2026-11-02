@@ -110,31 +110,7 @@ export class AuthService {
   }
 
   public getOrgFromCookie(cookie?: string) {
-    if (!cookie) {
-      return false;
-    }
-
-    try {
-      const getOrg: any = AuthChecker.verifyJWT(cookie);
-      if (
-        typeof getOrg.orgId !== 'string' ||
-        typeof getOrg.id !== 'string' ||
-        !['USER', 'ADMIN'].includes(getOrg.role) ||
-        !getOrg.timeLimit ||
-        dayjs(getOrg.timeLimit).isBefore(dayjs())
-      ) {
-        return false;
-      }
-
-      return getOrg as {
-        email: string;
-        role: 'USER' | 'ADMIN';
-        orgId: string;
-        id: string;
-      };
-    } catch (err) {
-      return false;
-    }
+    return this._organizationService.getInviteFromToken(cookie);
   }
 
   private async loginOrRegisterProvider(

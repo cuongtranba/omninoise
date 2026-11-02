@@ -9,6 +9,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class MediaListTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'mediaListTool';
+  mirrors = ['GET /media'];
 
   run() {
     return createTool({

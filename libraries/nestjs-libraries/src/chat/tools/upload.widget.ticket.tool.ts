@@ -12,6 +12,8 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class UploadWidgetTicketTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'uploadWidgetTicketTool';
+  // mcp-only widget ticket, the web app has no route that mints one
+  mirrors = [];
   mcpOnly = true;
 
   run() {

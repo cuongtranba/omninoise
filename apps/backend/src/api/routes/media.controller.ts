@@ -20,8 +20,6 @@ import { ApiTags } from '@nestjs/swagger';
 import handleR2Upload from '@gitroom/nestjs-libraries/upload/r2.uploader';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
-import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
-import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
@@ -29,11 +27,7 @@ import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.fu
 @ApiTags('Media')
 @Controller('/media')
 export class MediaController {
-  private storage = UploadFactory.createStorage();
-  constructor(
-    private _mediaService: MediaService,
-    private _subscriptionService: SubscriptionService
-  ) {}
+  constructor(private _mediaService: MediaService) {}
 
   @Delete('/:id')
   deleteMedia(@GetOrgFromRequest() org: Organization, @Param('id') id: string) {
@@ -45,7 +39,6 @@ export class MediaController {
     @GetOrgFromRequest() org: Organization,
     @Body() body: VideoDto
   ) {
-    console.log('hello');
     return this._mediaService.generateVideo(org, body);
   }
 
@@ -56,15 +49,17 @@ export class MediaController {
     @Body('prompt') prompt: string,
     isPicturePrompt = false
   ) {
-    const total = await this._subscriptionService.checkCredits(org);
-    if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
+    const image = await this._mediaService.generateImage(
+      prompt,
+      org,
+      isPicturePrompt
+    );
+    if (image === false) {
       return false;
     }
 
     return {
-      output:
-        'data:image/png;base64,' +
-        (await this._mediaService.generateImage(prompt, org, isPicturePrompt)),
+      output: 'data:image/png;base64,' + image,
     };
   }
 
@@ -74,14 +69,7 @@ export class MediaController {
     @Req() req: Request,
     @Body('prompt') prompt: string
   ) {
-    const image = await this.generateImage(org, req, prompt, true);
-    if (!image) {
-      return false;
-    }
-
-    const file = await this.storage.uploadSimple(image.output);
-
-    return this._mediaService.saveFile(org.id, file.split('/').pop(), file);
+    return this._mediaService.generateAndSaveImage(org, prompt, true);
   }
 
   @Post('/upload-server')

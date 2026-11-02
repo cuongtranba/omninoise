@@ -20,8 +20,11 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { GetIncludeDeletedFromRequest } from '@gitroom/nestjs-libraries/user/include.deleted.from.request';
 import { GetOAuthUserIdFromRequest } from '@gitroom/nestjs-libraries/user/oauth.user.id.from.request';
 import { Organization } from '@prisma/client';
-import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
-import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import {
+  ConnectUrlError,
+  IntegrationService,
+} from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
+import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
@@ -31,7 +34,7 @@ import { UpdatePostSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/upda
 import {
   AuthorizationActions,
   Sections,
-} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+} from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
 import { UploadDto } from '@gitroom/nestjs-libraries/dtos/media/upload.dto';
@@ -46,13 +49,8 @@ import {
   IntegrationManager,
 } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { getValidationSchemas } from '@gitroom/nestjs-libraries/chat/validation.schemas.helper';
-import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
-import { RefreshToken } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-import { PostValidationException } from '@gitroom/backend/api/routes/posts.validation.exception';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { SuperAdminGuard } from '@gitroom/backend/services/auth/super.admin.guard';
-import { timer } from '@gitroom/helpers/utils/timer';
-import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
@@ -69,7 +67,6 @@ export class PublicIntegrationsController {
     private _mediaService: MediaService,
     private _notificationService: NotificationService,
     private _integrationManager: IntegrationManager,
-    private _refreshIntegrationService: RefreshIntegrationService,
     private _usersService: UsersService,
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
@@ -150,26 +147,21 @@ export class PublicIntegrationsController {
     @Body() rawBody: any
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    const body = await this._postsService.mapTypeToPost(
-      {
-        ...rawBody,
-        // a date per channel is a dashboard feature, the public API keeps one
-        // date for the whole request
-        posts: Array.isArray(rawBody?.posts)
-          ? rawBody.posts.map((post: any) => omit(post, 'date'))
-          : rawBody?.posts,
-      },
-      org.id,
-      rawBody?.type === 'draft' || true
-    );
-    body.type = rawBody.type;
+    // a date per channel is a dashboard feature, the public API keeps one date
+    // for the whole request
+    const posts = Array.isArray(rawBody?.posts)
+      ? rawBody.posts.map((post: any) => omit(post, 'date'))
+      : rawBody?.posts;
 
     if (
       process.env.RESTRICT_UPLOAD_DOMAINS &&
-      body.posts.some((p) =>
-        p.value.some((a) =>
-          a.image.some(
-            (i) => i.path.indexOf(process.env.RESTRICT_UPLOAD_DOMAINS) === -1
+      Array.isArray(posts) &&
+      posts.some((p: any) =>
+        p?.value?.some?.((a: any) =>
+          a?.image?.some?.(
+            (i: any) =>
+              typeof i?.path === 'string' &&
+              i.path.indexOf(process.env.RESTRICT_UPLOAD_DOMAINS) === -1
           )
         )
       )
@@ -182,44 +174,6 @@ export class PublicIntegrationsController {
       );
     }
 
-    // Server-side validation — same rules as the dashboard, surfaced as a
-    // readable 400 (see PostValidationExceptionFilter).
-    const validation = await this._postsService.validatePosts(
-      org.id,
-      body.posts
-    );
-
-    const fail = (item: (typeof validation)[number], error: string) => {
-      throw new PostValidationException({
-        provider: item.identifier,
-        name: item.name,
-        error,
-      });
-    };
-
-    for (const item of validation) {
-      if (item.emptyContent) {
-        fail(
-          item,
-          'Your post should have at least one character or one image.'
-        );
-      }
-    }
-
-    if (body.type !== 'draft') {
-      for (const item of validation) {
-        if (!item.valid) {
-          fail(item, item.settingsError || 'Please fix your settings');
-        }
-        if (item.errors !== true) {
-          fail(item, item.errors as string);
-        }
-        if (item.tooLong) {
-          fail(item, 'post is too long, please fix it');
-        }
-      }
-    }
-
     const allowedCreationMethods = ['CLI', 'API'] as const;
     const creationMethod = allowedCreationMethods.includes(
       rawBody.creationMethod
@@ -227,7 +181,14 @@ export class PublicIntegrationsController {
       ? (rawBody.creationMethod as 'CLI' | 'API')
       : 'API';
 
-    return this._postsService.createPost(org.id, body, creationMethod);
+    // Server-side validation — same rules as the dashboard, surfaced as a
+    // readable 400 (see PostValidationExceptionFilter).
+    return this._postsService.validateAndCreatePosts(
+      org.id,
+      { ...rawBody, posts },
+      creationMethod,
+      { replaceDraft: true }
+    );
   }
 
   @Delete('/posts/:id')
@@ -349,49 +310,34 @@ export class PublicIntegrationsController {
     @GetOrgFromRequest() org: Organization
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    if (
-      !this._integrationManager
-        .getAllowedSocialsIntegrations()
-        .includes(integration)
-    ) {
-      throw new HttpException({ msg: 'Integration not allowed' }, 400);
-    }
+    let result;
+    try {
+      result = await this._integrationService.generateConnectUrl(
+        org.id,
+        integration,
+        { refresh }
+      );
+    } catch (err) {
+      if (!(err instanceof ConnectUrlError)) {
+        throw err;
+      }
 
-    // A provider migrated via MIGRATE_PROVIDERS reconnects through its target
-    // provider's OAuth: the callback lands on the target and the channel is
-    // migrated in place (see migrateIntegration).
-    const migrateTo = refresh
-      ? this._integrationManager.getMigrationTarget(integration)
-      : undefined;
-
-    const integrationProvider = this._integrationManager.getSocialIntegration(
-      migrateTo || integration
-    );
-
-    if (integrationProvider.externalUrl) {
       throw new HttpException(
         {
-          msg: 'This integration requires an external URL and is not supported via the public API',
+          msg:
+            err.reason === 'externalUrl'
+              ? 'This integration requires an external URL and is not supported via the public API'
+              : 'Integration not allowed',
         },
         400
       );
     }
 
-    try {
-      const { codeVerifier, state, url } =
-        await integrationProvider.generateAuthUrl();
-
-      if (refresh) {
-        await ioRedis.set(`refresh:${state}`, refresh, 'EX', 3600);
-      }
-
-      await ioRedis.set(`organization:${state}`, org.id, 'EX', 3600);
-      await ioRedis.set(`login:${state}`, codeVerifier, 'EX', 3600);
-
-      return { url };
-    } catch (err) {
+    if ('err' in result) {
       throw new HttpException({ msg: 'Failed to generate auth URL' }, 500);
     }
+
+    return { url: result.url };
   }
 
   @Get('/users')
@@ -549,17 +495,7 @@ export class PublicIntegrationsController {
     @Param('id') id: string
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    const isTherePosts = await this._integrationService.getPostsForChannel(
-      org.id,
-      id
-    );
-    if (isTherePosts.length) {
-      for (const post of isTherePosts) {
-        this._postsService.deletePost(org.id, post.group).catch(() => {});
-      }
-    }
-
-    return this._integrationService.deleteChannel(org.id, id);
+    return this._postsService.deleteChannelWithPosts(org.id, id);
   }
 
   @Get('/integration-settings/:id')
@@ -715,48 +651,24 @@ export class PublicIntegrationsController {
       throw new HttpException({ msg: 'Tool not found' }, 404);
     }
 
-    while (true) {
-      try {
-        // @ts-ignore
-        const result = await integrationProvider[body.methodName](
-          getIntegration.token,
-          body.data || {},
-          getIntegration.internalId,
-          getIntegration
-        );
+    const result = await this._integrationService.callProviderFunction(
+      getIntegration,
+      body.methodName,
+      body.data || {},
+      { disconnectOnRefreshFailure: true }
+    );
 
-        return { output: result };
-      } catch (err) {
-        if (err instanceof RefreshToken) {
-          const data = await this._refreshIntegrationService.refresh(
-            getIntegration
-          );
-
-          if (!data) {
-            await this._integrationService.disconnectChannel(
-              org.id,
-              getIntegration
-            );
-            throw new HttpException(
-              { msg: 'Channel disconnected due to expired token' },
-              401
-            );
-          }
-
-          const { accessToken } = data;
-
-          if (accessToken) {
-            getIntegration.token = accessToken;
-
-            if (integrationProvider.refreshWait) {
-              await timer(10000);
-            }
-
-            continue;
-          }
-        }
-        throw new HttpException({ msg: 'Unexpected error' }, 500);
-      }
+    if (result.status === 'ok') {
+      return { output: result.data };
     }
+
+    if (result.status === 'refreshFailed') {
+      throw new HttpException(
+        { msg: 'Channel disconnected due to expired token' },
+        401
+      );
+    }
+
+    throw new HttpException({ msg: 'Unexpected error' }, 500);
   }
 }

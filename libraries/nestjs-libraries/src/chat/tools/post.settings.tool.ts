@@ -9,6 +9,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class PostSettingsTool implements AgentToolInterface {
   constructor(private _postsService: PostsService) {}
   name = 'postSettingsTool';
+  mirrors = ['PUT /public/v1/posts/:id/settings'];
 
   run() {
     return createTool({

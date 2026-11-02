@@ -13,6 +13,7 @@ import { createOAuthMiddleware } from './oauth-middleware';
 import { UPLOAD_WIDGET_URI, uploadWidgetHtml } from '@gitroom/nestjs-libraries/chat/ui/upload.widget';
 import { CLIPPING_WIDGET_URI, clippingWidgetHtml } from '@gitroom/nestjs-libraries/chat/ui/clipping.widget';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import { Role } from '@prisma/client';
 import { McpRelayService } from '@gitroom/nestjs-libraries/chat/mcp.relay.service';
 const fixAcceptHeader = (req: Request) => {
   const value = 'application/json, text/event-stream';
@@ -54,13 +55,37 @@ export const startMcp = async (app: INestApplication) => {
   const loadToolsService = app.get(LoadToolsService, { strict: false });
   const mcpRelayService = app.get(McpRelayService, { strict: false });
 
+  // The organization row, plus the caller's role the way the web request
+  // carries it (org.users[0].role) - tools read it to enforce plan limits - and
+  // the id of the user an OAuth token belongs to (an API key has none)
+  const withRole = <T extends object>(org: T, role: Role, userId?: string) => ({
+    ...org,
+    users: [{ role, userId }],
+  });
+
+  // An API key acts as the owner of its organization, like in the public API
+  const resolveApiKey = async (apiKey: string) => {
+    const org = await organizationService.getOrgByApiKey(apiKey);
+    if (!org || organizationService.hasNoSubscription(org)) return null;
+    return withRole(org, Role.SUPERADMIN);
+  };
+
   const resolveAuth = async (token: string) => {
     if (token.startsWith('pos_')) {
-      const authorization = await oauthService.getOrgByOAuthToken(token);
-      if (!authorization) return null;
-      return authorization.organization;
+      const authorization = await oauthService.resolveAccessToken(token);
+      if (
+        !authorization ||
+        organizationService.hasNoSubscription(authorization.organization)
+      ) {
+        return null;
+      }
+      return withRole(
+        authorization.organization,
+        authorization.role,
+        authorization.userId
+      );
     }
-    return organizationService.getOrgByApiKey(token);
+    return resolveApiKey(token);
   };
 
   // psh_ tokens: a self-hosted Postiz this server relays to (McpRelayService)
@@ -77,7 +102,9 @@ export const startMcp = async (app: INestApplication) => {
   };
 
   // The Claude connector directory does not accept AI media generation tools,
-  // so the directory-facing endpoint hides them. Direct connections
+  // and the instance admin tools are for the operator of the installation, not
+  // for the people who install the connector, so the directory-facing endpoint
+  // hides them. Direct connections
   // (/mcp, /mcp/:id, /sse/:id) and the ChatGPT app keep the full toolset.
   const claudeHiddenTools = [
     'generateImageTool',
@@ -88,7 +115,11 @@ export const startMcp = async (app: INestApplication) => {
     // clipping renders new videos (AI picked cuts, burned-in captions)
     'clippingTool',
     'clippingStatusTool',
+    'clippingListTool',
     'clippingWidgetTicketTool',
+    // instance admin tools, they only work for the super admin of the instance
+    'adminTool',
+    'announcementsTool',
   ];
   const withoutClaudeHidden = <T extends Record<string, unknown>>(source: T) =>
     Object.fromEntries(
@@ -454,7 +485,7 @@ export const startMcp = async (app: INestApplication) => {
     }
 
     // @ts-ignore
-    req.auth = await organizationService.getOrgByApiKey(req.params.id);
+    req.auth = await resolveApiKey(req.params.id);
     // @ts-ignore
     if (!req.auth) {
       res.status(400).send('Invalid API Key');
@@ -498,7 +529,7 @@ export const startMcp = async (app: INestApplication) => {
     }
 
     // @ts-ignore
-    req.auth = await organizationService.getOrgByApiKey(req.params.id);
+    req.auth = await resolveApiKey(req.params.id);
     // @ts-ignore
     if (!req.auth) {
       res.status(400).send('Invalid API Key');

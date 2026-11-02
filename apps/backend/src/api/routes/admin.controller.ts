@@ -1,29 +1,19 @@
-import {
-  Controller,
-  Get,
-  HttpException,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 import { User } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
-import dayjs from 'dayjs';
+import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 
 @ApiTags('Admin')
 @Controller('/admin')
 export class AdminController {
   constructor(
     private _errorsService: ErrorsService,
-    private _adminStatsService: AdminStatsService
+    private _adminStatsService: AdminStatsService,
+    private _usersService: UsersService
   ) {}
-
-  private assertSuperAdmin(user: User) {
-    if (!user?.isSuperAdmin) {
-      throw new HttpException('Unauthorized', 400);
-    }
-  }
 
   @Get('/errors')
   async listErrors(
@@ -34,7 +24,7 @@ export class AdminController {
     @Query('email') email?: string,
     @Query('unknownFirst') unknownFirst?: string
   ) {
-    this.assertSuperAdmin(user);
+    this._usersService.assertSuperAdmin(user);
     return this._errorsService.listErrors({
       page: page ? parseInt(page, 10) : 0,
       limit: limit ? parseInt(limit, 10) : 20,
@@ -46,7 +36,7 @@ export class AdminController {
 
   @Get('/errors/platforms')
   async listPlatforms(@GetUserFromRequest() user: User) {
-    this.assertSuperAdmin(user);
+    this._usersService.assertSuperAdmin(user);
     return this._errorsService.listPlatforms();
   }
 
@@ -57,14 +47,11 @@ export class AdminController {
     @Query('to') to?: string,
     @Query('unknownOnly') unknownOnly?: string
   ) {
-    this.assertSuperAdmin(user);
+    this._usersService.assertSuperAdmin(user);
 
-    const fromDate = from ? dayjs(from) : dayjs().subtract(30, 'day');
-    const toDate = to ? dayjs(to) : dayjs();
-
-    return this._adminStatsService.getStats({
-      from: fromDate.startOf('day').toDate(),
-      to: toDate.endOf('day').toDate(),
+    return this._adminStatsService.getStatsByRange({
+      from,
+      to,
       unknownOnly: unknownOnly === 'true' || unknownOnly === '1',
     });
   }

@@ -13,6 +13,8 @@ import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 export class ClippingWidgetTicketTool implements AgentToolInterface {
   constructor(private _clippingService: ClippingService) {}
   name = 'clippingWidgetTicketTool';
+  // mcp-only widget ticket, the web app has no route that mints one
+  mirrors = [];
   mcpOnly = true;
 
   available() {

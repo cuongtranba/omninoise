@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import {
   BaseMessage,
   HumanMessage,
@@ -422,5 +422,41 @@ export class AgentGraphService {
         version: 'v2',
       }
     );
+  }
+
+  // The events of the generation, ending with an error event instead of
+  // throwing: the stream of the web has already started, so a normal HTTP error
+  // can no longer be surfaced and the client must stop and show the message
+  // rather than hang on a truncated stream. HttpExceptions carry a curated,
+  // user-facing message (e.g. the AI safety rejection); anything else gets a
+  // generic message.
+  async *events(orgId: string, body: GeneratorDto) {
+    try {
+      for await (const event of this.start(orgId, body)) {
+        yield event;
+      }
+    } catch (err) {
+      yield {
+        name: 'error',
+        error: true,
+        message:
+          err instanceof HttpException
+            ? err.message
+            : 'Something went wrong while generating your posts, please try again.',
+      };
+    }
+  }
+
+  // The finished generation, the output of the last event of the stream
+  async generate(orgId: string, body: GeneratorDto) {
+    let last: any;
+    for await (const event of this.events(orgId, body) as AsyncGenerator<any>) {
+      if (event?.error) {
+        throw new Error(event.message);
+      }
+      last = event;
+    }
+
+    return last?.data?.output;
   }
 }

@@ -9,6 +9,8 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class UploadWidgetStatusTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'uploadWidgetStatusTool';
+  // mcp-only widget session status, the web app uploads through its own upload components
+  mirrors = [];
   mcpOnly = true;
 
   run() {

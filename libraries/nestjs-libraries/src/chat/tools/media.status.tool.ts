@@ -9,6 +9,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class MediaStatusTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'mediaStatusTool';
+  mirrors = ['GET /media/:id/status'];
 
   run() {
     return createTool({

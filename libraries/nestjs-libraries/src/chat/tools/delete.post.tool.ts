@@ -9,6 +9,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class DeletePostTool implements AgentToolInterface {
   constructor(private _postsService: PostsService) {}
   name = 'deletePostTool';
+  mirrors = ['DELETE /posts/:group'];
   optionalOnSelfHosted = true;
 
   run() {

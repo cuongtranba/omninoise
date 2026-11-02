@@ -125,6 +125,25 @@ export class IntegrationManager {
       .map(([from]) => from);
   }
 
+  // How the user finishes connecting a provider: 'oauth' goes to the platform
+  // and comes back to Postiz, the others are completed inside the Postiz app
+  // (a credentials form, a wallet, or the browser extension)
+  getConnectType(
+    identifier: string
+  ): 'oauth' | 'form' | 'web3' | 'extension' | undefined {
+    const provider = this.getSocialIntegration(identifier);
+    if (!provider) {
+      return undefined;
+    }
+    if (provider.isWeb3) {
+      return 'web3';
+    }
+    if (provider.isChromeExtension) {
+      return 'extension';
+    }
+    return provider.customFields ? 'form' : 'oauth';
+  }
+
   async getAllIntegrations() {
     return {
       social: await Promise.all(
@@ -227,7 +246,11 @@ export class IntegrationManager {
   }
 
   getInternalPlugs(providerName: string) {
-    const p = socialIntegrationList.find((p) => p.identifier === providerName)!;
+    const p = socialIntegrationList.find((p) => p.identifier === providerName);
+    if (!p) {
+      return { internalPlugs: [] };
+    }
+
     return {
       internalPlugs:
         (

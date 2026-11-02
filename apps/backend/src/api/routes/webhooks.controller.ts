@@ -10,14 +10,13 @@ import {
 } from '@nestjs/common';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
-import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { ApiTags } from '@nestjs/swagger';
 import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
-import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import {
   OnlyURL, UpdateDto, WebhooksDto
 } from '@gitroom/nestjs-libraries/dtos/webhooks/webhooks.dto';
-import { AuthorizationActions, Sections } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 @ApiTags('Webhooks')
 @Controller('/webhooks')
@@ -56,18 +55,6 @@ export class WebhookController {
 
   @Post('/send')
   async sendWebhook(@Body() body: any, @Query() query: OnlyURL) {
-    try {
-      await fetch(query.url, {
-        method: 'POST',
-        body: JSON.stringify(body),
-        headers: { 'Content-Type': 'application/json' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-        dispatcher: getSsrfSafeDispatcher(),
-      });
-    } catch (err) {
-      /** sent **/
-    }
-
-    return { send: true };
+    return this._webhooksService.sendWebhook(query.url, body);
   }
 }

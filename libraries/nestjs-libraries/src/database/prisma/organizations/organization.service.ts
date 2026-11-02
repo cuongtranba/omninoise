@@ -47,6 +47,70 @@ export class OrganizationService {
     return this._organizationRepository.addUserToOrg(userId, id, orgId, role);
   }
 
+  // The invitation an invite link carries, false when it is invalid or expired
+  getInviteFromToken(token?: string) {
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const invite: any = AuthService.verifyJWT(token);
+      if (
+        typeof invite.orgId !== 'string' ||
+        typeof invite.id !== 'string' ||
+        !['USER', 'ADMIN'].includes(invite.role) ||
+        !invite.timeLimit ||
+        dayjs(invite.timeLimit).isBefore(dayjs())
+      ) {
+        return false;
+      }
+
+      return invite as {
+        email: string;
+        role: 'USER' | 'ADMIN';
+        orgId: string;
+        id: string;
+      };
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // Accepts an invite for the user, the token or the whole link carrying it in
+  // "org": the id of the organization joined, or null when it is invalid,
+  // expired, already used or the plan is full
+  async joinOrg(userId: string, tokenOrLink: string) {
+    const invite = this.getInviteFromToken(
+      tokenOrLink?.match(/[?&]org=([^&#\s]+)/)?.[1] ?? tokenOrLink
+    );
+    if (!invite) {
+      return { id: null };
+    }
+
+    const addedOrg = await this.addUserToOrg(
+      userId,
+      invite.id,
+      invite.orgId,
+      invite.role
+    );
+
+    return {
+      id: typeof addedOrg !== 'boolean' ? addedOrg.organizationId : null,
+    };
+  }
+
+  // The organizations the user belongs to and has not been disabled in
+  async getUserOrganizations(userId: string) {
+    return (await this.getOrgsByUserId(userId))
+      .filter((f) => !f.users[0].disabled)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        users: p.users,
+        subscription: p.subscription,
+      }));
+  }
+
   getOrgById(id: string) {
     return this._organizationRepository.getOrgById(id);
   }
@@ -61,6 +125,12 @@ export class OrganizationService {
 
   getOrgByApiKey(api: string) {
     return this._organizationRepository.getOrgByApiKey(api);
+  }
+
+  // Billing is on and the organization has no subscription: the public API
+  // and MCP both refuse it
+  hasNoSubscription(org: { subscription?: unknown }) {
+    return !!process.env.STRIPE_SECRET_KEY && !org.subscription;
   }
 
   async canUseSuperAdminApi(orgId: string) {
@@ -100,7 +170,11 @@ export class OrganizationService {
     return this._organizationRepository.getOrgByCustomerId(customerId);
   }
 
-  async inviteTeamMember(org: Organization, user: User, body: AddTeamMemberDto) {
+  async inviteTeamMember(
+    org: Organization,
+    user: Pick<User, 'name' | 'email'> | null,
+    body: AddTeamMemberDto
+  ) {
     const timeLimit = dayjs().add(2, 'day').format('YYYY-MM-DD HH:mm:ss');
     const id = makeId(5);
     // only the invite fields, the body can carry undeclared properties
@@ -114,6 +188,12 @@ export class OrganizationService {
         id,
       })}`;
     if (body.sendEmail) {
+      if (!user) {
+        throw new HttpException(
+          'An invitation by email is sent in the name of a user',
+          400
+        );
+      }
       const inviter = user.name
         ? `${user.name} (${user.email})`
         : user.email;
@@ -126,7 +206,17 @@ export class OrganizationService {
     return { url };
   }
 
-  async addTeamMemberByEmail(org: Organization, body: AdminAddTeamMemberDto) {
+  // Only the super admin of the instance can add an existing account to an
+  // organization by its email
+  async addTeamMemberByEmail(
+    org: Organization,
+    requester: Pick<User, 'isSuperAdmin'>,
+    body: AdminAddTeamMemberDto
+  ) {
+    if (!requester.isSuperAdmin) {
+      throw new HttpException('Unauthorized', 400);
+    }
+
     const tier =
       // @ts-ignore
       org?.subscription?.subscriptionTier ||

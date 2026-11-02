@@ -11,6 +11,7 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 export class IntegrationListTool implements AgentToolInterface {
   constructor(private _integrationService: IntegrationService) {}
   name = 'integrationList';
+  mirrors = ['GET /integrations/list'];
 
   run() {
     return createTool({

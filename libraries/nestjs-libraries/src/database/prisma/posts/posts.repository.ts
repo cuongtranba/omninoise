@@ -66,7 +66,7 @@ export class PostsRepository {
     });
   }
 
-  getOldPosts(orgId: string, date: string) {
+  getOldPosts(orgId: string, date: string, take?: number) {
     return this._post.model.post.findMany({
       where: {
         integration: {
@@ -84,6 +84,7 @@ export class PostsRepository {
       orderBy: {
         publishDate: 'desc',
       },
+      ...(take ? { take } : {}),
       select: {
         id: true,
         content: true,
@@ -1119,6 +1120,7 @@ export class PostsRepository {
     return this._tags.model.tags.update({
       where: {
         id,
+        orgId,
       },
       data: {
         name: body.name,

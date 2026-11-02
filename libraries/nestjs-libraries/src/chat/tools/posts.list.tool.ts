@@ -21,6 +21,7 @@ const parseSettings = (settings: string | null) => {
 export class PostsListTool implements AgentToolInterface {
   constructor(private _postsService: PostsService) {}
   name = 'postsListTool';
+  mirrors = ['GET /posts'];
 
   run() {
     return createTool({
