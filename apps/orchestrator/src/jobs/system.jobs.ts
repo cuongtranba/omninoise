@@ -216,7 +216,7 @@ export class SystemJobs {
         user.user.email,
         toSend.length === 1
           ? toSend[0].title!
-          : `[Postiz] Your latest notifications`,
+          : `[Omninoise] Your latest notifications`,
         toSend.map((p) => p.message).join('<br/>'),
         'bottom'
       );

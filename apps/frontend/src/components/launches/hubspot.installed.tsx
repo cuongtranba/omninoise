@@ -21,12 +21,12 @@ export const HubspotInstalled: FC = () => {
     shown.current = true;
     (async () => {
       await modal.open({
-        title: t('hubspot_installed', 'Postiz is installed in HubSpot'),
+        title: t('hubspot_installed', 'Omninoise is installed in HubSpot'),
         onlyApprove: true,
         approveLabel: t('ok', 'OK'),
         description: t(
           'hubspot_installed_description',
-          'Connect the channels you want to post to here in Postiz. Then, in HubSpot, open Agent Hub > Agent Builder, add a tool, pick Postiz MCP under MCP Servers and click Connect and add.'
+          'Connect the channels you want to post to here in Omninoise. Then, in HubSpot, open Agent Hub > Agent Builder, add a tool, pick Omninoise MCP under MCP Servers and click Connect and add.'
         ),
       });
       // like Onboarding, drop the param once closed so a calendar reload

@@ -154,7 +154,7 @@ const BillingCycle: FC<{
 
   return (
     <div className="flex items-center gap-[16px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow px-[24px] py-[20px] mobile:flex-col mobile:items-stretch mobile:p-[16px]">
-      <div className="w-[48px] h-[48px] rounded-full bg-[#612bd3]/10 text-[#612bd3] flex items-center justify-center shrink-0 mobile:hidden">
+      <div className="w-[48px] h-[48px] rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0 mobile:hidden">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -224,7 +224,7 @@ type PlanAction = {
 };
 
 const planButton = {
-  primary: 'bg-btnPrimary text-white hover:bg-[#5023b8]',
+  primary: 'bg-btnPrimary text-white hover:bg-brandHover',
   simple: 'bg-btnSimple text-btnText hover:opacity-80',
   current: 'bg-newBgLineColor text-textItemBlur',
   danger: 'bg-red-500 text-white hover:bg-red-600',
@@ -250,7 +250,7 @@ const PlanCard: FC<{
       className={clsx(
         'relative flex flex-col gap-[20px] rounded-[12px] border p-[24px] mobile:p-[20px]',
         current
-          ? 'border-transparent bg-gradient-to-b from-seventh to-btnPrimary text-white shadow-lg shadow-purple-500/25'
+          ? 'border-transparent bg-gradient-to-b from-seventh to-btnPrimary text-white shadow-lg shadow-brand/25'
           : 'border-newTableBorder bg-newBgColorInner shadow-previewShadow'
       )}
     >
@@ -356,7 +356,7 @@ const PlanCard: FC<{
               fill="none"
               className={clsx(
                 'shrink-0',
-                current ? 'text-white/75' : 'text-[#8b5cf6]'
+                current ? 'text-white/75' : 'text-brandLight'
               )}
             >
               <circle
@@ -899,7 +899,7 @@ export const MainBillingComponent: FC<{
             )}
           >
             {t('billing_yearly', 'Yearly')}
-            <div className="bg-[#AA0FA4] text-white text-[12px] px-[6px] rounded-[4px]">
+            <div className="bg-brand text-white text-[12px] px-[6px] rounded-[4px]">
               {t('billing_20_percent_off', '20% Off')}
             </div>
           </div>
@@ -972,7 +972,7 @@ export const MainBillingComponent: FC<{
       )}
       {!!subscription?.id && (
         <div className="flex items-center gap-[16px] rounded-[12px] border border-newTableBorder bg-newBgColorInner shadow-previewShadow px-[24px] py-[20px] mobile:flex-col mobile:items-stretch mobile:p-[16px]">
-          <div className="w-[48px] h-[48px] rounded-full bg-[#612bd3]/10 text-[#612bd3] flex items-center justify-center shrink-0 mobile:hidden">
+          <div className="w-[48px] h-[48px] rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0 mobile:hidden">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"

@@ -61,7 +61,7 @@ const TikTokSettings: FC<{
     }
     return t(
       'tiktok_restriction_upload_video',
-      'TikTok restriction: For upload-only video, TikTok does not accept a title or message. The content will default to "#Postiz" and you can edit it inside the TikTok app before publishing.'
+      'TikTok restriction: For upload-only video, TikTok does not accept a title or message. The content will default to "#Omninoise" and you can edit it inside the TikTok app before publishing.'
     );
   }, [hasMedia, isUploadMode, isVideo, t]);
 
@@ -356,7 +356,7 @@ const TikTokSettings: FC<{
                 brand_organic_toggle || brand_content_toggle ? (
                   <a
                     target="_blank"
-                    className="text-[#B69DEC] hover:underline"
+                    className="text-brandLight hover:underline"
                     href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
                   >
                     {t('music_usage_confirmation', 'Music Usage Confirmation')}
@@ -366,7 +366,7 @@ const TikTokSettings: FC<{
                 brand_content_toggle ? (
                   <a
                     target="_blank"
-                    className="text-[#B69DEC] hover:underline"
+                    className="text-brandLight hover:underline"
                     href="https://www.tiktok.com/legal/page/global/bc-policy/en"
                   >
                     {t('branded_content_policy', 'Branded Content Policy')}

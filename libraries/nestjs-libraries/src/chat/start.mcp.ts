@@ -171,7 +171,7 @@ export const startMcp = async (app: INestApplication) => {
   };
 
   const serverConfig = {
-    name: 'Postiz MCP',
+    name: 'Omninoise MCP',
     version: '1.0.0',
     tools,
     agents: { postiz: agent },
@@ -184,7 +184,7 @@ export const startMcp = async (app: INestApplication) => {
   // exposed as an annotation-less catch-all ask_postiz tool, which the
   // ChatGPT and Claude directory reviews reject
   const oauthServer = new MCPServer({
-    name: 'Postiz MCP',
+    name: 'Omninoise MCP',
     version: '1.0.0',
     protocolVersion: '2026-07-28',
     tools,
@@ -195,7 +195,7 @@ export const startMcp = async (app: INestApplication) => {
   const { [CLIPPING_WIDGET_URI]: hiddenWidget, ...claudeAppResources } = appResources as Record<string, (typeof appResources)[typeof UPLOAD_WIDGET_URI]>;
 
   const claudeOauthServer = new MCPServer({
-    name: 'Postiz MCP',
+    name: 'Omninoise MCP',
     version: '1.0.0',
     protocolVersion: '2026-07-28',
     tools: claudeTools,
@@ -209,13 +209,13 @@ export const startMcp = async (app: INestApplication) => {
   if (selfHostedRelayEnabled()) {
     const selfHostedTools = mcpRelayService.tools(agentTools);
     selfHostedServer = new MCPServer({
-      name: 'Postiz MCP',
+      name: 'Omninoise MCP',
       version: '1.0.0',
       protocolVersion: '2026-07-28',
       tools: selfHostedTools,
     });
     claudeSelfHostedServer = new MCPServer({
-      name: 'Postiz MCP',
+      name: 'Omninoise MCP',
       version: '1.0.0',
       protocolVersion: '2026-07-28',
       tools: withoutClaudeHidden(selfHostedTools),
