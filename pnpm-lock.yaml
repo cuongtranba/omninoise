@@ -823,6 +823,15 @@ importers:
 
   apps/backend: {}
 
+  apps/cli:
+    dependencies:
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
+      yargs:
+        specifier: ^17.7.2
+        version: 17.7.2
+
   apps/commands: {}
 
   apps/extension: {}
@@ -17601,16 +17610,6 @@ packages:
     resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
     engines: {node: '>= 6'}
 
-  yaml@2.8.2:
-    resolution: {integrity: sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==}
-    engines: {node: '>= 14.6'}
-    hasBin: true
-
-  yaml@2.8.3:
-    resolution: {integrity: sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==}
-    engines: {node: '>= 14.6'}
-    hasBin: true
-
   yaml@2.9.1:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
     engines: {node: '>= 14.6'}
@@ -21501,7 +21500,7 @@ snapshots:
       jsonpointer: 5.0.1
       openapi-types: 12.1.3
       uuid: 10.0.0
-      yaml: 2.8.3
+      yaml: 2.9.1
       zod: 3.25.76
     optionalDependencies:
       cheerio: 1.2.0
@@ -34877,7 +34876,7 @@ snapshots:
 
   openapi3-ts@3.2.0:
     dependencies:
-      yaml: 2.8.2
+      yaml: 2.9.1
 
   optionator@0.9.4:
     dependencies:
@@ -35398,7 +35397,7 @@ snapshots:
   postcss-load-config@4.0.2(postcss@8.5.26)(ts-node@10.9.2(@swc/core@1.5.7(@swc/helpers@0.5.13))(@types/node@18.16.9)(typescript@5.5.4)):
     dependencies:
       lilconfig: 3.1.3
-      yaml: 2.8.2
+      yaml: 2.9.1
     optionalDependencies:
       postcss: 8.5.26
       ts-node: 10.9.2(@swc/core@1.5.7(@swc/helpers@0.5.13))(@types/node@18.16.9)(typescript@5.5.4)
@@ -38852,10 +38851,6 @@ snapshots:
     optional: true
 
   yaml@1.10.2: {}
-
-  yaml@2.8.2: {}
-
-  yaml@2.8.3: {}
 
   yaml@2.9.1: {}
 
