@@ -69,6 +69,12 @@ const startServer = async () => {
           user: { id: 'u1', name: 'Ada' },
         });
       }
+      if (path === '/public/v1/integrations') {
+        return json([
+          { id: 'yt1', identifier: 'youtube', disabled: false },
+          { id: 'fb1', identifier: 'facebook', disabled: false },
+        ]);
+      }
       if (path === '/public/v1/upload') {
         const name = /filename="([^"]+)"/.exec(body)![1];
         return json({ id: `media-${name}`, path: `${base}/uploads/${name}` });
@@ -121,11 +127,14 @@ const PUBLISH = {
 };
 
 /** A project folder `proj` with a profile above it and the files publish needs. */
-const makeProject = (publish: Record<string, unknown> = PUBLISH) => {
+const makeProject = (
+  publish: Record<string, unknown> = PUBLISH,
+  profile: Record<string, unknown> = PROFILE
+) => {
   const root = mkdtempSync(join(tmpdir(), 'omninoise-cli-'));
   const dir = join(root, 'projects', 'proj');
   mkdirSync(join(dir, 'out'), { recursive: true });
-  writeFileSync(join(root, 'omninoise.profile.yaml'), stringify(PROFILE));
+  writeFileSync(join(root, 'omninoise.profile.yaml'), stringify(profile));
   writeFileSync(join(dir, 'publish.yaml'), stringify(publish));
   for (const f of [
     'proj-1080x1920.mp4',
@@ -242,8 +251,8 @@ test.each([
 );
 
 test('publish uploads the files, then POSTs the posts with the raw key and creationMethod CLI', async () => {
-  const { dir } = makeProject();
   const { seen, url } = await startServer();
+  const { dir } = makeProject(PUBLISH, { ...PROFILE, instance: { url } });
   const { code, stdout } = await exec(['publish', dir, '--at', AT], {
     OMNINOISE_API_KEY: 'key-123',
     OMNINOISE_URL: url,
@@ -251,12 +260,13 @@ test('publish uploads the files, then POSTs the posts with the raw key and creat
 
   expect(code).toBe(0);
   expect(seen.map((r) => `${r.method} ${r.path}`)).toEqual([
+    'GET /public/v1/integrations',
     'POST /public/v1/upload',
     'POST /public/v1/upload',
     'POST /public/v1/upload',
     'POST /public/v1/posts',
   ]);
-  const posted = seen[3];
+  const posted = seen[4];
   expect(posted.headers.authorization).toBe('key-123');
   const body = JSON.parse(posted.body);
   expect(body.creationMethod).toBe('CLI');
@@ -267,6 +277,50 @@ test('publish uploads the files, then POSTs the posts with the raw key and creat
     },
   ]);
   expect(JSON.parse(stdout).result).toEqual([{ postId: 'p1' }]);
+});
+
+test('publish with an API key never sends it to the instance a profile names', async () => {
+  const { seen, url } = await startServer();
+  const { dir } = makeProject(PUBLISH, { ...PROFILE, instance: { url } });
+  const { code, stderr } = await exec(['publish', dir, '--at', AT], {
+    OMNINOISE_API_KEY: 'key-123',
+  });
+
+  expect(code).toBe(1);
+  expect(stderr).toContain('no instance URL');
+  expect(seen).toEqual([]);
+});
+
+test('publish refuses a profile that names another instance than the one the key is for, before any upload', async () => {
+  const { dir } = makeProject();
+  const { seen, url } = await startServer();
+  const { code, stderr } = await exec(['publish', dir, '--at', AT], {
+    OMNINOISE_API_KEY: 'key-123',
+    OMNINOISE_URL: url,
+  });
+
+  expect(code).toBe(1);
+  expect(stderr).toContain('https://omninoise.example.com/api');
+  expect(stderr).toContain(url);
+  expect(seen).toEqual([]);
+});
+
+test('publish refuses a channel of the wrong platform before any upload', async () => {
+  const { seen, url } = await startServer();
+  const wrong = { ...PROFILE.channels.youtube, integration: 'fb1' };
+  const { dir } = makeProject(PUBLISH, {
+    ...PROFILE,
+    instance: { url },
+    channels: { ...PROFILE.channels, youtube: wrong },
+  });
+  const { code, stderr } = await exec(['publish', dir, '--at', AT], {
+    OMNINOISE_API_KEY: 'key-123',
+    OMNINOISE_URL: url,
+  });
+
+  expect(code).toBe(1);
+  expect(stderr).toContain('youtube: fb1 is a facebook channel');
+  expect(seen.map((r) => r.path)).toEqual(['/public/v1/integrations']);
 });
 
 // ---- auth:login ----

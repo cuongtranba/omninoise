@@ -14,10 +14,21 @@ type Endpoints = {
   registration: string;
 };
 
-const asEndpoints = (data: any): Endpoints | undefined =>
+const sameOrigin = (url: string, origin: string) => {
+  try {
+    return new URL(url).origin === origin;
+  } catch {
+    return false;
+  }
+};
+
+/** The client registers and exchanges its code at these, so they must stay on the backend's own origin. */
+const asEndpoints = (data: any, origin: string): Endpoints | undefined =>
   typeof data?.authorization_endpoint === 'string' &&
   typeof data?.token_endpoint === 'string' &&
-  typeof data?.registration_endpoint === 'string'
+  typeof data?.registration_endpoint === 'string' &&
+  sameOrigin(data.token_endpoint, origin) &&
+  sameOrigin(data.registration_endpoint, origin)
     ? {
         authorization: data.authorization_endpoint,
         token: data.token_endpoint,
@@ -40,7 +51,7 @@ export const discoverEndpoints = async (
         signal: AbortSignal.timeout(10_000),
       });
       if (res.ok) {
-        const found = asEndpoints(await res.json());
+        const found = asEndpoints(await res.json(), origin);
         if (found) return found;
       }
     } catch {

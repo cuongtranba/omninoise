@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { Api, Media } from './api';
-import { resolveAuth } from './config';
+import { normalizeUrl, resolveAuth, validUrl } from './config';
 import { CliError, Context, printJson } from './context';
 import {
   ChannelProfile,
@@ -175,7 +175,7 @@ export const buildBody = (
     const files = (thumbnail?: string) => [
       { id: video.id, path: video.path, ...(thumbnail ? { thumbnail } : {}) },
     ];
-    const hashtags = tags(pub.hashtags[kind]);
+    const hashtags = tags(pub.hashtags[kind] ?? []);
     const integration = { id: channel.integration };
 
     switch (kind) {
@@ -300,6 +300,31 @@ export const buildBody = (
   };
 };
 
+/** Every profile channel must be a live integration of the right platform: refuse before the first upload. */
+const checkChannels = (
+  integrations: { id: string; identifier: string; disabled?: boolean }[],
+  profile: Profile,
+  kinds: Kind[]
+) => {
+  const problems: string[] = [];
+  for (const kind of kinds) {
+    const id = profile.channels[kind]!.integration;
+    const found = integrations.find((i) => i.id === id);
+    if (!found) problems.push(`${kind}: integration ${id} does not exist`);
+    else if (found.disabled) problems.push(`${kind}: ${id} is disabled`);
+    else if (!found.identifier.startsWith(kind)) {
+      problems.push(`${kind}: ${id} is a ${found.identifier} channel`);
+    }
+  }
+  if (problems.length) {
+    throw new CliError(
+      `The profile does not match the instance's channels (nothing was uploaded):\n  ${problems.join(
+        '\n  '
+      )}`
+    );
+  }
+};
+
 export type PublishOptions = {
   dir: string;
   at: string;
@@ -349,10 +374,12 @@ export const publish = async (ctx: Context, opts: PublishOptions) => {
     if (file && !existsSync(file)) throw new CliError(`missing ${file}`);
   }
 
-  // Build once with placeholders so every content rule fails before the first upload.
-  const instanceUrl = opts.url || ctx.env.OMNINOISE_URL || profile.instanceUrl;
-  const placeholderOrigin = new URL(instanceUrl ?? 'https://omninoise.example')
-    .origin;
+  // Build once with placeholders so every content rule fails before the first upload. The placeholder origin is
+  // only for show, so the profile's URL may feed it; the secret's destination is chosen further down.
+  const shownUrl = opts.url || ctx.env.OMNINOISE_URL || profile.instanceUrl;
+  const placeholderOrigin = new URL(
+    shownUrl ? validUrl(shownUrl) : 'https://omninoise.example'
+  ).origin;
   const placeholders: MediaSet = {};
   for (const [key, file] of Object.entries(wanted)) {
     if (file) {
@@ -368,8 +395,19 @@ export const publish = async (ctx: Context, opts: PublishOptions) => {
     return;
   }
 
-  const auth = await resolveAuth(ctx, instanceUrl);
+  // The secret goes only where --url, OMNINOISE_URL or the saved login says. The profile's URL can only confirm it.
+  const auth = await resolveAuth(ctx, opts.url);
+  if (profile.instanceUrl && normalizeUrl(profile.instanceUrl) !== auth.url) {
+    throw new CliError(
+      `${profile.file} names the instance ${normalizeUrl(
+        profile.instanceUrl
+      )}, but the credentials are for ${
+        auth.url
+      }. Nothing was uploaded; fix instance.url or pass the matching --url.`
+    );
+  }
   const api = new Api(auth.url, auth.secret);
+  checkChannels(await api.integrations(), profile, kinds);
   const uploaded: MediaSet = {};
   for (const [key, file] of Object.entries(wanted)) {
     if (file) uploaded[key as keyof MediaSet] = await api.upload(file);

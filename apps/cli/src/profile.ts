@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { parse } from 'yaml';
+import { validUrl } from './config';
 import { CliError } from './context';
 
 export const PROFILE_FILE = 'omninoise.profile.yaml';
@@ -159,7 +160,7 @@ export const loadProfile = async (file: string): Promise<Profile> => {
   return {
     file,
     instanceUrl: raw.instance
-      ? text(raw.instance.url, 'instance.url')
+      ? validUrl(text(raw.instance.url, 'instance.url'))
       : undefined,
     brand: {
       name: text(raw.brand.name, 'brand.name'),

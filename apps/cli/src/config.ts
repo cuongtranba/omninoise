@@ -1,4 +1,12 @@
-import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import {
+  chmod,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { CliError, Context } from './context';
@@ -6,6 +14,16 @@ import { CliError, Context } from './context';
 export type Credentials = { url: string; token: string; orgId?: string };
 
 export const normalizeUrl = (url: string) => url.trim().replace(/\/+$/, '');
+
+/** Returns the URL, or throws a CliError instead of the TypeError `new URL` would. */
+export const validUrl = (url: string) => {
+  try {
+    new URL(normalizeUrl(url));
+  } catch {
+    throw new CliError(`${normalizeUrl(url)} is not a valid URL`);
+  }
+  return url;
+};
 
 export const credentialsPath = (env: Context['env']) =>
   join(
@@ -42,11 +60,18 @@ export const writeCredentials = async (
   const file = credentialsPath(env);
   await mkdir(dirname(file), { recursive: true, mode: 0o700 });
   await chmod(dirname(file), 0o700);
-  await writeFile(file, `${JSON.stringify(credentials, null, 2)}\n`, {
-    mode: 0o600,
-  });
-  // writeFile keeps the mode of an existing file, so set it again.
-  await chmod(file, 0o600);
+  // The token never sits in a file with looser permissions: create a private temp file, then rename it over.
+  const temp = `${file}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    await writeFile(temp, `${JSON.stringify(credentials, null, 2)}\n`, {
+      flag: 'wx',
+      mode: 0o600,
+    });
+    await rename(temp, file);
+  } catch (e) {
+    await rm(temp, { force: true });
+    throw e;
+  }
 };
 
 export const deleteCredentials = async (env: Context['env']) => {
@@ -58,7 +83,7 @@ export const deleteCredentials = async (env: Context['env']) => {
 
 /**
  * Which instance and secret to use.
- *  1. OMNINOISE_API_KEY, with the URL from --url, OMNINOISE_URL or the profile's instance.url.
+ *  1. OMNINOISE_API_KEY, with the URL from --url or OMNINOISE_URL. A profile's instance.url never picks it.
  *  2. The credentials file written by `auth:login`. An explicitly chosen URL must match it.
  */
 export const resolveAuth = async (
@@ -70,7 +95,7 @@ export const resolveAuth = async (
   if (apiKey) {
     if (!chosen) {
       throw new CliError(
-        'OMNINOISE_API_KEY is set but no instance URL is known: set OMNINOISE_URL, pass --url or set instance.url in the profile'
+        'OMNINOISE_API_KEY is set but no instance URL is known: set OMNINOISE_URL or pass --url'
       );
     }
     return { url: normalizeUrl(chosen), secret: apiKey, source: 'env' };

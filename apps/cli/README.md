@@ -39,14 +39,14 @@ export OMNINOISE_URL=https://your-host/api
 
 ## Environment variables
 
-| Variable | Meaning |
-|---|---|
-| `OMNINOISE_API_KEY` | Organization API key. Used instead of the saved login. Needs an instance URL (below). |
-| `OMNINOISE_URL` | Backend URL of the instance, e.g. `https://your-host/api`. Same as `--url`. |
-| `OMNINOISE_FRONTEND_URL` | Only for `auth:login`, when the consent page is not at the backend URL minus `/api`. |
-| `XDG_CONFIG_HOME` | Moves the credentials file (default `~/.config`). |
+| Variable                 | Meaning                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| `OMNINOISE_API_KEY`      | Organization API key. Used instead of the saved login. Needs `OMNINOISE_URL` or `--url` (below). |
+| `OMNINOISE_URL`          | Backend URL of the instance, e.g. `https://your-host/api`. Same as `--url`.                      |
+| `OMNINOISE_FRONTEND_URL` | Only for `auth:login`, when the consent page is not at the backend URL minus `/api`.             |
+| `XDG_CONFIG_HOME`        | Moves the credentials file (default `~/.config`).                                                |
 
-The instance is chosen from, in order: `--url`, `OMNINOISE_URL`, the profile's `instance.url` (for `publish`), then the saved login. With a saved login, an instance that differs from the one you logged in to is an error, not a silent fallback.
+The instance, and so where the secret is sent, is chosen only by `--url`, then `OMNINOISE_URL`, then the saved login. A profile's `instance.url` never picks it: `publish` checks it against the chosen instance and refuses, before uploading anything, if they differ. With a saved login, an instance that differs from the one you logged in to is an error, not a silent fallback.
 
 Credentials are chosen from `OMNINOISE_API_KEY` first, then the saved login.
 
@@ -54,18 +54,18 @@ Credentials are chosen from `OMNINOISE_API_KEY` first, then the saved login.
 
 Every command that calls the API also accepts `--url <backend url>`.
 
-| Command | What it does |
-|---|---|
-| `omninoise auth:login [--url <url>]` | Log in through the browser and save the credentials. |
-| `omninoise auth:logout` | Delete the saved credentials. |
-| `omninoise auth:status` | Show the instance, organization and user. Never prints the token. |
-| `omninoise channels [--json]` | List the connected channels: id, name, platform, disabled. |
-| `omninoise posts list [--from <date>] [--to <date>] [--json]` | List posts in a range. Default: today to 30 days ahead. |
-| `omninoise posts delete <id> [--yes]` | Delete a post and the rest of its group. Asks `y/N` unless `--yes`. |
-| `omninoise upload <file>` | Upload a file to the media library; prints `{"id","path"}`. |
-| `omninoise analytics <integrationId> [--days 7]` | Analytics for a channel. |
-| `omninoise analytics --post <postId> [--days 7]` | Analytics for one post. |
-| `omninoise publish <project-dir> --at <time> [--dry-run] [--profile <file>]` | Schedule a rendered video on every channel in the profile. |
+| Command                                                                      | What it does                                                        |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `omninoise auth:login [--url <url>]`                                         | Log in through the browser and save the credentials.                |
+| `omninoise auth:logout`                                                      | Delete the saved credentials.                                       |
+| `omninoise auth:status`                                                      | Show the instance, organization and user. Never prints the token.   |
+| `omninoise channels [--json]`                                                | List the connected channels: id, name, platform, disabled.          |
+| `omninoise posts list [--from <date>] [--to <date>] [--json]`                | List posts in a range. Default: today to 30 days ahead.             |
+| `omninoise posts delete <id> [--yes]`                                        | Delete a post and the rest of its group. Asks `y/N` unless `--yes`. |
+| `omninoise upload <file>`                                                    | Upload a file to the media library; prints `{"id","path"}`.         |
+| `omninoise analytics <integrationId> [--days 7]`                             | Analytics for a channel.                                            |
+| `omninoise analytics --post <postId> [--days 7]`                             | Analytics for one post.                                             |
+| `omninoise publish <project-dir> --at <time> [--dry-run] [--profile <file>]` | Schedule a rendered video on every channel in the profile.          |
 
 The public API has no route to change a post's date, so there is no `posts move`.
 
@@ -90,7 +90,7 @@ my-video/
 
 `publish` uploads the files with `POST /public/v1/upload`, then creates one scheduled post per channel in the profile with `POST /public/v1/posts` (`creationMethod: "CLI"`). It prints a one-line summary to stderr and the result JSON to stdout. `--dry-run` prints the request body with placeholder media paths (`<instance origin>/uploads/dry/<file>`) and uploads and posts nothing.
 
-Before anything is uploaded it refuses a project that breaks a rule from the profile: a `ban` string anywhere in `publish.yaml`, a `hashtag_ban` string in a hashtag, a caption without the AI disclosure, hashtag counts outside the channel's range, a post without its channel footer, a YouTube title over 100 characters or with `<` or `>`, or a Threads post over `max_chars`.
+Before anything is uploaded it also reads `GET /public/v1/integrations` and refuses a profile whose channel is missing, disabled or on another platform than its key. It refuses a project that breaks a rule from the profile: a `ban` string anywhere in `publish.yaml`, a `hashtag_ban` string in a hashtag, a caption without the AI disclosure, hashtag counts outside the channel's range, a post without its channel footer, a YouTube title over 100 characters or with `<` or `>`, or a Threads post over `max_chars`.
 
 ### publish.yaml
 
@@ -100,11 +100,11 @@ caption: |
   One paragraph for YouTube, Instagram and Threads.
   AI-generated voice.
 caption_threads: Optional shorter caption for Threads. AI-generated voice.
-link: https://example.com/article        # optional
-link_label: Full write-up                # optional, default "Full write-up"
+link: https://example.com/article # optional
+link_label: Full write-up # optional, default "Full write-up"
 hashtags:
-  youtube: [ai, agents, tools]           # counts must fit the profile's ranges
-  youtube_tags: [ai agents, tools]       # YouTube tag field, needed with a youtube channel
+  youtube: [ai, agents, tools] # counts must fit the profile's ranges
+  youtube_tags: [ai agents, tools] # YouTube tag field, needed with a youtube channel
   instagram: [ai]
   tiktok: [ai, agents, tools]
   facebook: [ai, agents]
@@ -125,20 +125,62 @@ Channels with `language: vi-first` get the Vietnamese cut, caption and title whe
 `publish` needs a profile, `omninoise.profile.yaml`. It is found with `--profile <file>`, else by walking up from the project folder and then from the current directory. All keys:
 
 ```yaml
-instance: { url: https://omninoise.example.com/api }   # optional; the instance to publish to
-brand: { name: Example Channel, hub: https://example.com/links, logo: brand/logo-1024.png }
-ban: ["internal.example.com"]        # text that must not appear anywhere in publish.yaml (case-insensitive)
-hashtag_ban: ["omninoise"]           # text that must not appear in any hashtag
-ai_disclosure:                       # regular expressions every caption must match
-  en: "AI-generated (voice|music|art)"
-  vi: "(Giọng đọc|Nhạc|Hình) do AI tạo"
-channels:                            # key = channel kind: youtube, instagram, tiktok, facebook, threads
-  youtube:   { integration: "<id>", language: en,       footer: "All channels: https://example.com/links", hashtags: [3, 5] }
-  instagram: { integration: "<id>", language: en,       footer: "All channels: link in bio.", hashtags: [1, 5] }
-  tiktok:    { integration: "<id>", language: vi-first, footer: "Mọi kênh: example.com/links", hashtags: [3, 5], posting_method: UPLOAD }
-  facebook:  { integration: "<id>", language: vi-first, footer: "Theo dõi mọi kênh: https://example.com/links", hashtags: [2, 3] }
-  threads:   { integration: "<id>", language: en,       footer: "https://example.com/links", hashtags: [1, 1], max_chars: 500 }
-slots: { timezone: Asia/Ho_Chi_Minh, video: ["07:00","12:00","17:00","20:00"], carousel: ["10:00"] }
+instance: { url: https://omninoise.example.com/api } # optional; publish refuses if it differs from the instance you are authenticated to
+brand:
+  {
+    name: Example Channel,
+    hub: https://example.com/links,
+    logo: brand/logo-1024.png,
+  }
+ban: ['internal.example.com'] # text that must not appear anywhere in publish.yaml (case-insensitive)
+hashtag_ban: ['omninoise'] # text that must not appear in any hashtag
+ai_disclosure: # regular expressions every caption must match
+  en: 'AI-generated (voice|music|art)'
+  vi: '(Giọng đọc|Nhạc|Hình) do AI tạo'
+channels: # key = channel kind: youtube, instagram, tiktok, facebook, threads
+  youtube:
+    {
+      integration: '<id>',
+      language: en,
+      footer: 'All channels: https://example.com/links',
+      hashtags: [3, 5],
+    }
+  instagram:
+    {
+      integration: '<id>',
+      language: en,
+      footer: 'All channels: link in bio.',
+      hashtags: [1, 5],
+    }
+  tiktok:
+    {
+      integration: '<id>',
+      language: vi-first,
+      footer: 'Mọi kênh: example.com/links',
+      hashtags: [3, 5],
+      posting_method: UPLOAD,
+    }
+  facebook:
+    {
+      integration: '<id>',
+      language: vi-first,
+      footer: 'Theo dõi mọi kênh: https://example.com/links',
+      hashtags: [2, 3],
+    }
+  threads:
+    {
+      integration: '<id>',
+      language: en,
+      footer: 'https://example.com/links',
+      hashtags: [1, 1],
+      max_chars: 500,
+    }
+slots:
+  {
+    timezone: Asia/Ho_Chi_Minh,
+    video: ['07:00', '12:00', '17:00', '20:00'],
+    carousel: ['10:00'],
+  }
 ```
 
 - Only the channels listed are posted to. Get each `integration` id from `omninoise channels`.
