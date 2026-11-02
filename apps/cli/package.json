@@ -1,0 +1,31 @@
+{
+  "name": "omninoise",
+  "version": "0.1.0",
+  "description": "Command line for Omninoise: log in, list channels, upload media and publish a rendered video to every channel.",
+  "bin": {
+    "omninoise": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "publish": "tsup && pnpm publish --access public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "social media",
+    "scheduling tool",
+    "cli"
+  ],
+  "author": "cuongtranba",
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.9.1",
+    "yargs": "^17.7.2"
+  }
+}

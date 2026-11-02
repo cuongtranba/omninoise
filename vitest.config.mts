@@ -5,7 +5,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
-    include: ['libraries/**/*.spec.ts', 'apps/backend/**/*.spec.ts'],
+    include: [
+      'libraries/**/*.spec.ts',
+      'apps/backend/**/*.spec.ts',
+      'apps/cli/**/*.spec.ts',
+    ],
     env: {
       DATABASE_URL:
         process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? '',
