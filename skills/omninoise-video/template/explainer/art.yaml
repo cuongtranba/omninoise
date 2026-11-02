@@ -1,0 +1,23 @@
+# Art brief for Codex image generation (omninoise-video skill, "Paint the art with Codex").
+# Draw: bun <skill-dir>/scripts/codex-art.ts .      Redraw one: ... codex-art.ts . --force hook
+# Codex paints pictures only. Every word, number, logo and caption is drawn by Remotion on top,
+# so nothing here may contain text. Captions sit at y 1240-1460 of 1920 (65-76% of the height):
+# keep that band dark and quiet in every plate.
+#
+# public/art/hook.jpg is a plain ffmpeg gradient so this template renders before any art exists.
+# Drawing the `hook` asset below replaces it with a painted plate.
+frame: { width: 1080, height: 1920 }
+style: >
+  Premium cinematic digital painting for a vertical short video on a developer channel.
+  Palette: near-black green background (#0B1A14 to #12241C), mint green (#3EE6AA) glow,
+  warm white (#F4FAF6) highlights; no other strong hues. Painterly brush texture, soft
+  volumetric light, gentle film grain, deep shadows. Keep the band from 62% to 80% of the
+  height dark and low in detail. Absolutely no text, letters, numbers, logos, user
+  interface, watermarks, signatures, people or faces.
+assets:
+  - id: hook
+    kind: plate
+    prompt: >
+      One luminous mint brushstroke of light sweeping diagonally from lower left to upper
+      right across a dark void, wet paint ridges catching the light, flecks of glowing
+      pigment drifting off its edge. The stroke's brightest point sits in the upper third.

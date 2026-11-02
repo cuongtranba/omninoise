@@ -1,0 +1,71 @@
+{
+  "slug": "example-guard-main",
+  "claims": "render/explainer/example/claims.md",
+  "sources": ["example-docs", "example-repo"],
+  "locales": {
+    "en": {
+      "series": "Example series",
+      "slides": [
+        { "type": "cover", "title": ["Three layers", "between your agent", "and **main**"], "sub": "A branch per agent, then three guards." },
+        { "type": "points", "title": "Why one hook is not enough", "items": [
+          { "text": "AI agents occasionally `git commit` straight to `main`." },
+          { "text": "A plain `pre-commit` hook is easy to get past: `--no-verify`, delete the hook, or work in a fresh clone.", "tone": "danger" }
+        ] },
+        { "type": "flow", "title": "Three layers on main", "steps": [
+          { "label": "`git commit` by the agent", "tone": "muted" },
+          { "label": "1  Local hook", "tone": "accent" },
+          { "label": "2  Server-side check", "tone": "accent" },
+          { "label": "3  Branch protection", "sub": "required reviews", "tone": "accent" },
+          { "label": "`main`", "tone": "ok" }
+        ], "note": "Each layer alone is bypassable. All three together are not." },
+        { "type": "points", "title": "Give each agent its own branch", "items": [
+          { "text": "Start every task on a fresh branch in its own `git worktree`." },
+          { "text": "Parallel agents in the same project don't step on each other.", "tone": "ok" }
+        ] },
+        { "type": "save", "title": "Save this", "rows": [
+          { "label": "A worktree per task", "code": "git worktree add ../task-1 -b task-1" },
+          { "label": "Bypass the hook (don't)", "code": "git commit --no-verify" }
+        ] },
+        { "type": "close", "cta": "Follow for daily AI build lessons", "link": "example.com/links" }
+      ]
+    },
+    "vi": {
+      "series": "Chuyên mục mẫu",
+      "slides": [
+        { "type": "cover", "title": ["Ba lớp chặn agent", "commit thẳng", "vào **main**"], "sub": "Mỗi agent một nhánh, rồi thêm ba lớp bảo vệ." },
+        { "type": "points", "title": "Sao một hook là chưa đủ", "items": [
+          { "text": "Agent AI thỉnh thoảng lại `git commit` thẳng vào `main`." },
+          { "text": "Hook `pre-commit` thường thì agent lách được: thêm `--no-verify`, xóa hook, hoặc làm trong một bản clone mới.", "tone": "danger" }
+        ] },
+        { "type": "flow", "title": "Ba lớp giữ main", "steps": [
+          { "label": "Agent gõ `git commit`", "tone": "muted" },
+          { "label": "1  Hook ở máy", "tone": "accent" },
+          { "label": "2  Kiểm tra phía server", "tone": "accent" },
+          { "label": "3  Branch protection", "sub": "bắt buộc có review", "tone": "accent" },
+          { "label": "`main`", "tone": "ok" }
+        ], "note": "Từng lớp riêng thì lách được. Cả ba lớp thì không." },
+        { "type": "points", "title": "Mỗi agent một nhánh riêng", "items": [
+          { "text": "Mỗi việc bắt đầu trên một nhánh mới, trong một `git worktree` riêng." },
+          { "text": "Nhiều agent chạy song song trong cùng project mà không giẫm chân nhau.", "tone": "ok" }
+        ] },
+        { "type": "save", "title": "Lưu lại", "rows": [
+          { "label": "Mỗi việc một worktree", "code": "git worktree add ../task-1 -b task-1" },
+          { "label": "Lách hook (đừng)", "code": "git commit --no-verify" }
+        ] },
+        { "type": "close", "cta": "Theo dõi kênh để mỗi ngày học thêm cách làm sản phẩm với AI", "link": "example.com/links" }
+      ]
+    }
+  },
+  "publish": {
+    "caption_en": "Three layers between your AI agent and main: a branch per agent, then a local hook, a server-side check and branch protection.\nSave the commands on the last slide.",
+    "caption_vi_first": "Ba lớp chặn agent commit thẳng vào main: mỗi agent một nhánh, rồi hook ở máy, kiểm tra phía server và branch protection.\nLệnh ở slide cuối, lưu lại mà dùng.\n\nThree layers between your AI agent and main: a branch per agent, then three guards.\nSave the commands on the last slide.",
+    "title_vi": "Ba lớp chặn agent commit thẳng vào main",
+    "link": "",
+    "hashtags": {
+      "instagram": ["AIagents", "git", "BuildInPublic"],
+      "facebook": ["AIagents", "git"],
+      "tiktok": ["AIagents", "git", "BuildInPublic"],
+      "threads": ["AIagents"]
+    }
+  }
+}

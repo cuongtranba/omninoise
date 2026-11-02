@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cuongtranba/narrated-video/video.schema.json",
+  "title": "narrated-video project configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kitVersion", "video", "locales", "fonts", "defaults", "scenes", "tts"],
+  "properties": {
+    "kitVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema generation this file was written against, so a later version can tell how far behind a project is."
+    },
+
+    "video": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "width", "height", "fps"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Base composition id. Non-default locales append -<locale>."
+        },
+        "width": { "type": "integer", "minimum": 16 },
+        "height": { "type": "integer", "minimum": 16 },
+        "fps": { "type": "integer", "minimum": 1, "maximum": 240 },
+        "transitionFrames": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 14,
+          "description": "Cross-fade length. Subtracted once per scene boundary from the total."
+        },
+        "minSceneFrames": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 60,
+          "description": "Floor below which fraction-cued reveals collide. Enforced by CHK-25."
+        },
+        "out": { "type": "string", "default": "out" },
+        "targetDuration": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The length this video was commissioned at. Enforced by CHK-26 once every scene is measured. Either bound may stand alone; omit the key for no target.",
+          "properties": {
+            "minSeconds": { "type": "integer", "minimum": 0 },
+            "maxSeconds": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "locales": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "list"],
+      "properties": {
+        "default": { "$ref": "#/$defs/localeCode" },
+        "list": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "label", "font"],
+            "properties": {
+              "code": { "$ref": "#/$defs/localeCode" },
+              "label": { "type": "string", "minLength": 1 },
+              "font": {
+                "type": "string",
+                "description": "Key into `fonts`. Per-locale because a face that covers latin may silently drop this script's marks."
+              },
+              "charsPerSecond": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "default": 16,
+                "description": "Speaking rate used ONLY to estimate timing before audio exists. Measured: en 16.17, vi 15.55."
+              },
+              "expansionFactor": {
+                "type": "number",
+                "minimum": 0.1,
+                "default": 1.3,
+                "description": "Budget multiplier over the default locale's string length (CHK-14). A proxy for overflow, not a proof."
+              },
+              "requiredSample": {
+                "type": "string",
+                "description": "Every codepoint here must exist in this locale's font (CHK-18). Include the script's hardest stacked marks."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "fonts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "family", "importName", "subsets"],
+            "properties": {
+              "kind": { "const": "google" },
+              "family": { "type": "string", "minLength": 1 },
+              "importName": {
+                "type": "string",
+                "description": "@remotion/google-fonts module name, e.g. BeVietnamPro."
+              },
+              "subsets": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string" },
+                "description": "Only requested subsets get an @font-face. Omitting one falls back silently."
+              },
+              "weights": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "family", "files"],
+            "properties": {
+              "kind": { "const": "local" },
+              "family": { "type": "string", "minLength": 1 },
+              "files": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["path"],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "description": "Relative to public/. Its real cmap is read — a declared subset is not trusted."
+                    },
+                    "weight": { "type": "string" },
+                    "style": { "enum": ["normal", "italic"] }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+
+    "theme": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Design tokens emitted verbatim into src/generated/theme.ts. CSS color strings; OKLCH is parsed natively by Chrome."
+    },
+
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "leadFrames": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 14,
+          "description": "Silence at the head, and the offset the <Audio> mounts at. Must cover the cross-fade or the line starts under the outgoing scene (CHK-13)."
+        },
+        "tailFrames": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 24,
+          "description": "Silence after the voice stops. Measured median across the reference's two locales."
+        }
+      }
+    },
+
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/sceneId" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id"],
+            "properties": {
+              "id": { "$ref": "#/$defs/sceneId" },
+              "leadFrames": { "type": "integer", "minimum": 0 },
+              "tailFrames": { "type": "integer", "minimum": 0 },
+              "durationInFrames": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "UNNARRATED scenes only. A narrated scene declaring this is CHK-12 — that is how the hand-maintained frame table creeps back."
+              },
+              "narrated": { "type": "boolean", "default": true }
+            }
+          }
+        ]
+      }
+    },
+
+    "tts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "costCapUsd", "voices"],
+      "properties": {
+        "provider": { "enum": ["elevenlabs", "silence", "say"] },
+        "apiKeyEnv": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Env var NAME. Never the key itself — CHK-03 refuses a literal."
+        },
+        "costCapUsd": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "nv voiceover estimates before the first request and refuses above this."
+        },
+        "outputFormat": { "type": "string", "default": "mp3_44100_128" },
+        "voices": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["voiceId", "model"],
+            "properties": {
+              "voiceId": { "type": "string", "minLength": 1 },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Load-bearing per locale. eleven_multilingual_v2 speaks Vietnamese with wrong tones and still returns 200."
+              },
+              "voiceSettings": {
+                "type": "object",
+                "additionalProperties": { "type": "number" },
+                "description": "Omit entirely for a model that does not want it. Settings tuned for one model are not tuning for another."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "glossary": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Domain terms that must survive translation verbatim (CHK-16). A translated term stops being greppable."
+    },
+
+    "printedLiterals": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Strings the system itself prints. Translating one makes the video contradict the product (CHK-15)."
+    },
+
+    "diagrams": {
+      "type": "object",
+      "description": "Named node/edge graphs. Topology lives here; labels live in content/<locale>.yaml. nv sync derives src/generated/diagrams.ts from both.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nodes", "edges"],
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "at", "size"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+                "at": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+                "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+              }
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["from", "to"],
+              "properties": {
+                "from": { "type": "string" },
+                "to": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "localeCode": { "type": "string", "pattern": "^[a-z]{2}(-[A-Za-z0-9]+)*$" },
+    "sceneId": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" }
+  }
+}

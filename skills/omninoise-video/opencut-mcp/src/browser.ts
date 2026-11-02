@@ -1,0 +1,241 @@
+import { type Browser, type BrowserContext, type Page, chromium } from "playwright";
+
+export type EditorSession = {
+	browser: Browser;
+	context: BrowserContext;
+	page: Page;
+	projectId: string;
+};
+
+const DEFAULT_BASE = process.env.OPENCUT_BASE_URL ?? "http://localhost:3000";
+const HEADLESS = process.env.OPENCUT_HEADLESS !== "false"; // default headless
+const VIDEO_DIR = process.env.OPENCUT_VIDEO_DIR; // if set, record screencast
+// omninoise: attach to a real Chrome window (its own profile, CDP 9334, separate from your everyday Chrome) so the editor is visible and its
+// state outlives each MCP process. "off" restores the PoC's own Playwright browser.
+const CDP_URL = process.env.OPENCUT_CDP ?? "http://127.0.0.1:9334";
+const ATTACHED = CDP_URL !== "off";
+
+/**
+ * Buttons the editor pops up on first load that we need to click through
+ * before `window.__editor` becomes usable. Ordered by priority: primary
+ * "close" verbs first, "Next" last so a multi-step tour still advances if
+ * no shortcut is present. Table-driven so `dismissBootDialogs` stays flat.
+ */
+const DIALOG_DISMISS_BUTTONS = [
+	'button:has-text("Take a look anyway")',   // mobile gate
+	'button:has-text("Get started")',           // welcome tour final
+	'button:has-text("Skip the tour")',
+	'button:has-text("Skip tour")',
+	'button:has-text("Skip")',
+	'button:has-text("Got it")',
+	'button:has-text("Continue")',
+	'button:has-text("Close")',
+	'button[aria-label="Close"]',               // Radix DialogClose "X"
+	'button:has-text("Next")',                  // advance a wizard step
+] as const;
+
+const MAX_DIALOG_HOPS = 6;
+
+class SessionHolder {
+	private promise: Promise<EditorSession> | null = null;
+
+	get(): Promise<EditorSession> {
+		if (!this.promise) this.promise = this.createSession();
+		return this.promise;
+	}
+
+	async close(): Promise<void> {
+		if (!this.promise) return;
+		const s = await this.promise;
+		this.promise = null;
+		// Attached: only disconnect; the owner's Chrome and the editor tab stay open.
+		if (ATTACHED) return void (await s.browser.close().catch(() => {}));
+		await s.context.close();
+		await s.browser.close();
+	}
+
+	/** Open a fresh project in the session's tab and make it the session's project. */
+	async newProject(): Promise<EditorSession> {
+		const s = await this.get();
+		await s.page.goto(`${DEFAULT_BASE}/projects`, { waitUntil: "domcontentloaded" });
+		const projectId = await openNewProject(s.page);
+		const next = { ...s, projectId };
+		this.promise = Promise.resolve(next);
+		return next;
+	}
+
+	private async createSession(): Promise<EditorSession> {
+		if (ATTACHED) return attachSession();
+		const browser = await chromium.launch({ headless: HEADLESS });
+		const context = await browser.newContext({
+			viewport: { width: 1600, height: 900 },
+			recordVideo: VIDEO_DIR
+				? { dir: VIDEO_DIR, size: { width: 1600, height: 900 } }
+				: undefined,
+		});
+		const page = await context.newPage();
+
+		// classic loads react-scan from unpkg in dev mode (layout.tsx). Block it so
+		// the demo screencast isn't cluttered with purple component outlines.
+		await page.route("**/react-scan/**", (route) => route.abort());
+
+		page.on("pageerror", (err) => {
+			console.error("[browser pageerror]", err.message);
+		});
+
+		await page.goto(`${DEFAULT_BASE}/projects`, { waitUntil: "networkidle" });
+		const created = await tryCreateProject(page);
+		if (!created) {
+			throw new Error("failed to find 'New project' button on /projects");
+		}
+		await page.waitForURL("**/editor/**", { timeout: 15_000 });
+		const projectId = page.url().split("/editor/")[1]!.split("?")[0]!;
+
+		await dismissBootDialogs(page);
+		await waitForEditor(page);
+		watchConsole(page);
+
+		return { browser, context, page, projectId };
+	}
+}
+
+const holder = new SessionHolder();
+
+/** The editor reports failures (e.g. export) only to its console; keep the recent ones. */
+const recentConsoleErrors: string[] = [];
+function watchConsole(page: Page): void {
+	page.on("console", (msg) => {
+		if (msg.type() !== "error") return;
+		recentConsoleErrors.push(msg.text().slice(0, 500));
+		if (recentConsoleErrors.length > 20) recentConsoleErrors.shift();
+	});
+}
+
+export function takeConsoleErrors(): string[] {
+	return recentConsoleErrors.splice(0);
+}
+
+/** Reuse an open editor tab in the CDP-attached Chrome, or open one with a new project. */
+async function attachSession(): Promise<EditorSession> {
+	const browser = await chromium.connectOverCDP(CDP_URL);
+	const context = browser.contexts()[0] ?? (await browser.newContext());
+	const editorUrl = `${DEFAULT_BASE}/editor/`;
+	let page = context.pages().find((p) => p.url().startsWith(editorUrl));
+	let projectId: string;
+	if (page) {
+		projectId = page.url().split("/editor/")[1]!.split("?")[0]!;
+		await waitForEditor(page);
+	} else {
+		page = context.pages().find((p) => p.url().startsWith(DEFAULT_BASE)) ?? (await context.newPage());
+		await page.goto(`${DEFAULT_BASE}/projects`, { waitUntil: "domcontentloaded" });
+		projectId = await openNewProject(page);
+	}
+	
+	watchConsole(page);
+	return { browser, context, page, projectId };
+}
+
+async function openNewProject(page: Page): Promise<string> {
+	await page.locator('button:has-text("New project")').first().waitFor({ timeout: 30_000 });
+	// A click that lands before hydration does nothing, so retry until the editor opens.
+	for (let attempt = 0; ; attempt++) {
+		if (!(await tryCreateProject(page))) {
+			throw new Error("failed to find 'New project' button on /projects");
+		}
+		try {
+			await page.waitForURL("**/editor/**", { timeout: 4_000 });
+			break;
+		} catch (err) {
+			if (attempt >= 6) throw err;
+		}
+	}
+	await dismissBootDialogs(page);
+	await waitForEditor(page);
+	return page.url().split("/editor/")[1]!.split("?")[0]!;
+}
+
+async function tryCreateProject(page: Page): Promise<boolean> {
+	for (const sel of [
+		'button:has-text("New project")',
+		'button:has-text("New Project")',
+		'a:has-text("New project")',
+	]) {
+		const loc = page.locator(sel);
+		if ((await loc.count()) > 0) {
+			await loc.first().click();
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Click through mobile-gate + welcome tour + any residual Radix dialog.
+ * Any single selector in DIALOG_DISMISS_BUTTONS may match; keep iterating
+ * until nothing responds, up to MAX_DIALOG_HOPS. Falls back to Escape.
+ */
+async function dismissBootDialogs(page: Page): Promise<void> {
+	for (let hop = 0; hop < MAX_DIALOG_HOPS; hop++) {
+		if (!(await clickFirstMatching(page, DIALOG_DISMISS_BUTTONS))) break;
+		await page.waitForTimeout(200);
+	}
+	await page.keyboard.press("Escape").catch(() => {});
+	await page.waitForTimeout(300);
+}
+
+async function clickFirstMatching(
+	page: Page,
+	selectors: readonly string[],
+): Promise<boolean> {
+	for (const sel of selectors) {
+		const btn = page.locator(sel).first();
+		if ((await btn.count()) === 0) continue;
+		try {
+			await btn.click({ timeout: 500 });
+			return true;
+		} catch {
+			// selector matched but click timed out — try the next one
+		}
+	}
+	return false;
+}
+
+async function waitForEditor(page: Page): Promise<void> {
+	await page.waitForFunction(
+		() => {
+			const e = (window as unknown as { __editor?: { project?: { getActiveOrNull?: () => unknown } } }).__editor;
+			return typeof e === "object" && !!e.project?.getActiveOrNull?.();
+		},
+		undefined,
+		{ timeout: 30_000 },
+	);
+}
+
+export async function getSession(): Promise<EditorSession> {
+	return holder.get();
+}
+
+export async function closeSession(): Promise<void> {
+	return holder.close();
+}
+
+export async function newProjectSession(): Promise<EditorSession> {
+	return holder.newProject();
+}
+
+export async function evalInEditor<T>(
+	fn: string,
+	args?: Record<string, unknown>,
+): Promise<T> {
+	const { page } = await getSession();
+	// Playwright's evaluate serializes args as JSON. We wrap `fn` (which references
+	// window.__editor and receives the arg object) to keep tool code compact.
+	return page.evaluate<T, { __body: string; __args: Record<string, unknown> | undefined }>(
+		({ __body, __args }) => {
+			// biome-ignore lint/security/noGlobalEval: intentional bridge for MCP tools
+			const wrapped = new Function("args", `return (async () => { ${__body} })(args)`);
+			return wrapped(__args) as T | Promise<T>;
+		},
+		{ __body: fn, __args: args },
+	);
+}

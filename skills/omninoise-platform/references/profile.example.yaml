@@ -1,0 +1,22 @@
+# omninoise.profile.yaml — lives at the root of your content workspace; private to you.
+instance:
+  url: https://omninoise.example.com/api   # backend URL shown in Settings > Public API
+brand:
+  name: Example Channel
+  hub: https://example.com/links           # the one link every bio and post points at
+  logo: brand/logo-1024.png                # relative to this file
+ban: ["internal.example.com"]              # never in public text, captions, recordings
+hashtag_ban: ["omninoise"]
+ai_disclosure:                             # regexes a caption must match when AI voice/music/art is used
+  en: "AI-generated (voice|music|art)"
+  vi: "(Giọng đọc|Nhạc|Hình) do AI tạo"
+channels:                                  # key = channel kind; v1 supports youtube, instagram, tiktok, facebook, threads
+  youtube:   { integration: "<integration id>", language: en,       footer: "All channels: https://example.com/links", hashtags: [3, 5] }
+  instagram: { integration: "<integration id>", language: en,       footer: "All channels: link in bio.",              hashtags: [1, 5] }
+  tiktok:    { integration: "<integration id>", language: vi-first, footer: "Mọi kênh: example.com/links",             hashtags: [3, 5], posting_method: UPLOAD }
+  facebook:  { integration: "<integration id>", language: vi-first, footer: "Theo dõi mọi kênh: https://example.com/links", hashtags: [2, 3] }
+  threads:   { integration: "<integration id>", language: en,       footer: "https://example.com/links",               hashtags: [1, 1], max_chars: 500 }
+slots:
+  timezone: Asia/Ho_Chi_Minh
+  video: ["07:00", "12:00", "17:00", "20:00"]
+  carousel: ["10:00"]

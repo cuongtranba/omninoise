@@ -1,0 +1,46 @@
+---
+name: Skills
+
+# The agent skills under skills/ use Bun and sit outside the pnpm workspace, so this
+# workflow checks them on their own. It runs only when something under skills/ changes.
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - '.github/workflows/skills.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Video scripts (tests)
+        working-directory: skills/omninoise-video/scripts
+        run: bun test
+
+      - name: OpenCut MCP server (install, tests)
+        working-directory: skills/omninoise-video/opencut-mcp
+        run: |
+          bun install --frozen-lockfile
+          bun test
+
+      - name: Explainer template (install, typecheck, lint, tests)
+        working-directory: skills/omninoise-video/template/explainer
+        run: |
+          bun install --frozen-lockfile
+          bun run typecheck
+          bun run lint
+          bun test
+
+      - name: Carousel renderer (install, typecheck, lint, tests)
+        working-directory: skills/omninoise-carousel/renderer
+        run: |
+          bun install --frozen-lockfile
+          bun run typecheck
+          bun run lint
+          bun test
