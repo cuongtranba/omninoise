@@ -4,7 +4,7 @@ For scripts, CI and sessions without the MCP. It talks to the Public API of your
 
 | Setting | Meaning |
 |---|---|
-| `OMNINOISE_URL` | The instance's backend URL (Settings > Public API). Defaults to the profile's `instance.url`. |
+| `OMNINOISE_URL` | The instance's backend URL (Settings > Public API). Required with `OMNINOISE_API_KEY` (or pass `--url`); the key only goes where you point it. `publish` refuses when it differs from the profile's `instance.url`. |
 | `OMNINOISE_API_KEY` | The organization's API key, or an OAuth token from `auth:login`. Never put it in a file, argument or log. |
 
 ```bash
