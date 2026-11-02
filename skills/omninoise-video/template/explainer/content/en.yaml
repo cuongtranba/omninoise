@@ -1,0 +1,17 @@
+narration:
+  Hook: "One idea, painted and built in a minute."
+  Outro: "Replace this sample with your idea. Follow for daily AI build lessons."
+
+# Every factual sentence in a real video is sourced in ../claims.md. The picture behind the
+# sample scene is a plain gradient made with ffmpeg; a real video draws its plates with
+# `codex-art.ts` from art.yaml. Every word on screen is drawn by Remotion, never painted.
+copy:
+  artLabel: "AI-generated art"
+  hook:
+    top: "One idea"
+    bottom: "painted and built"
+  outro:
+    heading: "Example Channel"
+    handle: "@example"
+    link: "example.com/links"
+    subheading: "Follow for daily AI build lessons"

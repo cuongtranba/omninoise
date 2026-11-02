@@ -1,0 +1,40 @@
+{
+  "name": "omninoise-explainer-template",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render ExplainerTemplate out/explainer.mp4",
+    "still": "remotion still ExplainerTemplate out/explainer.png",
+    "typecheck": "node ./node_modules/typescript-native/bin/tsc --noEmit",
+    "lint": "eslint src",
+    "test": "bun test",
+    "covers": "remotion still Cover out/cover-1080x1920.jpg --image-format=jpeg --jpeg-quality=90 && remotion still Thumb out/thumb-1280x720.jpg --image-format=jpeg --jpeg-quality=90 && remotion still Cover-vi out/cover-vi-1080x1920.jpg --image-format=jpeg --jpeg-quality=90 && remotion still Thumb-vi out/thumb-vi-1280x720.jpg --image-format=jpeg --jpeg-quality=90"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.7.0",
+    "@remotion/cli": "4.0.513",
+    "@remotion/fonts": "4.0.513",
+    "@remotion/google-fonts": "4.0.513",
+    "@remotion/media": "4.0.513",
+    "@remotion/three": "4.0.513",
+    "@remotion/transitions": "4.0.513",
+    "@xyflow/react": "^12.11.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.513",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.513",
+    "@types/react": "19.2.18",
+    "@types/web": "0.0.354",
+    "eslint": "10.8.1",
+    "typescript": "6.0.3",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "overrides": {
+    "typescript-eslint": "8.67.0"
+  }
+}
