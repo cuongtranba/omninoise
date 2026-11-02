@@ -4,8 +4,9 @@
 
 version: 2
 updates:
-  # pnpm workspace: the root package.json and pnpm-lock.yaml cover apps/* and
-  # libraries/*, Dependabot updates the workspace packages from the root
+  # pnpm workspace: Dependabot reads the apps/* manifests listed in
+  # pnpm-workspace.yaml; libraries/* has no package.json, the root one and
+  # pnpm-lock.yaml cover it
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
