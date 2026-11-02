@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import {
   PrismaRepository,
   PrismaService,
@@ -14,7 +15,7 @@ const prisma = new PrismaService();
 const repo = new PrismaRepository<keyof PrismaService>(prisma);
 const oauth = new OAuthService(new OAuthRepository(repo, repo, repo, repo));
 
-const run = Math.random().toString(36).slice(2);
+const run = randomBytes(6).toString('hex');
 let orgId: string;
 let appId: string;
 

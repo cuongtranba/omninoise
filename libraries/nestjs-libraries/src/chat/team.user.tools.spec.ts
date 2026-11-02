@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { RequestContext } from '@mastra/core/di';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
@@ -16,7 +17,7 @@ process.env.JWT_SECRET ||= 'team-user-tools-spec-secret';
 
 type Role = 'USER' | 'ADMIN' | 'SUPERADMIN';
 
-const run = Math.random().toString(36).slice(2);
+const run = randomBytes(6).toString('hex');
 const stripeBefore = process.env.STRIPE_PUBLISHABLE_KEY;
 let moduleRef: Awaited<
   ReturnType<ReturnType<typeof Test.createTestingModule>['compile']>

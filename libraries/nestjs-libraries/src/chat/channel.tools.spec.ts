@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { RequestContext } from '@mastra/core/di';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
@@ -9,7 +10,7 @@ import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.serv
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 
-const run = Math.random().toString(36).slice(2);
+const run = randomBytes(6).toString('hex');
 const envBefore = {
   stripe: process.env.STRIPE_PUBLISHABLE_KEY,
   linkedin: process.env.LINKEDIN_CLIENT_ID,
