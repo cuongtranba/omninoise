@@ -5,7 +5,7 @@ description: Plan the content for a channel run on Omninoise - pillars and forma
 
 # omninoise-strategy: decide what to say, how often and whether it worked
 
-Read `omninoise.profile.yaml` at the workspace root first. It names the brand, the channels and their languages, the posting slots and the banned strings. If you have none, copy `skills/profile.example.yaml` from the omninoise repository.
+Read `omninoise.profile.yaml` at the workspace root first. It names the brand, the channels and their languages, the posting slots and the banned strings. If you have none, copy `references/profile.example.yaml` from the omninoise-platform skill (installed beside this one) to your workspace root.
 
 This skill is the thinking that comes before the other four: omninoise-video and omninoise-carousel make the assets, omninoise-seo writes the captions, omninoise-platform schedules them. It keeps the plan honest with three habits: every claim has a source, every topic ships in two formats, and every week ends with one decision made from the numbers.
 

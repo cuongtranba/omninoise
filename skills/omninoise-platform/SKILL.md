@@ -5,7 +5,7 @@ description: Operate an Omninoise instance (the self-hosted Postiz fork that sch
 
 # omninoise-platform: run the channels
 
-Read `omninoise.profile.yaml` at the workspace root first. It holds your instance URL, one integration id per channel, each channel's language order, footer and hashtag range, the strings banned from public text, the AI-disclosure patterns and your posting slots. If you have none, copy `skills/profile.example.yaml` from the omninoise repository and fill it in; you get the integration ids from `integrationList` or `omninoise channels`.
+Read `omninoise.profile.yaml` at the workspace root first. It holds your instance URL, one integration id per channel, each channel's language order, footer and hashtag range, the strings banned from public text, the AI-disclosure patterns and your posting slots. If you have none, copy [references/profile.example.yaml](references/profile.example.yaml) to your workspace root and fill it in; you get the integration ids from `integrationList` or `omninoise channels`.
 
 Omninoise is a self-hosted fork of Postiz. It schedules posts to many social networks and publishes them at their time. This skill is how an agent operates it: connect channels, schedule and check posts, upload media, read analytics. Making the video or carousel is the omninoise-video and omninoise-carousel skills' job; deciding what to say is omninoise-strategy and omninoise-seo.
 
@@ -14,7 +14,7 @@ Omninoise is a self-hosted fork of Postiz. It schedules posts to many social net
 | Transport | Use it when | Setup |
 |---|---|---|
 | **MCP** (default) | An agent in a session with the server registered | Register `<instance>/mcp-oauth-dynamic` (OAuth in a browser, once) or `<instance>/mcp` with your API key as the bearer token; Settings > Public API in the dashboard shows the exact URLs. Tools appear as `integrationList`, `postsListTool` and so on. See [references/mcp-tools.md](references/mcp-tools.md). |
-| **`omninoise` CLI** | A script, CI, or a session without the MCP | `omninoise auth:login`, or `OMNINOISE_URL` and `OMNINOISE_API_KEY` in the environment. See [references/cli.md](references/cli.md). |
+| **`omninoise` CLI** | A script, CI, or a session without the MCP | `omninoise auth:login --url <instance>`, or `OMNINOISE_URL` and `OMNINOISE_API_KEY` in the environment. See [references/cli.md](references/cli.md). |
 | **Public API** | Neither of the above is available | `GET/POST <instance>/public/v1/...`. See [references/public-api.md](references/public-api.md). |
 | **Browser** | What the API cannot do: a platform's consent screen, a large upload, the dashboard | Drive your own Chrome over its debugging port. See [references/browser.md](references/browser.md). |
 

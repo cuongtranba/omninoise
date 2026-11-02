@@ -23,7 +23,7 @@ The video and carousel tooling is [Bun](https://bun.sh) code that lives beside t
 
 ## The workspace profile
 
-Every skill starts by reading `omninoise.profile.yaml` at the root of your content workspace (the repository where your backlog, renders and published ledger live). It is private to you and never goes in this repository. Copy [`profile.example.yaml`](profile.example.yaml) and fill it in:
+Every skill starts by reading `omninoise.profile.yaml` at the root of your content workspace (the repository where your backlog, renders and published ledger live). It is private to you and never goes in this repository. Copy [`omninoise-platform/references/profile.example.yaml`](omninoise-platform/references/profile.example.yaml) and fill it in:
 
 | Key | Meaning |
 |---|---|

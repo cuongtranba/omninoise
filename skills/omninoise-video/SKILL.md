@@ -5,7 +5,7 @@ description: Make a short vertical video for a channel run on Omninoise, end to 
 
 # omninoise-video: one idea to one finished clip
 
-Read `omninoise.profile.yaml` at the workspace root first. It holds your brand name, your logo, the strings that must never appear in a video (`ban`) and the language order per channel. If you have none, copy `skills/profile.example.yaml` from the omninoise repository. `<skill-dir>` below is the folder this skill was installed into.
+Read `omninoise.profile.yaml` at the workspace root first. It holds your brand name, your logo, the strings that must never appear in a video (`ban`) and the language order per channel. If you have none, copy `references/profile.example.yaml` from the omninoise-platform skill (installed beside this one) to your workspace root. `<skill-dir>` below is the folder this skill was installed into.
 
 Codex paints the pictures. Claude Code writes the script, lays the pictures out in Remotion scenes and puts them in motion. The narrated-video kit (`nv`) times everything from the measured voice and gates it with 42 checks. The split exists because each tool does one thing well: an image model is good at mood and bad at text and layout, and a scene written in code is exact, repeatable and translatable.
 

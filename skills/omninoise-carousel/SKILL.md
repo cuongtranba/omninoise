@@ -5,7 +5,7 @@ description: Plan, write, render and schedule image posts, carousels and diagram
 
 # omninoise-carousel: the companion carousel for every video topic
 
-Read `omninoise.profile.yaml` at the workspace root first. It names the brand, the one hub link, the strings banned from public text (`ban`, `hashtag_ban`), the AI-disclosure patterns, each channel's language order and hashtag range, and the carousel slot. If you have none, copy `skills/profile.example.yaml` from the omninoise repository. `<skill-dir>` below is the folder this skill was installed into.
+Read `omninoise.profile.yaml` at the workspace root first. It names the brand, the one hub link, the strings banned from public text (`ban`, `hashtag_ban`), the AI-disclosure patterns, each channel's language order and hashtag range, and the carousel slot. If you have none, copy `references/profile.example.yaml` from the omninoise-platform skill (installed beside this one) to your workspace root. `<skill-dir>` below is the folder this skill was installed into.
 
 Videos bring reach. Carousels bring saves and show what the channel is for: a viewer who liked a video can swipe through the same idea at their own pace and keep the commands. So every topic that gets a video also gets one 5-to-6-slide carousel. Its third slide is a diagram, and its facts are the video's facts.
 

@@ -5,7 +5,7 @@ description: Write the titles, captions, hashtags and tags that make a post find
 
 # omninoise-seo: be found, say what is true
 
-Read `omninoise.profile.yaml` at the workspace root first. The caption rules below are the defaults; the profile has the real numbers for your channels: `channels.<kind>.language`, `footer`, `hashtags` (a `[min, max]` range), `max_chars`, plus `brand.hub`, `ban`, `hashtag_ban` and `ai_disclosure`. If you have none, copy `skills/profile.example.yaml` from the omninoise repository.
+Read `omninoise.profile.yaml` at the workspace root first. The caption rules below are the defaults; the profile has the real numbers for your channels: `channels.<kind>.language`, `footer`, `hashtags` (a `[min, max]` range), `max_chars`, plus `brand.hub`, `ban`, `hashtag_ban` and `ai_disclosure`. If you have none, copy `references/profile.example.yaml` from the omninoise-platform skill (installed beside this one) to your workspace root.
 
 A post is found through its first line, its title, its tags and the account behind it. It is trusted through what it says about itself: where the voice and the pictures came from, and where to find the rest of the channel. This skill covers both.
 

@@ -8,7 +8,7 @@ For scripts, CI and sessions without the MCP. It talks to the Public API of your
 | `OMNINOISE_API_KEY` | The organization's API key, or an OAuth token from `auth:login`. Never put it in a file, argument or log. |
 
 ```bash
-omninoise auth:login                   # browser sign-in; stores a token for this machine
+omninoise auth:login --url <instance>   # browser sign-in; stores a token for this machine (or set OMNINOISE_URL)
 omninoise auth:status                  # who and which instance
 omninoise auth:logout
 omninoise channels                     # the connected channels and their integration ids
