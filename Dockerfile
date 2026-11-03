@@ -22,7 +22,7 @@ WORKDIR /app
 COPY . /app
 COPY var/docker/nginx.conf /etc/nginx/nginx.conf
 
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
 RUN chmod +x /app/var/docker/entrypoint.sh
