@@ -919,6 +919,7 @@
   "channel": "Channel",
   "webhook_type": "Type",
   "webhook_type_post_published": "Post published",
+  "webhook_type_post_failed": "Post failed",
   "webhook_type_analytics_report": "Analytics report",
   "webhook_type_analytics_report_schedule": "Analytics report · {{schedule}}",
   "webhook_schedule_daily": "Daily",

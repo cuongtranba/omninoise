@@ -24,6 +24,24 @@ dayjs.extend(utc);
 
 const SURFACED_ERROR_TYPES = new Set(['bad_body', 'refresh_token']);
 
+// The post a post.published / post.failed webhook receives.
+const webhookPostSelect = {
+  id: true,
+  content: true,
+  publishDate: true,
+  releaseURL: true,
+  state: true,
+  integration: {
+    select: {
+      id: true,
+      name: true,
+      providerIdentifier: true,
+      picture: true,
+      type: true,
+    },
+  },
+};
+
 @Injectable()
 export class PostsRepository {
   constructor(
@@ -1178,30 +1196,13 @@ export class PostsRepository {
   }
 
   async getPostByForWebhookId(postId: string, integrationId: string) {
-    const select = {
-      id: true,
-      content: true,
-      publishDate: true,
-      releaseURL: true,
-      state: true,
-      integration: {
-        select: {
-          id: true,
-          name: true,
-          providerIdentifier: true,
-          picture: true,
-          type: true,
-        },
-      },
-    };
-
     const posts = await this._post.model.post.findMany({
       where: {
         id: postId,
         deletedAt: null,
         parentPostId: null,
       },
-      select,
+      select: webhookPostSelect,
     });
 
     if (posts.length) {
@@ -1221,7 +1222,20 @@ export class PostsRepository {
         updatedAt: 'desc' as const,
       },
       take: 1,
-      select,
+      select: webhookPostSelect,
+    });
+  }
+
+  // The failed post for its webhook: the post.published body plus the stored
+  // error.
+  async getPostForFailedWebhook(postId: string) {
+    return this._post.model.post.findMany({
+      where: {
+        id: postId,
+        deletedAt: null,
+        parentPostId: null,
+      },
+      select: { ...webhookPostSelect, error: true },
     });
   }
 

@@ -1,3 +1,7 @@
+# The SSRF guard passes an Agent from the npm `undici` package to Node's
+# built-in fetch, which rejects an Agent from another undici major ("fetch
+# failed", every provider call). A Node major bump must move the `undici`
+# dependency to the major Node bundles (`node -p process.versions.undici`).
 FROM node:26.13.0-bookworm-slim
 ARG NEXT_PUBLIC_VERSION
 ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION

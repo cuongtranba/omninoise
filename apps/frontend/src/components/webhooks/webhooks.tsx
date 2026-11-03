@@ -125,7 +125,9 @@ export const Webhooks: FC = () => {
                           'Analytics report · {{schedule}}',
                           { schedule: scheduleLabels[p.schedule] || p.schedule }
                         )
-                      : t('webhook_type_post_published', 'Post published')}
+                      : p.type === 'post.failed'
+                        ? t('webhook_type_post_failed', 'Post failed')
+                        : t('webhook_type_post_published', 'Post published')}
                   </div>
                   <div className="flex flex-col justify-center">
                     <div>
@@ -162,7 +164,9 @@ const sectionKeys = ['channels', 'summary', 'topPosts'];
 const details = object().shape({
   name: string().required(),
   url: string().url().required(),
-  type: string().oneOf(['post.published', 'analytics.report']).required(),
+  type: string()
+    .oneOf(['post.published', 'post.failed', 'analytics.report'])
+    .required(),
   integrations: array(),
   schedule: string().when('type', {
     is: 'analytics.report',
@@ -387,6 +391,14 @@ export const AddOrEditWebhook: FC<{
       },
     ];
     try {
+      if (form.getValues('type') === 'post.failed') {
+        body = (body as any[]).map((post) => ({
+          ...post,
+          state: 'ERROR',
+          releaseURL: null,
+          error: '{"message":"fetch failed"}',
+        }));
+      }
       if (form.getValues('type') === 'analytics.report') {
         body = await buildPreview();
       }
@@ -428,6 +440,9 @@ export const AddOrEditWebhook: FC<{
             >
               <option value="post.published">
                 {t('webhook_type_post_published', 'Post published')}
+              </option>
+              <option value="post.failed">
+                {t('webhook_type_post_failed', 'Post failed')}
               </option>
               <option value="analytics.report">
                 {t('webhook_type_analytics_report', 'Analytics report')}
