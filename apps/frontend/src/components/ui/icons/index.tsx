@@ -446,7 +446,11 @@ export const UserIcon: FC<IconProps> = ({ size = 20, className, ...props }) => (
 );
 
 // Filter Icon
-export const FilterIcon: FC<IconProps> = ({ size = 20, className, ...props }) => (
+export const FilterIcon: FC<IconProps> = ({
+  size = 20,
+  className,
+  ...props
+}) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}

@@ -132,7 +132,7 @@ const EditGroupNameModal: FC<{
       body: JSON.stringify({ name: groupName }),
     });
     if (!response.ok) {
-      const { message } = await response.json().catch(() => ({} as any));
+      const { message } = await response.json().catch(() => ({}) as any);
       toaster.show(
         (Array.isArray(message) ? message[0] : message) ||
           t('could_not_save_group', 'Could not save the group.'),
@@ -261,10 +261,7 @@ export const MenuGroupComponent: FC<
   const dropRef = useRef<HTMLDivElement>(null);
   drop(dropRef);
   return (
-    <div
-      className="gap-[16px] flex flex-col relative"
-      ref={dropRef}
-    >
+    <div className="gap-[16px] flex flex-col relative" ref={dropRef}>
       {collectedProps.isOver && (
         <div className="absolute start-0 top-0 w-full h-full pointer-events-none">
           <div className="w-full h-full start-0 top-0 relative">
@@ -552,12 +549,12 @@ export const LaunchesComponent = () => {
   );
   const refreshChannel = useCallback(
     (
-        integration: Integration & {
-          identifier: string;
-          isCustomFields?: boolean;
-          customFields?: any[];
-        }
-      ) =>
+      integration: Integration & {
+        identifier: string;
+        isCustomFields?: boolean;
+        customFields?: any[];
+      }
+    ) =>
       async () => {
         // Custom-fields providers (Bluesky, etc.) have no OAuth URL to redirect
         // to: reconnect by re-entering the credentials, like the menu does.

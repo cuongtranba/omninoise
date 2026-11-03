@@ -12,15 +12,13 @@ import { customFetch, Params } from './custom.fetch.func';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
 const FetchProvider = createContext(
-  customFetch(
-    {
-      baseUrl: '',
-      beforeRequest: async () => undefined,
-      afterRequest: async () => {
-        return true;
-      },
-    }
-  )
+  customFetch({
+    baseUrl: '',
+    beforeRequest: async () => undefined,
+    afterRequest: async () => {
+      return true;
+    },
+  })
 );
 
 export const FetchWrapperComponent: FC<Params & { children: ReactNode }> = (

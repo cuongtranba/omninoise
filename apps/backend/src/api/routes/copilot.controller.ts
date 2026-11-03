@@ -22,7 +22,10 @@ import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
 import { Request, Response } from 'express';
 import { RequestContext } from '@mastra/core/di';
 import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
-import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
+import {
+  AuthorizationActions,
+  Sections,
+} from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 export type ChannelsContext = {
   integrations: string;

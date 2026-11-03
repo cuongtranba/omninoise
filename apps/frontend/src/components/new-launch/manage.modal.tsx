@@ -360,8 +360,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         p.posts?.[0]?.state === 'DRAFT'
           ? 'draft'
           : p.posts?.[0]?.state === 'QUEUE' && !published.includes(p)
-          ? 'schedule'
-          : 'update';
+            ? 'schedule'
+            : 'update';
 
       // like the delete, a save that changes the state of the other channels
       // (scheduling their drafts, moving them to drafts) can do it only for
@@ -383,21 +383,21 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 'This post was created for more than one channel. Do you want to move all of them to drafts?'
               )
             : type === 'now'
-            ? t(
-                'post_now_in_all_channels_question',
-                'This post was created for more than one channel. Do you want to post all of them now?'
-              )
-            : t(
-                'schedule_post_in_all_channels_question',
-                'This post was created for more than one channel. Do you want to schedule all of them?'
-              );
+              ? t(
+                  'post_now_in_all_channels_question',
+                  'This post was created for more than one channel. Do you want to post all of them now?'
+                )
+              : t(
+                  'schedule_post_in_all_channels_question',
+                  'This post was created for more than one channel. Do you want to schedule all of them?'
+                );
 
         const allChannels =
           type === 'draft'
             ? t('draft_all_channels', 'Move all channels to drafts')
             : type === 'now'
-            ? t('post_now_all_channels', 'Post all channels now')
-            : t('schedule_all_channels', 'Schedule all channels');
+              ? t('post_now_all_channels', 'Post all channels now')
+              : t('schedule_all_channels', 'Schedule all channels');
 
         const whichChannels = await new Promise((resolve) => {
           modal.openModal({
@@ -826,10 +826,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const scheduleLabel = dummy
     ? t('create_output', 'Create output')
     : !existingData?.integration
-    ? t('add_to_calendar', 'Add to calendar')
-    : existingData?.posts?.[0]?.state === 'DRAFT'
-    ? t('schedule', 'Schedule')
-    : t('update', 'Update');
+      ? t('add_to_calendar', 'Add to calendar')
+      : existingData?.posts?.[0]?.state === 'DRAFT'
+        ? t('schedule', 'Schedule')
+        : t('update', 'Update');
 
   const mobileActions: MobileTopBarAction[] = addEditSets
     ? [

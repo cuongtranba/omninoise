@@ -250,8 +250,8 @@ If validation fails, the result contains output.errors describing what to fix; t
             reason === 'emptyContent'
               ? error
               : reason === 'tooLong'
-              ? `The maximum characters is ${maximumCharacters}${retry}`
-              : `${error}${retry}`;
+                ? `The maximum characters is ${maximumCharacters}${retry}`
+                : `${error}${retry}`;
 
           return { output: { errors: `${name}: ${message}` } };
         }

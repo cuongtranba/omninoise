@@ -7,7 +7,9 @@ const { keyLength, ivLength } = crypto.getCipherInfo(algorithm);
 
 function deriveLegacyKeyIv(secret: string) {
   const { keyLength, ivLength } = crypto.getCipherInfo(algorithm); // 32, 16
-  const pass = Buffer.isBuffer(secret) ? secret : Buffer.from(secret ?? '', 'utf8');
+  const pass = Buffer.isBuffer(secret)
+    ? secret
+    : Buffer.from(secret ?? '', 'utf8');
 
   // evp_bytestokey (always MD5): key length in **bits**, IV length in **bytes**
   const { key, iv } = EVP_BytesToKey(pass, null, keyLength * 8, ivLength);
@@ -21,14 +23,20 @@ function deriveLegacyKeyIv(secret: string) {
 export function decrypt_legacy_using_IV(hexCiphertext: string) {
   const { key, iv } = deriveLegacyKeyIv(process.env.JWT_SECRET);
   const decipher = crypto.createDecipheriv(algorithm, key, iv);
-  const out = Buffer.concat([decipher.update(hexCiphertext, 'hex'), decipher.final()]);
+  const out = Buffer.concat([
+    decipher.update(hexCiphertext, 'hex'),
+    decipher.final(),
+  ]);
   return out.toString('utf8');
 }
 
 export function encrypt_legacy_using_IV(utf8Plaintext: string) {
   const { key, iv } = deriveLegacyKeyIv(process.env.JWT_SECRET);
   const cipher = crypto.createCipheriv(algorithm, key, iv);
-  const out = Buffer.concat([cipher.update(utf8Plaintext, 'utf8'), cipher.final()]);
+  const out = Buffer.concat([
+    cipher.update(utf8Plaintext, 'utf8'),
+    cipher.final(),
+  ]);
   return out.toString('hex');
 }
 export class AuthService {

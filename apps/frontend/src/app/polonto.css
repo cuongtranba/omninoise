@@ -2602,7 +2602,9 @@ a > .bp5-running-text code {
 .bp5-key,
 .bp5-running-text kbd {
   background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2);
   color: #5f6b7c;
 }
 
@@ -2950,7 +2952,8 @@ a > .bp5-dark .bp5-running-text code {
 .bp5-dark .bp5-key,
 .bp5-dark .bp5-running-text kbd {
   background: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
   color: #abb3bf;
 }
@@ -3179,20 +3182,23 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button:not([class*='bp5-intent-']) {
   background-color: #f6f7f9;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #1c2127;
 }
 .bp5-button:not([class*='bp5-intent-']):hover {
   background-clip: padding-box;
   background-color: #edeff2;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button:not([class*='bp5-intent-']):active,
 .bp5-button:not([class*='bp5-intent-']).bp5-active {
   background-color: #dce0e5;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -3222,7 +3228,8 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-primary {
   background-color: #2d72d2;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #ffffff;
 }
@@ -3233,13 +3240,15 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-primary:hover {
   background-color: #215db0;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-primary:active,
 .bp5-button.bp5-intent-primary.bp5-active {
   background-color: #184a90;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-primary:disabled,
@@ -3264,7 +3273,8 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-success {
   background-color: #238551;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #ffffff;
 }
@@ -3275,13 +3285,15 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-success:hover {
   background-color: #1c6e42;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-success:active,
 .bp5-button.bp5-intent-success.bp5-active {
   background-color: #165a36;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-success:disabled,
@@ -3306,7 +3318,8 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-warning {
   background-color: #c87619;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #ffffff;
 }
@@ -3317,13 +3330,15 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-warning:hover {
   background-color: #935610;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-warning:active,
 .bp5-button.bp5-intent-warning.bp5-active {
   background-color: #77450d;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-warning:disabled,
@@ -3348,7 +3363,8 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-danger {
   background-color: #cd4246;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #ffffff;
 }
@@ -3359,13 +3375,15 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-button.bp5-intent-danger:hover {
   background-color: #ac2f33;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-danger:active,
 .bp5-button.bp5-intent-danger.bp5-active {
   background-color: #8e292c;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-button.bp5-intent-danger:disabled,
@@ -3458,7 +3476,8 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-dark .bp5-button:not([class*='bp5-intent-']) {
   background-color: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.2);
   color: #f6f7f9;
 }
@@ -3469,13 +3488,15 @@ a > .bp5-dark .bp5-running-text code {
 }
 .bp5-dark .bp5-button:not([class*='bp5-intent-']):hover {
   background-color: #2f343c;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-button:not([class*='bp5-intent-']):active,
 .bp5-dark .bp5-button:not([class*='bp5-intent-']).bp5-active {
   background-color: #1c2127;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-button:not([class*='bp5-intent-']):disabled,
@@ -3510,16 +3531,19 @@ a > .bp5-dark .bp5-running-text code {
   color: #abb3bf;
 }
 .bp5-dark .bp5-button[class*='bp5-intent-'] {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-button[class*='bp5-intent-']:hover {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-button[class*='bp5-intent-']:active,
 .bp5-dark .bp5-button[class*='bp5-intent-'].bp5-active {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-button[class*='bp5-intent-']:disabled,
@@ -4870,7 +4894,8 @@ a.bp5-button.bp5-disabled {
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.15);
   padding: 20px;
-  transition: transform 200ms cubic-bezier(0.4, 1, 0.75, 0.9),
+  transition:
+    transform 200ms cubic-bezier(0.4, 1, 0.75, 0.9),
     box-shadow 200ms cubic-bezier(0.4, 1, 0.75, 0.9);
 }
 .bp5-card.bp5-dark,
@@ -4899,11 +4924,14 @@ a.bp5-button.bp5-disabled {
 }
 
 .bp5-elevation-1 {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-elevation-1.bp5-dark,
 .bp5-dark .bp5-elevation-1 {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -4913,13 +4941,17 @@ a.bp5-button.bp5-disabled {
 }
 
 .bp5-elevation-2 {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2),
     0 2px 6px rgba(17, 20, 24, 0.2);
 }
 .bp5-elevation-2.bp5-dark,
 .bp5-dark .bp5-elevation-2 {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 1px 1px rgba(17, 20, 24, 0.4), 0 2px 6px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 1px 1px rgba(17, 20, 24, 0.4),
+    0 2px 6px rgba(17, 20, 24, 0.4);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
   .bp5-elevation-2 {
@@ -4928,13 +4960,17 @@ a.bp5-button.bp5-disabled {
 }
 
 .bp5-elevation-3 {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
 }
 .bp5-elevation-3.bp5-dark,
 .bp5-dark .bp5-elevation-3 {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
   .bp5-elevation-3 {
@@ -4943,13 +4979,17 @@ a.bp5-button.bp5-disabled {
 }
 
 .bp5-elevation-4 {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 4px 8px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 4px 8px rgba(17, 20, 24, 0.2),
     0 18px 46px 6px rgba(17, 20, 24, 0.2);
 }
 .bp5-elevation-4.bp5-dark,
 .bp5-dark .bp5-elevation-4 {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 4px 8px rgba(17, 20, 24, 0.4), 0 18px 46px 6px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 4px 8px rgba(17, 20, 24, 0.4),
+    0 18px 46px 6px rgba(17, 20, 24, 0.4);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
   .bp5-elevation-4 {
@@ -4962,29 +5002,40 @@ a.bp5-button.bp5-disabled {
 }
 
 .bp5-card.bp5-interactive:hover {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
   cursor: pointer;
 }
 .bp5-card.bp5-interactive:hover.bp5-dark,
 .bp5-dark .bp5-card.bp5-interactive:hover {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-card.bp5-interactive.bp5-selected {
-  box-shadow: 0 0 0 3px rgba(76, 144, 240, 0.2), 0 0 0 1px #4c90f0;
+  box-shadow:
+    0 0 0 3px rgba(76, 144, 240, 0.2),
+    0 0 0 1px #4c90f0;
 }
 .bp5-card.bp5-interactive.bp5-selected.bp5-dark,
 .bp5-dark .bp5-card.bp5-interactive.bp5-selected {
-  box-shadow: 0 0 0 3px rgba(138, 187, 255, 0.4), 0 0 0 1px #8abbff;
+  box-shadow:
+    0 0 0 3px rgba(138, 187, 255, 0.4),
+    0 0 0 1px #8abbff;
 }
 .bp5-card.bp5-interactive:active {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2);
   transition-duration: 0;
 }
 .bp5-card.bp5-interactive:active.bp5-dark,
 .bp5-dark .bp5-card.bp5-interactive:active {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
 }
 .bp5-card-list {
@@ -5143,7 +5194,9 @@ a.bp5-button.bp5-disabled {
 .bp5-dialog {
   background: #f6f7f9;
   border-radius: 4px;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
   display: flex;
   flex-direction: column;
@@ -5161,8 +5214,10 @@ a.bp5-button.bp5-disabled {
 .bp5-dialog.bp5-dark,
 .bp5-dark .bp5-dialog {
   background: #252a31;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
   color: #f6f7f9;
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -5460,7 +5515,9 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-drawer {
   background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 4px 8px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 4px 8px rgba(17, 20, 24, 0.2),
     0 18px 46px 6px rgba(17, 20, 24, 0.2);
   display: flex;
   flex-direction: column;
@@ -5605,8 +5662,10 @@ a.bp5-button.bp5-disabled {
 .bp5-drawer.bp5-dark,
 .bp5-dark .bp5-drawer {
   background: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
   color: #f6f7f9;
 }
 
@@ -5683,16 +5742,21 @@ a.bp5-button.bp5-disabled {
   top: -2px;
   border-radius: 2px;
   content: '';
-  transition: background-color 100ms cubic-bezier(0.4, 1, 0.75, 0.9),
+  transition:
+    background-color 100ms cubic-bezier(0.4, 1, 0.75, 0.9),
     box-shadow 100ms cubic-bezier(0.4, 1, 0.75, 0.9);
 }
 .bp5-editable-text:hover::before {
-  box-shadow: 0 0 0 0 rgba(45, 114, 210, 0), 0 0 0 0 rgba(45, 114, 210, 0),
+  box-shadow:
+    0 0 0 0 rgba(45, 114, 210, 0),
+    0 0 0 0 rgba(45, 114, 210, 0),
     inset 0 0 0 1px rgba(17, 20, 24, 0.15);
 }
 .bp5-editable-text.bp5-editable-text-editing::before {
   background-color: #ffffff;
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -5714,11 +5778,15 @@ a.bp5-button.bp5-disabled {
   color: #2d72d2;
 }
 .bp5-editable-text.bp5-intent-primary:hover::before {
-  box-shadow: 0 0 0 0 rgba(45, 114, 210, 0), 0 0 0 0 rgba(45, 114, 210, 0),
+  box-shadow:
+    0 0 0 0 rgba(45, 114, 210, 0),
+    0 0 0 0 rgba(45, 114, 210, 0),
     inset 0 0 0 1px rgba(45, 114, 210, 0.4);
 }
 .bp5-editable-text.bp5-intent-primary.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-editable-text.bp5-intent-success
@@ -5735,11 +5803,15 @@ a.bp5-button.bp5-disabled {
   color: #238551;
 }
 .bp5-editable-text.bp5-intent-success:hover::before {
-  box-shadow: 0 0 0 0 rgba(35, 133, 81, 0), 0 0 0 0 rgba(35, 133, 81, 0),
+  box-shadow:
+    0 0 0 0 rgba(35, 133, 81, 0),
+    0 0 0 0 rgba(35, 133, 81, 0),
     inset 0 0 0 1px rgba(35, 133, 81, 0.4);
 }
 .bp5-editable-text.bp5-intent-success.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #238551, 0 0 0 2px rgba(35, 133, 81, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #238551,
+    0 0 0 2px rgba(35, 133, 81, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-editable-text.bp5-intent-warning
@@ -5756,11 +5828,15 @@ a.bp5-button.bp5-disabled {
   color: #c87619;
 }
 .bp5-editable-text.bp5-intent-warning:hover::before {
-  box-shadow: 0 0 0 0 rgba(200, 118, 25, 0), 0 0 0 0 rgba(200, 118, 25, 0),
+  box-shadow:
+    0 0 0 0 rgba(200, 118, 25, 0),
+    0 0 0 0 rgba(200, 118, 25, 0),
     inset 0 0 0 1px rgba(200, 118, 25, 0.4);
 }
 .bp5-editable-text.bp5-intent-warning.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #c87619, 0 0 0 2px rgba(200, 118, 25, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #c87619,
+    0 0 0 2px rgba(200, 118, 25, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-editable-text.bp5-intent-danger
@@ -5777,20 +5853,28 @@ a.bp5-button.bp5-disabled {
   color: #cd4246;
 }
 .bp5-editable-text.bp5-intent-danger:hover::before {
-  box-shadow: 0 0 0 0 rgba(205, 66, 70, 0), 0 0 0 0 rgba(205, 66, 70, 0),
+  box-shadow:
+    0 0 0 0 rgba(205, 66, 70, 0),
+    0 0 0 0 rgba(205, 66, 70, 0),
     inset 0 0 0 1px rgba(205, 66, 70, 0.4);
 }
 .bp5-editable-text.bp5-intent-danger.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #cd4246, 0 0 0 2px rgba(205, 66, 70, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #cd4246,
+    0 0 0 2px rgba(205, 66, 70, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-editable-text:hover::before {
-  box-shadow: 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0),
+  box-shadow:
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 .bp5-dark .bp5-editable-text.bp5-editable-text-editing::before {
   background-color: rgba(17, 20, 24, 0.3);
-  box-shadow: inset 0 0 0 1px #4c90f0, 0 0 0 2px rgba(76, 144, 240, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    0 0 0 2px rgba(76, 144, 240, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -5815,12 +5899,16 @@ a.bp5-button.bp5-disabled {
   color: #8abbff;
 }
 .bp5-dark .bp5-editable-text.bp5-intent-primary:hover::before {
-  box-shadow: 0 0 0 0 rgba(138, 187, 255, 0), 0 0 0 0 rgba(138, 187, 255, 0),
+  box-shadow:
+    0 0 0 0 rgba(138, 187, 255, 0),
+    0 0 0 0 rgba(138, 187, 255, 0),
     inset 0 0 0 1px rgba(138, 187, 255, 0.4);
 }
 .bp5-dark
   .bp5-editable-text.bp5-intent-primary.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #8abbff, 0 0 0 2px rgba(138, 187, 255, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #8abbff,
+    0 0 0 2px rgba(138, 187, 255, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -5842,12 +5930,16 @@ a.bp5-button.bp5-disabled {
   color: #72ca9b;
 }
 .bp5-dark .bp5-editable-text.bp5-intent-success:hover::before {
-  box-shadow: 0 0 0 0 rgba(114, 202, 155, 0), 0 0 0 0 rgba(114, 202, 155, 0),
+  box-shadow:
+    0 0 0 0 rgba(114, 202, 155, 0),
+    0 0 0 0 rgba(114, 202, 155, 0),
     inset 0 0 0 1px rgba(114, 202, 155, 0.4);
 }
 .bp5-dark
   .bp5-editable-text.bp5-intent-success.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #72ca9b, 0 0 0 2px rgba(114, 202, 155, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #72ca9b,
+    0 0 0 2px rgba(114, 202, 155, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -5869,12 +5961,16 @@ a.bp5-button.bp5-disabled {
   color: #fbb360;
 }
 .bp5-dark .bp5-editable-text.bp5-intent-warning:hover::before {
-  box-shadow: 0 0 0 0 rgba(251, 179, 96, 0), 0 0 0 0 rgba(251, 179, 96, 0),
+  box-shadow:
+    0 0 0 0 rgba(251, 179, 96, 0),
+    0 0 0 0 rgba(251, 179, 96, 0),
     inset 0 0 0 1px rgba(251, 179, 96, 0.4);
 }
 .bp5-dark
   .bp5-editable-text.bp5-intent-warning.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #fbb360, 0 0 0 2px rgba(251, 179, 96, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #fbb360,
+    0 0 0 2px rgba(251, 179, 96, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -5896,12 +5992,16 @@ a.bp5-button.bp5-disabled {
   color: #fa999c;
 }
 .bp5-dark .bp5-editable-text.bp5-intent-danger:hover::before {
-  box-shadow: 0 0 0 0 rgba(250, 153, 156, 0), 0 0 0 0 rgba(250, 153, 156, 0),
+  box-shadow:
+    0 0 0 0 rgba(250, 153, 156, 0),
+    0 0 0 0 rgba(250, 153, 156, 0),
     inset 0 0 0 1px rgba(250, 153, 156, 0.4);
 }
 .bp5-dark
   .bp5-editable-text.bp5-intent-danger.bp5-editable-text-editing::before {
-  box-shadow: inset 0 0 0 1px #fa999c, 0 0 0 2px rgba(250, 153, 156, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #fa999c,
+    0 0 0 2px rgba(250, 153, 156, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -6880,8 +6980,11 @@ a.bp5-button.bp5-disabled {
   background: #ffffff;
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 0 rgba(45, 114, 210, 0), 0 0 0 0 rgba(45, 114, 210, 0),
-    inset 0 0 0 1px rgba(17, 20, 24, 0.2), inset 0 1px 1px rgba(17, 20, 24, 0.3);
+  box-shadow:
+    0 0 0 0 rgba(45, 114, 210, 0),
+    0 0 0 0 rgba(45, 114, 210, 0),
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+    inset 0 1px 1px rgba(17, 20, 24, 0.3);
   color: #1c2127;
   font-size: 14px;
   font-weight: 400;
@@ -6920,7 +7023,9 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-file-upload-input:focus,
 .bp5-file-upload-input.bp5-active {
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-file-upload-input[type='search'],
@@ -6959,7 +7064,8 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-file-upload-input::after {
   background-color: #f6f7f9;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #1c2127;
   min-height: 24px;
@@ -6981,12 +7087,14 @@ a.bp5-button.bp5-disabled {
 .bp5-file-upload-input:hover::after {
   background-clip: padding-box;
   background-color: #edeff2;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-file-upload-input:active::after {
   background-color: #dce0e5;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -7032,8 +7140,11 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-dark .bp5-file-upload-input {
   background: rgba(17, 20, 24, 0.3);
-  box-shadow: 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0),
-    0 0 0 0 rgba(76, 144, 240, 0), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
   color: #f6f7f9;
   color: rgba(171, 179, 191, 0.6);
@@ -7048,7 +7159,9 @@ a.bp5-button.bp5-disabled {
   color: #abb3bf;
 }
 .bp5-dark .bp5-file-upload-input:focus {
-  box-shadow: inset 0 0 0 1px #4c90f0, inset 0 0 0 1px #4c90f0,
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    inset 0 0 0 1px #4c90f0,
     0 0 0 2px rgba(76, 144, 240, 0.3);
 }
 .bp5-dark .bp5-file-upload-input[readonly] {
@@ -7062,22 +7175,26 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-dark .bp5-file-upload-input::after {
   background-color: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.2);
   color: #f6f7f9;
 }
 .bp5-dark .bp5-file-upload-input:hover::after {
   background-color: #2f343c;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-file-upload-input:active::after {
   background-color: #1c2127;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-file-upload-input::after {
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
 }
 .bp5-form-group {
@@ -7392,12 +7509,17 @@ a.bp5-button.bp5-disabled {
   color: rgba(171, 179, 191, 0.6);
 }
 .bp5-input-group.bp5-intent-primary .bp5-input {
-  box-shadow: 0 0 0 0 rgba(45, 114, 210, 0), 0 0 0 0 rgba(45, 114, 210, 0),
-    inset 0 0 0 1px #2d72d2, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(45, 114, 210, 0),
+    0 0 0 0 rgba(45, 114, 210, 0),
+    inset 0 0 0 1px #2d72d2,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input-group.bp5-intent-primary .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input-group.bp5-intent-primary .bp5-input[readonly] {
@@ -7408,14 +7530,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input-group.bp5-intent-primary .bp5-input {
-  box-shadow: 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0),
-    0 0 0 0 rgba(76, 144, 240, 0), inset 0 0 0 1px #4c90f0,
+  box-shadow:
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    inset 0 0 0 1px #4c90f0,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-primary .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #4c90f0, inset 0 0 0 1px #4c90f0,
-    0 0 0 2px rgba(76, 144, 240, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    inset 0 0 0 1px #4c90f0,
+    0 0 0 2px rgba(76, 144, 240, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-primary .bp5-input[readonly] {
@@ -7432,12 +7560,17 @@ a.bp5-button.bp5-disabled {
   color: #8abbff;
 }
 .bp5-input-group.bp5-intent-success .bp5-input {
-  box-shadow: 0 0 0 0 rgba(35, 133, 81, 0), 0 0 0 0 rgba(35, 133, 81, 0),
-    inset 0 0 0 1px #238551, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(35, 133, 81, 0),
+    0 0 0 0 rgba(35, 133, 81, 0),
+    inset 0 0 0 1px #238551,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input-group.bp5-intent-success .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #238551, 0 0 0 2px rgba(35, 133, 81, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #238551,
+    0 0 0 2px rgba(35, 133, 81, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input-group.bp5-intent-success .bp5-input[readonly] {
@@ -7448,14 +7581,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input-group.bp5-intent-success .bp5-input {
-  box-shadow: 0 0 0 0 rgba(50, 164, 103, 0), 0 0 0 0 rgba(50, 164, 103, 0),
-    0 0 0 0 rgba(50, 164, 103, 0), inset 0 0 0 1px #32a467,
+  box-shadow:
+    0 0 0 0 rgba(50, 164, 103, 0),
+    0 0 0 0 rgba(50, 164, 103, 0),
+    0 0 0 0 rgba(50, 164, 103, 0),
+    inset 0 0 0 1px #32a467,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-success .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #32a467, inset 0 0 0 1px #32a467,
-    0 0 0 2px rgba(50, 164, 103, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #32a467,
+    inset 0 0 0 1px #32a467,
+    0 0 0 2px rgba(50, 164, 103, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-success .bp5-input[readonly] {
@@ -7472,12 +7611,17 @@ a.bp5-button.bp5-disabled {
   color: #72ca9b;
 }
 .bp5-input-group.bp5-intent-warning .bp5-input {
-  box-shadow: 0 0 0 0 rgba(200, 118, 25, 0), 0 0 0 0 rgba(200, 118, 25, 0),
-    inset 0 0 0 1px #c87619, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(200, 118, 25, 0),
+    0 0 0 0 rgba(200, 118, 25, 0),
+    inset 0 0 0 1px #c87619,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input-group.bp5-intent-warning .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #c87619, 0 0 0 2px rgba(200, 118, 25, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #c87619,
+    0 0 0 2px rgba(200, 118, 25, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input-group.bp5-intent-warning .bp5-input[readonly] {
@@ -7488,14 +7632,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input-group.bp5-intent-warning .bp5-input {
-  box-shadow: 0 0 0 0 rgba(236, 154, 60, 0), 0 0 0 0 rgba(236, 154, 60, 0),
-    0 0 0 0 rgba(236, 154, 60, 0), inset 0 0 0 1px #ec9a3c,
+  box-shadow:
+    0 0 0 0 rgba(236, 154, 60, 0),
+    0 0 0 0 rgba(236, 154, 60, 0),
+    0 0 0 0 rgba(236, 154, 60, 0),
+    inset 0 0 0 1px #ec9a3c,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-warning .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #ec9a3c, inset 0 0 0 1px #ec9a3c,
-    0 0 0 2px rgba(236, 154, 60, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #ec9a3c,
+    inset 0 0 0 1px #ec9a3c,
+    0 0 0 2px rgba(236, 154, 60, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-warning .bp5-input[readonly] {
@@ -7512,12 +7662,17 @@ a.bp5-button.bp5-disabled {
   color: #fbb360;
 }
 .bp5-input-group.bp5-intent-danger .bp5-input {
-  box-shadow: 0 0 0 0 rgba(205, 66, 70, 0), 0 0 0 0 rgba(205, 66, 70, 0),
-    inset 0 0 0 1px #cd4246, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(205, 66, 70, 0),
+    0 0 0 0 rgba(205, 66, 70, 0),
+    inset 0 0 0 1px #cd4246,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input-group.bp5-intent-danger .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #cd4246, 0 0 0 2px rgba(205, 66, 70, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #cd4246,
+    0 0 0 2px rgba(205, 66, 70, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input-group.bp5-intent-danger .bp5-input[readonly] {
@@ -7528,14 +7683,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input-group.bp5-intent-danger .bp5-input {
-  box-shadow: 0 0 0 0 rgba(231, 106, 110, 0), 0 0 0 0 rgba(231, 106, 110, 0),
-    0 0 0 0 rgba(231, 106, 110, 0), inset 0 0 0 1px #e76a6e,
+  box-shadow:
+    0 0 0 0 rgba(231, 106, 110, 0),
+    0 0 0 0 rgba(231, 106, 110, 0),
+    0 0 0 0 rgba(231, 106, 110, 0),
+    inset 0 0 0 1px #e76a6e,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-danger .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #e76a6e, inset 0 0 0 1px #e76a6e,
-    0 0 0 2px rgba(231, 106, 110, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #e76a6e,
+    inset 0 0 0 1px #e76a6e,
+    0 0 0 2px rgba(231, 106, 110, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input-group.bp5-intent-danger .bp5-input[readonly] {
@@ -7558,8 +7719,11 @@ a.bp5-button.bp5-disabled {
   background: #ffffff;
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 0 rgba(45, 114, 210, 0), 0 0 0 0 rgba(45, 114, 210, 0),
-    inset 0 0 0 1px rgba(17, 20, 24, 0.2), inset 0 1px 1px rgba(17, 20, 24, 0.3);
+  box-shadow:
+    0 0 0 0 rgba(45, 114, 210, 0),
+    0 0 0 0 rgba(45, 114, 210, 0),
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+    inset 0 1px 1px rgba(17, 20, 24, 0.3);
   color: #1c2127;
   font-size: 14px;
   font-weight: 400;
@@ -7584,7 +7748,9 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-input:focus,
 .bp5-input.bp5-active {
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input[type='search'],
@@ -7647,8 +7813,11 @@ a.bp5-button.bp5-disabled {
 }
 .bp5-dark .bp5-input {
   background: rgba(17, 20, 24, 0.3);
-  box-shadow: 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0),
-    0 0 0 0 rgba(76, 144, 240, 0), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
   color: #f6f7f9;
 }
@@ -7662,7 +7831,9 @@ a.bp5-button.bp5-disabled {
   color: #abb3bf;
 }
 .bp5-dark .bp5-input:focus {
-  box-shadow: inset 0 0 0 1px #4c90f0, inset 0 0 0 1px #4c90f0,
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    inset 0 0 0 1px #4c90f0,
     0 0 0 2px rgba(76, 144, 240, 0.3);
 }
 .bp5-dark .bp5-input[readonly] {
@@ -7675,12 +7846,17 @@ a.bp5-button.bp5-disabled {
   color: rgba(171, 179, 191, 0.6);
 }
 .bp5-input.bp5-intent-primary {
-  box-shadow: 0 0 0 0 rgba(45, 114, 210, 0), 0 0 0 0 rgba(45, 114, 210, 0),
-    inset 0 0 0 1px #2d72d2, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(45, 114, 210, 0),
+    0 0 0 0 rgba(45, 114, 210, 0),
+    inset 0 0 0 1px #2d72d2,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input.bp5-intent-primary:focus {
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input.bp5-intent-primary[readonly] {
@@ -7691,14 +7867,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input.bp5-intent-primary {
-  box-shadow: 0 0 0 0 rgba(76, 144, 240, 0), 0 0 0 0 rgba(76, 144, 240, 0),
-    0 0 0 0 rgba(76, 144, 240, 0), inset 0 0 0 1px #4c90f0,
+  box-shadow:
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    0 0 0 0 rgba(76, 144, 240, 0),
+    inset 0 0 0 1px #4c90f0,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-primary:focus {
-  box-shadow: inset 0 0 0 1px #4c90f0, inset 0 0 0 1px #4c90f0,
-    0 0 0 2px rgba(76, 144, 240, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    inset 0 0 0 1px #4c90f0,
+    0 0 0 2px rgba(76, 144, 240, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-primary[readonly] {
@@ -7709,12 +7891,17 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-input.bp5-intent-success {
-  box-shadow: 0 0 0 0 rgba(35, 133, 81, 0), 0 0 0 0 rgba(35, 133, 81, 0),
-    inset 0 0 0 1px #238551, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(35, 133, 81, 0),
+    0 0 0 0 rgba(35, 133, 81, 0),
+    inset 0 0 0 1px #238551,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input.bp5-intent-success:focus {
-  box-shadow: inset 0 0 0 1px #238551, 0 0 0 2px rgba(35, 133, 81, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #238551,
+    0 0 0 2px rgba(35, 133, 81, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input.bp5-intent-success[readonly] {
@@ -7725,14 +7912,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input.bp5-intent-success {
-  box-shadow: 0 0 0 0 rgba(50, 164, 103, 0), 0 0 0 0 rgba(50, 164, 103, 0),
-    0 0 0 0 rgba(50, 164, 103, 0), inset 0 0 0 1px #32a467,
+  box-shadow:
+    0 0 0 0 rgba(50, 164, 103, 0),
+    0 0 0 0 rgba(50, 164, 103, 0),
+    0 0 0 0 rgba(50, 164, 103, 0),
+    inset 0 0 0 1px #32a467,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-success:focus {
-  box-shadow: inset 0 0 0 1px #32a467, inset 0 0 0 1px #32a467,
-    0 0 0 2px rgba(50, 164, 103, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #32a467,
+    inset 0 0 0 1px #32a467,
+    0 0 0 2px rgba(50, 164, 103, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-success[readonly] {
@@ -7743,12 +7936,17 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-input.bp5-intent-warning {
-  box-shadow: 0 0 0 0 rgba(200, 118, 25, 0), 0 0 0 0 rgba(200, 118, 25, 0),
-    inset 0 0 0 1px #c87619, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(200, 118, 25, 0),
+    0 0 0 0 rgba(200, 118, 25, 0),
+    inset 0 0 0 1px #c87619,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input.bp5-intent-warning:focus {
-  box-shadow: inset 0 0 0 1px #c87619, 0 0 0 2px rgba(200, 118, 25, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #c87619,
+    0 0 0 2px rgba(200, 118, 25, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input.bp5-intent-warning[readonly] {
@@ -7759,14 +7957,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input.bp5-intent-warning {
-  box-shadow: 0 0 0 0 rgba(236, 154, 60, 0), 0 0 0 0 rgba(236, 154, 60, 0),
-    0 0 0 0 rgba(236, 154, 60, 0), inset 0 0 0 1px #ec9a3c,
+  box-shadow:
+    0 0 0 0 rgba(236, 154, 60, 0),
+    0 0 0 0 rgba(236, 154, 60, 0),
+    0 0 0 0 rgba(236, 154, 60, 0),
+    inset 0 0 0 1px #ec9a3c,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-warning:focus {
-  box-shadow: inset 0 0 0 1px #ec9a3c, inset 0 0 0 1px #ec9a3c,
-    0 0 0 2px rgba(236, 154, 60, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #ec9a3c,
+    inset 0 0 0 1px #ec9a3c,
+    0 0 0 2px rgba(236, 154, 60, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-warning[readonly] {
@@ -7777,12 +7981,17 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-input.bp5-intent-danger {
-  box-shadow: 0 0 0 0 rgba(205, 66, 70, 0), 0 0 0 0 rgba(205, 66, 70, 0),
-    inset 0 0 0 1px #cd4246, inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 0 rgba(205, 66, 70, 0),
+    0 0 0 0 rgba(205, 66, 70, 0),
+    inset 0 0 0 1px #cd4246,
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     inset 0 1px 1px rgba(17, 20, 24, 0.3);
 }
 .bp5-input.bp5-intent-danger:focus {
-  box-shadow: inset 0 0 0 1px #cd4246, 0 0 0 2px rgba(205, 66, 70, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #cd4246,
+    0 0 0 2px rgba(205, 66, 70, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-input.bp5-intent-danger[readonly] {
@@ -7793,14 +8002,20 @@ a.bp5-button.bp5-disabled {
   box-shadow: none;
 }
 .bp5-dark .bp5-input.bp5-intent-danger {
-  box-shadow: 0 0 0 0 rgba(231, 106, 110, 0), 0 0 0 0 rgba(231, 106, 110, 0),
-    0 0 0 0 rgba(231, 106, 110, 0), inset 0 0 0 1px #e76a6e,
+  box-shadow:
+    0 0 0 0 rgba(231, 106, 110, 0),
+    0 0 0 0 rgba(231, 106, 110, 0),
+    0 0 0 0 rgba(231, 106, 110, 0),
+    inset 0 0 0 1px #e76a6e,
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-danger:focus {
-  box-shadow: inset 0 0 0 1px #e76a6e, inset 0 0 0 1px #e76a6e,
-    0 0 0 2px rgba(231, 106, 110, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #e76a6e,
+    inset 0 0 0 1px #e76a6e,
+    0 0 0 2px rgba(231, 106, 110, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-input.bp5-intent-danger[readonly] {
@@ -7952,7 +8167,8 @@ form {
   text-align: left;
   vertical-align: middle;
   background-color: #f6f7f9;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #1c2127;
   -moz-appearance: none;
@@ -7988,7 +8204,8 @@ form {
 .bp5-select select:hover {
   background-clip: padding-box;
   background-color: #edeff2;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-html-select select:active,
@@ -7996,7 +8213,8 @@ form {
 .bp5-html-select select.bp5-active,
 .bp5-select select.bp5-active {
   background-color: #dce0e5;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -8561,7 +8779,8 @@ form {
 .bp5-dark .bp5-html-select select,
 .bp5-dark .bp5-select select {
   background-color: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.2);
   color: #f6f7f9;
 }
@@ -8576,7 +8795,8 @@ form {
 .bp5-dark .bp5-html-select select:hover,
 .bp5-dark .bp5-select select:hover {
   background-color: #2f343c;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-html-select select:active,
@@ -8584,7 +8804,8 @@ form {
 .bp5-dark .bp5-html-select select.bp5-active,
 .bp5-dark .bp5-select select.bp5-active {
   background-color: #1c2127;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-html-select select:disabled,
@@ -12009,7 +12230,9 @@ span.bp5-icon:empty.bp5-icon-large {
   padding: 0 5px;
 }
 .bp5-submenu.bp5-popover > .bp5-popover-content {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-submenu.bp5-popover,
@@ -12018,8 +12241,10 @@ span.bp5-icon:empty.bp5-icon-large {
 }
 .bp5-dark .bp5-submenu.bp5-popover > .bp5-popover-content,
 .bp5-submenu.bp5-popover.bp5-dark > .bp5-popover-content {
-  box-shadow: 0 0 0 1px hsl(215, 3%, 38%),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(17, 20, 24, 0.4),
+  box-shadow:
+    0 0 0 1px hsl(215, 3%, 38%),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
     0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-menu {
@@ -12509,7 +12734,9 @@ button.bp5-menu-item {
 }
 .bp5-navbar {
   background-color: #ffffff;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2);
   height: 50px;
   padding: 0 15px;
   position: relative;
@@ -12521,11 +12748,13 @@ button.bp5-menu-item {
   background-color: #2f343c;
 }
 .bp5-navbar.bp5-dark {
-  box-shadow: inset inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-navbar {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
 }
 .bp5-navbar.bp5-fixed-top {
@@ -12997,7 +13226,9 @@ label.bp5-label .bp5-popover-target {
   padding: 0 5px;
 }
 .bp5-submenu.bp5-popover > .bp5-popover-content {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-submenu.bp5-popover,
@@ -13006,8 +13237,10 @@ label.bp5-label .bp5-popover-target {
 }
 .bp5-dark .bp5-submenu.bp5-popover > .bp5-popover-content,
 .bp5-submenu.bp5-popover.bp5-dark > .bp5-popover-content {
-  box-shadow: 0 0 0 1px hsl(215, 3%, 38%),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(17, 20, 24, 0.4),
+  box-shadow:
+    0 0 0 1px hsl(215, 3%, 38%),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
     0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-tree-node-secondary-label .bp5-popover-target {
@@ -13016,7 +13249,9 @@ label.bp5-label .bp5-popover-target {
 }
 
 .bp5-popover {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
   transform: scale(1);
   border-radius: 2px;
@@ -13129,8 +13364,10 @@ label.bp5-label .bp5-popover-target {
 }
 .bp5-popover.bp5-dark,
 .bp5-dark .bp5-popover {
-  box-shadow: 0 0 0 1px hsl(215, 3%, 38%),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 2px 4px rgba(17, 20, 24, 0.4),
+  box-shadow:
+    0 0 0 1px hsl(215, 3%, 38%),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
     0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-popover.bp5-dark .bp5-popover-content,
@@ -13145,7 +13382,9 @@ label.bp5-label .bp5-popover-target {
 }
 .bp5-popover.bp5-dark .bp5-popover-arrow::before,
 .bp5-dark .bp5-popover .bp5-popover-arrow::before {
-  box-shadow: 0 0 0 1px #777a7e, 1px 1px 6px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    0 0 0 1px #777a7e,
+    1px 1px 6px rgba(17, 20, 24, 0.4);
 }
 .bp5-popover.bp5-dark .bp5-popover-arrow-border,
 .bp5-dark .bp5-popover .bp5-popover-arrow-border {
@@ -13452,7 +13691,9 @@ span.bp5-popover-target {
   visibility: hidden !important;
 }
 .bp5-tooltip {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
   transform: scale(1);
   color: #f6f7f9;
@@ -13564,7 +13805,8 @@ a > .bp5-tooltip .bp5-running-text code {
 .bp5-tooltip .bp5-key,
 .bp5-tooltip .bp5-running-text kbd {
   background: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
   color: #abb3bf;
 }
@@ -13612,7 +13854,9 @@ a > .bp5-tooltip .bp5-running-text code {
 }
 .bp5-tooltip.bp5-dark,
 .bp5-dark .bp5-tooltip {
-  box-shadow: 0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-tooltip.bp5-dark .bp5-popover-content,
 .bp5-dark .bp5-tooltip .bp5-popover-content {
@@ -13725,7 +13969,9 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-dark .bp5-tooltip .bp5-key,
 .bp5-dark .bp5-tooltip .bp5-running-text kbd {
   background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2);
   color: #5f6b7c;
 }
 .bp5-tooltip.bp5-dark .bp5-icon.bp5-intent-primary,
@@ -13879,11 +14125,14 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 
 .bp5-slider-handle {
   background-color: #f6f7f9;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.1);
   color: #1c2127;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.5), 0 1px 1px rgba(17, 20, 24, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.5),
+    0 1px 1px rgba(17, 20, 24, 0.5);
   cursor: pointer;
   height: 16px;
   left: 0;
@@ -13894,13 +14143,15 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-slider-handle:hover {
   background-clip: padding-box;
   background-color: #edeff2;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-slider-handle:active,
 .bp5-slider-handle.bp5-active {
   background-color: #dce0e5;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -13934,18 +14185,24 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-slider-handle:hover {
   background-clip: padding-box;
   background-color: #edeff2;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.5), 0 1px 2px rgba(17, 20, 24, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.5),
+    0 1px 2px rgba(17, 20, 24, 0.6);
   cursor: grab;
   z-index: 2;
 }
 .bp5-slider-handle.bp5-active {
   background-color: #dce0e5;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
     0 1px 2px rgba(17, 20, 24, 0.2);
-  box-shadow: inset 0 1px 1px rgba(17, 20, 24, 0.1),
-    0 0 0 1px rgba(17, 20, 24, 0.5), 0 1px 2px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    inset 0 1px 1px rgba(17, 20, 24, 0.1),
+    0 0 0 1px rgba(17, 20, 24, 0.5),
+    0 1px 2px rgba(17, 20, 24, 0.2);
   cursor: grabbing;
 }
 @media (forced-colors: active) and (prefers-color-scheme: dark) {
@@ -13960,18 +14217,22 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 }
 .bp5-dark .bp5-slider-handle {
   background-color: #abb3bf;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-slider-handle:hover {
   background-color: #8f99a8;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-slider-handle.bp5-active {
   background-color: #738091;
-  box-shadow: inset 0 1px 1px rgba(17, 20, 24, 0.1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 1px 1px rgba(17, 20, 24, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(17, 20, 24, 0.4);
 }
 .bp5-dark .bp5-disabled .bp5-slider-handle {
   background: #5f6b7c;
@@ -13981,14 +14242,18 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-slider-handle .bp5-slider-label {
   background: #404854;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
   color: #f6f7f9;
   margin-left: 8px;
 }
 .bp5-dark .bp5-slider-handle .bp5-slider-label {
   background: #e5e8eb;
-  box-shadow: 0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
   color: #404854;
 }
 .bp5-disabled .bp5-slider-handle .bp5-slider-label {
@@ -15524,23 +15789,33 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 }
 .bp5-tag-input.bp5-active {
   background-color: #ffffff;
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-tag-input.bp5-active.bp5-intent-primary {
-  box-shadow: inset 0 0 0 1px #2d72d2, 0 0 0 2px rgba(45, 114, 210, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #2d72d2,
+    0 0 0 2px rgba(45, 114, 210, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-tag-input.bp5-active.bp5-intent-success {
-  box-shadow: inset 0 0 0 1px #238551, 0 0 0 2px rgba(35, 133, 81, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #238551,
+    0 0 0 2px rgba(35, 133, 81, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-tag-input.bp5-active.bp5-intent-warning {
-  box-shadow: inset 0 0 0 1px #c87619, 0 0 0 2px rgba(200, 118, 25, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #c87619,
+    0 0 0 2px rgba(200, 118, 25, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-tag-input.bp5-active.bp5-intent-danger {
-  box-shadow: inset 0 0 0 1px #cd4246, 0 0 0 2px rgba(205, 66, 70, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #cd4246,
+    0 0 0 2px rgba(205, 66, 70, 0.3),
     inset 0 1px 1px rgba(17, 20, 24, 0.2);
 }
 .bp5-dark .bp5-tag-input .bp5-tag-input-icon,
@@ -15566,31 +15841,42 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-dark .bp5-tag-input.bp5-active,
 .bp5-tag-input.bp5-dark.bp5-active {
   background-color: rgba(17, 20, 24, 0.3);
-  box-shadow: inset 0 0 0 1px #4c90f0, inset 0 0 0 1px #4c90f0,
-    0 0 0 2px rgba(76, 144, 240, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    inset 0 0 0 1px #4c90f0,
+    0 0 0 2px rgba(76, 144, 240, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-tag-input.bp5-active.bp5-intent-primary,
 .bp5-tag-input.bp5-dark.bp5-active.bp5-intent-primary {
-  box-shadow: inset 0 0 0 1px #4c90f0, 0 0 0 2px rgba(76, 144, 240, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #4c90f0,
+    0 0 0 2px rgba(76, 144, 240, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-tag-input.bp5-active.bp5-intent-success,
 .bp5-tag-input.bp5-dark.bp5-active.bp5-intent-success {
-  box-shadow: inset 0 0 0 1px #32a467, 0 0 0 2px rgba(50, 164, 103, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #32a467,
+    0 0 0 2px rgba(50, 164, 103, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-tag-input.bp5-active.bp5-intent-warning,
 .bp5-tag-input.bp5-dark.bp5-active.bp5-intent-warning {
-  box-shadow: inset 0 0 0 1px #ec9a3c, 0 0 0 2px rgba(236, 154, 60, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #ec9a3c,
+    0 0 0 2px rgba(236, 154, 60, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
 .bp5-dark .bp5-tag-input.bp5-active.bp5-intent-danger,
 .bp5-tag-input.bp5-dark.bp5-active.bp5-intent-danger {
-  box-shadow: inset 0 0 0 1px #e76a6e, 0 0 0 2px rgba(231, 106, 110, 0.3),
+  box-shadow:
+    inset 0 0 0 1px #e76a6e,
+    0 0 0 2px rgba(231, 106, 110, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -15630,8 +15916,10 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
   align-items: flex-start;
   background-color: #ffffff;
   border-radius: 2px;
-  box-shadow: inset 0 0 0 1px rgba(17, 20, 24, 0.2),
-    0 2px 4px rgba(17, 20, 24, 0.2), 0 8px 24px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(17, 20, 24, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.2),
+    0 8px 24px rgba(17, 20, 24, 0.2);
   display: flex;
   margin: 20px 0 0;
   max-width: 500px;
@@ -15698,8 +15986,10 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-toast.bp5-dark,
 .bp5-dark .bp5-toast {
   background-color: #404854;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-toast.bp5-dark > .bp5-icon,
 .bp5-dark .bp5-toast > .bp5-icon {
@@ -15872,7 +16162,9 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
   transform: translateY(60px);
 }
 .bp5-tooltip {
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 2px 4px rgba(17, 20, 24, 0.2),
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 2px 4px rgba(17, 20, 24, 0.2),
     0 8px 24px rgba(17, 20, 24, 0.2);
   transform: scale(1);
   color: #f6f7f9;
@@ -15984,7 +16276,8 @@ a > .bp5-tooltip .bp5-running-text code {
 .bp5-tooltip .bp5-key,
 .bp5-tooltip .bp5-running-text kbd {
   background: #383e47;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 1px 1px 0 rgba(17, 20, 24, 0.4);
   color: #abb3bf;
 }
@@ -16032,7 +16325,9 @@ a > .bp5-tooltip .bp5-running-text code {
 }
 .bp5-tooltip.bp5-dark,
 .bp5-dark .bp5-tooltip {
-  box-shadow: 0 2px 4px rgba(17, 20, 24, 0.4), 0 8px 24px rgba(17, 20, 24, 0.4);
+  box-shadow:
+    0 2px 4px rgba(17, 20, 24, 0.4),
+    0 8px 24px rgba(17, 20, 24, 0.4);
 }
 .bp5-tooltip.bp5-dark .bp5-popover-content,
 .bp5-dark .bp5-tooltip .bp5-popover-content {
@@ -16145,7 +16440,9 @@ a > .bp5-dark .bp5-tooltip .bp5-running-text code {
 .bp5-dark .bp5-tooltip .bp5-key,
 .bp5-dark .bp5-tooltip .bp5-running-text kbd {
   background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(17, 20, 24, 0.1), 0 1px 1px rgba(17, 20, 24, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(17, 20, 24, 0.1),
+    0 1px 1px rgba(17, 20, 24, 0.2);
   color: #5f6b7c;
 }
 .bp5-tooltip.bp5-dark .bp5-icon.bp5-intent-primary,

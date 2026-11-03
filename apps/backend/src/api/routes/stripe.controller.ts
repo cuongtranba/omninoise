@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Post,
-  RawBodyRequest,
-  Req,
-} from '@nestjs/common';
+import { Controller, Post, RawBodyRequest, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';

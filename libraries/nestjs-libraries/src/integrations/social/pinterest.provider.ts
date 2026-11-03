@@ -45,7 +45,7 @@ type PinterestPendingData = {
 };
 
 @Rules(
-  'Pinterest requires at least one media, if posting a video, you must have two attachment, one for video, one for the cover picture, When posting a video, there can be only one, if posting images, there can be maximum 5',
+  'Pinterest requires at least one media, if posting a video, you must have two attachment, one for video, one for the cover picture, When posting a video, there can be only one, if posting images, there can be maximum 5'
 )
 export class PinterestProvider
   extends SocialAbstract
@@ -74,10 +74,10 @@ export class PinterestProvider
     string | true
   > {
     const isMp4 = firstItem?.find(
-      (item) => (item?.path?.indexOf?.('mp4') ?? -1) > -1,
+      (item) => (item?.path?.indexOf?.('mp4') ?? -1) > -1
     );
     const isPicture = firstItem?.find(
-      (item) => (item?.path?.indexOf?.('mp4') ?? -1) === -1,
+      (item) => (item?.path?.indexOf?.('mp4') ?? -1) === -1
     );
     if ((firstItem?.length ?? 0) === 0) {
       return 'Requires at least one media';
@@ -97,7 +97,7 @@ export class PinterestProvider
       firstItem?.every((p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1)
     ) {
       const loadAll = await Promise.all(
-        firstItem?.map((p) => this.getImageDimensions(p?.path)) ?? [],
+        firstItem?.map((p) => this.getImageDimensions(p?.path)) ?? []
       );
       const checkAllTheSameWidthHeight = loadAll?.every((p, i, arr) => {
         return p?.width === arr?.[0]?.width && p?.height === arr?.[0]?.height;
@@ -175,7 +175,7 @@ export class PinterestProvider
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${Buffer.from(
-            `${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`,
+            `${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`
           ).toString('base64')}`,
         },
         body: new URLSearchParams({
@@ -213,9 +213,9 @@ export class PinterestProvider
       url: `https://www.pinterest.com/oauth/?client_id=${
         process.env.PINTEREST_CLIENT_ID
       }&redirect_uri=${encodeURIComponent(
-        `${process.env.FRONTEND_URL}/integrations/social/pinterest`,
+        `${process.env.FRONTEND_URL}/integrations/social/pinterest`
       )}&response_type=code&scope=${encodeURIComponent(
-        'boards:read,boards:write,pins:read,pins:write,user_accounts:read',
+        'boards:read,boards:write,pins:read,pins:write,user_accounts:read'
       )}&state=${state}`,
       codeVerifier: makeSecureId(10),
       state,
@@ -233,7 +233,7 @@ export class PinterestProvider
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${Buffer.from(
-            `${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`,
+            `${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`
           ).toString('base64')}`,
         },
         body: new URLSearchParams({
@@ -288,14 +288,14 @@ export class PinterestProvider
   async postPending(
     id: string,
     accessToken: string,
-    postDetails: PostDetails<PinterestSettingsDto>[],
+    postDetails: PostDetails<PinterestSettingsDto>[]
   ): Promise<PostResponse[]> {
     let mediaId = '';
     const findMp4 = postDetails?.[0]?.media?.find((p) =>
-      hasExtension(p.path, 'mp4'),
+      hasExtension(p.path, 'mp4')
     );
     const picture = postDetails?.[0]?.media?.find(
-      (p) => !hasExtension(p.path, 'mp4'),
+      (p) => !hasExtension(p.path, 'mp4')
     );
 
     // Upload the video now; the processing wait moves to checkPostStatus and
@@ -357,7 +357,7 @@ export class PinterestProvider
   override async checkPostStatus(
     accessToken: string,
     pendingData: PinterestPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // A confirmed create attempt died without reporting its result: Pinterest
     // gives no way to ask whether that pin was created, so never run the
@@ -367,7 +367,7 @@ export class PinterestProvider
         'pinterest',
         JSON.stringify({}),
         {} as any,
-        'Pinterest may have already published this pin, please check your account before posting again to avoid duplicates',
+        'Pinterest may have already published this pin, please check your account before posting again to avoid duplicates'
       );
     }
 
@@ -399,7 +399,7 @@ export class PinterestProvider
           },
           '',
           0,
-          true,
+          true
         )
       ).json();
     } catch (err) {
@@ -418,7 +418,7 @@ export class PinterestProvider
         'pinterest',
         JSON.stringify({}),
         {} as any,
-        'The file is corrupted and cannot be uploaded',
+        'The file is corrupted and cannot be uploaded'
       );
     }
 
@@ -432,7 +432,7 @@ export class PinterestProvider
   override async finalizePost(
     accessToken: string,
     pendingData: PinterestPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // Create with an arm -> confirm -> publish handshake: the create only runs
     // after checkPostStatus witnessed the intent, so a run that dies
@@ -500,7 +500,7 @@ export class PinterestProvider
     id: string,
     accessToken: string,
     postDetails: PostDetails<PinterestSettingsDto>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const [response] = await this.postPending(id, accessToken, postDetails);
 
@@ -518,14 +518,14 @@ export class PinterestProvider
           'pinterest',
           JSON.stringify({}),
           {} as any,
-          'The file took too long to process, please try again',
+          'The file took too long to process, please try again'
         );
       }
 
       const check = await this.checkPostStatus(
         accessToken,
         pendingData,
-        integration,
+        integration
       );
 
       if (check.status === 'pending') {
@@ -560,7 +560,7 @@ export class PinterestProvider
     id: string,
     accessToken: string,
     date: number,
-    offset = 0,
+    offset = 0
   ): Promise<AnalyticsData[]> {
     // Pinterest analytics only cover the last 90 days (89 for a UTC safety margin)
     const days = Math.min(date, 89);
@@ -588,7 +588,7 @@ export class PinterestProvider
         {
           method: 'GET',
           headers,
-        },
+        }
       )
     ).json();
 
@@ -627,7 +627,7 @@ export class PinterestProvider
         ...(aggregate ? { aggregate } : {}),
         percentageChange: 0,
         data: [] as Array<{ total: string; date: string }>,
-      }),
+      })
     );
 
     for (const item of daily_metrics) {
@@ -651,7 +651,7 @@ export class PinterestProvider
           {
             method: 'GET',
             headers,
-          },
+          }
         )
       ).json();
 
@@ -731,7 +731,7 @@ export class PinterestProvider
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
     // Pinterest only serves pin analytics for the last 90 days (89 for a UTC safety margin)
@@ -747,7 +747,7 @@ export class PinterestProvider
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-        },
+        }
       );
 
       const data = await response.json();
@@ -815,7 +815,7 @@ export class PinterestProvider
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
-            },
+            }
           )
         ).json();
 

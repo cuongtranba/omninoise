@@ -14,9 +14,15 @@ import { ApiTags } from '@nestjs/swagger';
 import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions.ability';
 import {
-  AnalyticsPreviewDto, OnlyURL, UpdateDto, WebhooksDto
+  AnalyticsPreviewDto,
+  OnlyURL,
+  UpdateDto,
+  WebhooksDto,
 } from '@gitroom/nestjs-libraries/dtos/webhooks/webhooks.dto';
-import { AuthorizationActions, Sections } from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
+import {
+  AuthorizationActions,
+  Sections,
+} from '@gitroom/nestjs-libraries/permissions/permission.exception.class';
 
 @ApiTags('Webhooks')
 @Controller('/webhooks')

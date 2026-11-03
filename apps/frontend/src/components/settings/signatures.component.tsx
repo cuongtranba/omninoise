@@ -86,7 +86,9 @@ export const SignaturesComponent: FC<{
                   {t('actions', 'Actions')}
                 </div>
               )}
-              <div className="text-center mobile:hidden">{t('edit', 'Edit')}</div>
+              <div className="text-center mobile:hidden">
+                {t('edit', 'Edit')}
+              </div>
               <div className="text-center mobile:hidden">
                 {t('delete', 'Delete')}
               </div>
@@ -250,12 +252,8 @@ const AddOrRemoveSignature: FC<{
               setValueAs: (value) => value === 'true',
             })}
           >
-            <option value="false">
-              {t('no', 'No')}
-            </option>
-            <option value="true">
-              {t('yes', 'Yes')}
-            </option>
+            <option value="false">{t('no', 'No')}</option>
+            <option value="true">{t('yes', 'Yes')}</option>
           </Select>
 
           <Button type="submit">{t('save', 'Save')}</Button>

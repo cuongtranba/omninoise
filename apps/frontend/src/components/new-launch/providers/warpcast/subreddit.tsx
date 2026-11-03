@@ -6,8 +6,7 @@ import { Input } from '@gitroom/react/form/input';
 import { useDebouncedCallback } from 'use-debounce';
 import { FieldError, get, useWatch } from 'react-hook-form';
 import { useSettings } from '@gitroom/frontend/components/launches/helpers/use.values';
-type SubredditErrors = FieldError &
-  Partial<Record<'subreddit', FieldError>>;
+type SubredditErrors = FieldError & Partial<Record<'subreddit', FieldError>>;
 export const Subreddit: FC<{
   onChange: (event: {
     target: {

@@ -315,7 +315,14 @@ export const withProvider = function <T extends object>(params: {
               ))}
             {(SettingsComponent || !!data?.internalPlugs?.length) &&
               createPortal(
-                <div data-id={props.id} className={isGlobal ? 'bg-newSettings pb-[12px] px-[12px] mobile:bg-transparent mobile:px-[16px]' : 'hidden bg-newSettings px-[12px] pb-[12px] mobile:bg-transparent mobile:px-[16px]'}>
+                <div
+                  data-id={props.id}
+                  className={
+                    isGlobal
+                      ? 'bg-newSettings pb-[12px] px-[12px] mobile:bg-transparent mobile:px-[16px]'
+                      : 'hidden bg-newSettings px-[12px] pb-[12px] mobile:bg-transparent mobile:px-[16px]'
+                  }
+                >
                   {isGlobal && (
                     <style>{`#wrapper-settings {display: flex !important} #social-empty {display: block !important;}`}</style>
                   )}
@@ -337,7 +344,9 @@ export const withProvider = function <T extends object>(params: {
                           src={`/icons/platforms/${selectedIntegration?.integration.identifier}.png`}
                         />
                       </div>
-                      <div className="text-[20px]">{selectedIntegration?.integration.name}</div>
+                      <div className="text-[20px]">
+                        {selectedIntegration?.integration.name}
+                      </div>
                     </div>
                   )}
                   <SettingsComponent />

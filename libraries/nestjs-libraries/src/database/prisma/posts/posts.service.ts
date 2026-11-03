@@ -135,9 +135,8 @@ export class PostsService {
       dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
       forceRefresh
     ) {
-      const data = await this._refreshIntegrationService.refresh(
-        getIntegration
-      );
+      const data =
+        await this._refreshIntegrationService.refresh(getIntegration);
       if (!data) {
         return [];
       }
@@ -282,9 +281,8 @@ export class PostsService {
     // only refreshed once the platform rejects the token, so a post that is
     // already resolved never reaches the platform
     if (forceRefresh) {
-      const data = await this._refreshIntegrationService.refresh(
-        getIntegration
-      );
+      const data =
+        await this._refreshIntegrationService.refresh(getIntegration);
       if (!data) {
         return { releaseURL: post.releaseURL, reconnect: true };
       }
@@ -348,9 +346,8 @@ export class PostsService {
       dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
       forceRefresh
     ) {
-      const data = await this._refreshIntegrationService.refresh(
-        getIntegration
-      );
+      const data =
+        await this._refreshIntegrationService.refresh(getIntegration);
       if (!data) {
         return [];
       }
@@ -408,9 +405,8 @@ export class PostsService {
   async getStatistics(orgId: string, id: string) {
     const getPost = await this.getPostsRecursively(id, true, orgId, true);
     const content = getPost.map((p) => p.content);
-    const shortLinksTracking = await this._shortLinkService.getStatistics(
-      content
-    );
+    const shortLinksTracking =
+      await this._shortLinkService.getStatistics(content);
 
     return {
       clicks: shortLinksTracking,

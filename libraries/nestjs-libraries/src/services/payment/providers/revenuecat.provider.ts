@@ -82,9 +82,8 @@ export class RevenueCatProvider extends PaymentProviderAbstract {
   }
 
   override async syncSubscription(organizationId: string) {
-    const organization = await this._organizationService.getOrgById(
-      organizationId
-    );
+    const organization =
+      await this._organizationService.getOrgById(organizationId);
     if (!organization) {
       return { active: false };
     }

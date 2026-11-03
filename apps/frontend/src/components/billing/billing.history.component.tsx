@@ -103,7 +103,7 @@ export const BillingHistory: FC<{ modal?: boolean }> = ({ modal }) => {
           label: t('billing_status_void', 'Void'),
           color: 'text-textItemBlur',
         },
-      } as Record<Invoice['status'], { label: string; color: string }>),
+      }) as Record<Invoice['status'], { label: string; color: string }>,
     [t]
   );
 
@@ -120,8 +120,8 @@ export const BillingHistory: FC<{ modal?: boolean }> = ({ modal }) => {
             invoice.period === 'YEARLY'
               ? t('billing_yearly', 'Yearly')
               : invoice.period === 'MONTHLY'
-              ? t('billing_monthly', 'Monthly')
-              : '',
+                ? t('billing_monthly', 'Monthly')
+                : '',
           amountLabel: formatAmount(invoice.amount, invoice.currency),
           purchaseDate: formatDate(invoice.created),
           endDate: formatDate(invoice.periodEnd),

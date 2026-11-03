@@ -43,7 +43,7 @@ class CloudflareStorage implements IUploadProvider {
     secretKey: string,
     private region: string,
     private _bucketName: string,
-    private _uploadUrl: string,
+    private _uploadUrl: string
   ) {
     this._client = new S3Client({
       endpoint: `https://${accountID}.r2.cloudflarestorage.com`,
@@ -74,12 +74,12 @@ class CloudflareStorage implements IUploadProvider {
                 request.headers = {};
               }
               (request.headers as Record<string, string>)[key] = value;
-            },
+            }
           );
 
           return next(args);
         },
-      { step: 'build', name: 'customHeaders' },
+      { step: 'build', name: 'customHeaders' }
     );
   }
 
@@ -162,7 +162,7 @@ class CloudflareStorage implements IUploadProvider {
   async uploadStream(
     stream: Readable,
     mimetype: string,
-    ext: string,
+    ext: string
   ): Promise<UploadedStream> {
     try {
       if (!ALLOWED_MIME_TYPES.has(mimetype)) {
@@ -201,7 +201,7 @@ class CloudflareStorage implements IUploadProvider {
     return getSignedUrl(
       this._client,
       new GetObjectCommand({ Bucket: this._bucketName, Key: fileName }),
-      { expiresIn: 3 * 3600 },
+      { expiresIn: 3 * 3600 }
     );
   }
 
@@ -213,7 +213,7 @@ class CloudflareStorage implements IUploadProvider {
         Key: fileName,
         ContentType: contentType,
       }),
-      { expiresIn: 3 * 3600 },
+      { expiresIn: 3 * 3600 }
     );
   }
 
@@ -223,7 +223,7 @@ class CloudflareStorage implements IUploadProvider {
 
   async readFile(fileName: string) {
     const { Body } = await this._client.send(
-      new GetObjectCommand({ Bucket: this._bucketName, Key: fileName }),
+      new GetObjectCommand({ Bucket: this._bucketName, Key: fileName })
     );
 
     return Body!.transformToString();
@@ -236,7 +236,7 @@ class CloudflareStorage implements IUploadProvider {
         Key: fileName,
         Body: body,
         ContentType: contentType,
-      }),
+      })
     );
   }
 
@@ -251,7 +251,7 @@ class CloudflareStorage implements IUploadProvider {
       new DeleteObjectCommand({
         Bucket: this._bucketName,
         Key: fileName,
-      }),
+      })
     );
   }
 }

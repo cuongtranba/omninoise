@@ -15,7 +15,7 @@ import { SubscriptionException } from '@gitroom/nestjs-libraries/permissions/per
 export class PoliciesGuard implements CanActivate {
   constructor(
     private _reflector: Reflector,
-    private _authorizationService: PermissionsService,
+    private _authorizationService: PermissionsService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -32,7 +32,7 @@ export class PoliciesGuard implements CanActivate {
     const policyHandlers =
       this._reflector.get<AbilityPolicy[]>(
         CHECK_POLICIES_KEY,
-        context.getHandler(),
+        context.getHandler()
       ) || [];
 
     if (!policyHandlers || !policyHandlers.length) {
@@ -51,11 +51,11 @@ export class PoliciesGuard implements CanActivate {
       org.createdAt,
       org.users[0].role,
       policyHandlers,
-      refreshChannelId,
+      refreshChannelId
     );
 
     const item = policyHandlers.find(
-      (handler) => !this.execPolicyHandler(handler, ability),
+      (handler) => !this.execPolicyHandler(handler, ability)
     );
 
     if (item) {

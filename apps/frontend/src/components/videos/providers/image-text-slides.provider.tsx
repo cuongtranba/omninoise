@@ -155,8 +155,8 @@ const VoiceSelector: FC = () => {
               {loadingVoice === voice.id
                 ? '...'
                 : currentlyPlaying === voice.id
-                ? '⏹ Stop'
-                : '▶ Play'}
+                  ? '⏹ Stop'
+                  : '▶ Play'}
             </Button>
           </div>
         ))}

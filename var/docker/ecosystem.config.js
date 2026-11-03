@@ -1,7 +1,8 @@
 // Backend and orchestrator run `node` directly, not through `pnpm start`, so a
 // stop signal reaches the Nest process and its shutdown hooks instead of
 // stopping at a wrapper. The environment comes from the container (no dotenv).
-const workerGraceMs = Number(process.env.JOB_WORKER_SHUTDOWN_GRACE_MS) || 300000;
+const workerGraceMs =
+  Number(process.env.JOB_WORKER_SHUTDOWN_GRACE_MS) || 300000;
 
 module.exports = {
   apps: [

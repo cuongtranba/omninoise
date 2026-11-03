@@ -63,17 +63,13 @@ export function truncateFailureText(value: any, max: number): string {
 
 export class RefreshToken extends NonRetryable {
   constructor(identifier: string, json: string, body: BodyInit, message = '') {
-    super(
-      truncateFailureText(message, MAX_FAILURE_MESSAGE),
-      'refresh_token',
-      [
-        {
-          identifier,
-          json: truncateFailureText(json, MAX_FAILURE_FIELD),
-          body: truncateFailureText(body, MAX_FAILURE_FIELD),
-        },
-      ]
-    );
+    super(truncateFailureText(message, MAX_FAILURE_MESSAGE), 'refresh_token', [
+      {
+        identifier,
+        json: truncateFailureText(json, MAX_FAILURE_FIELD),
+        body: truncateFailureText(body, MAX_FAILURE_FIELD),
+      },
+    ]);
   }
 }
 
@@ -83,17 +79,13 @@ export class RefreshToken extends NonRetryable {
 // possibly through another provider (see MIGRATE_PROVIDERS).
 export class Disconnect extends NonRetryable {
   constructor(identifier: string, json: string, body: BodyInit, message = '') {
-    super(
-      truncateFailureText(message, MAX_FAILURE_MESSAGE),
-      'disconnect',
-      [
-        {
-          identifier,
-          json: truncateFailureText(json, MAX_FAILURE_FIELD),
-          body: truncateFailureText(body, MAX_FAILURE_FIELD),
-        },
-      ]
-    );
+    super(truncateFailureText(message, MAX_FAILURE_MESSAGE), 'disconnect', [
+      {
+        identifier,
+        json: truncateFailureText(json, MAX_FAILURE_FIELD),
+        body: truncateFailureText(body, MAX_FAILURE_FIELD),
+      },
+    ]);
   }
 }
 
@@ -280,17 +272,19 @@ export abstract class SocialAbstract {
       return (
         // the media path is user-influenced, so it goes through the same
         // SSRF-safe client as every other outbound media read
-        await this.getSsrfSafeAxios()({
-          url: path,
-          method: 'GET',
-          responseType: 'arraybuffer',
-          // Same stall as the ranged reads: headers arrive fast and the body
-          // then stops, and without a deadline the read never settles and
-          // holds the activity's worker slot. Images are a few MB and arrive
-          // in about a second.
-          signal: AbortSignal.timeout(MEDIA_READ_TIMEOUT),
-        })
-      ).data;
+        (
+          await this.getSsrfSafeAxios()({
+            url: path,
+            method: 'GET',
+            responseType: 'arraybuffer',
+            // Same stall as the ranged reads: headers arrive fast and the body
+            // then stops, and without a deadline the read never settles and
+            // holds the activity's worker slot. Images are a few MB and arrive
+            // in about a second.
+            signal: AbortSignal.timeout(MEDIA_READ_TIMEOUT),
+          })
+        ).data
+      );
     } catch (err: any) {
       // axios reports an aborted signal as a canceled request
       if (err?.code !== 'ERR_CANCELED' && !isReadTimeout(err)) {
@@ -303,7 +297,10 @@ export abstract class SocialAbstract {
 
       throw new BadBody(
         '',
-        JSON.stringify({ timeoutMs: MEDIA_READ_TIMEOUT, path: stripQuery(path) }),
+        JSON.stringify({
+          timeoutMs: MEDIA_READ_TIMEOUT,
+          path: stripQuery(path),
+        }),
         Buffer.from('{}'),
         'We could not read the media for this post, so it was not published'
       );
@@ -373,9 +370,7 @@ export abstract class SocialAbstract {
     retried = false
   ): Promise<Buffer> {
     if (path.indexOf('http') === 0) {
-      setHeartbeatDetails(
-        `media chunk ${start}-${end} ${stripQuery(path)}`
-      );
+      setHeartbeatDetails(`media chunk ${start}-${end} ${stripQuery(path)}`);
       try {
         const response = await fetch(path, {
           headers: {
@@ -650,12 +645,7 @@ export abstract class SocialAbstract {
     }
 
     if (handleError?.type === 'disconnect') {
-      throw new Disconnect(
-        identifier,
-        json,
-        options.body!,
-        handleError?.value
-      );
+      throw new Disconnect(identifier, json, options.body!, handleError?.value);
     }
 
     if (

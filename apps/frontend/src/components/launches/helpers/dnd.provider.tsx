@@ -20,9 +20,7 @@ const DRAG_HANDLERS = [
 // the path is kept from the start of the dispatch, the editor can re-render
 // the target out of the page before the event bubbles up to the window
 const isInsideEditor = (event: Event) =>
-  event
-    .composedPath()
-    .some((node) => (node as HTMLElement).isContentEditable);
+  event.composedPath().some((node) => (node as HTMLElement).isContentEditable);
 
 // the backend listens to every drag on the window and cancels the native drops
 // it doesn't own, so dragging text or pictures inside the post editor did nothing

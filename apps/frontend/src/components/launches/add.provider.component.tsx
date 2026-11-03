@@ -348,8 +348,8 @@ const ChromeExtensionWarning: FC<{
           We will store your cookies securely to facilitate the connection.
         </li>
         <li>
-          Omninoise does not take responsibility for any issues arising or account
-          termination due to the use of this method.
+          Omninoise does not take responsibility for any issues arising or
+          account termination due to the use of this method.
         </li>
       </ul>
       <div className="flex gap-[10px] mt-[8px]">
@@ -415,20 +415,20 @@ export const AddProviderComponent: FC<{
   const modal = useModals();
   const getSocialLink = useCallback(
     (
-        invite: boolean,
-        identifier: string,
-        isExternal: boolean,
-        isWeb3: boolean,
-        isChromeExtension?: boolean,
-        customFields?: Array<{
-          key: string;
-          label: string;
-          validation: string;
-          defaultValue?: string;
-          type: 'text' | 'password';
-          hint?: string;
-        }>
-      ) =>
+      invite: boolean,
+      identifier: string,
+      isExternal: boolean,
+      isWeb3: boolean,
+      isChromeExtension?: boolean,
+      customFields?: Array<{
+        key: string;
+        label: string;
+        validation: string;
+        defaultValue?: string;
+        type: 'text' | 'password';
+        hint?: string;
+      }>
+    ) =>
       async () => {
         const onboardingParam = onboarding ? 'onboarding=true' : '';
         const openWeb3 = async () => {

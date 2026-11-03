@@ -70,9 +70,8 @@ If something fails, the result contains output.errors.
 
         try {
           if (inputData.action === 'current') {
-            const subscription = await this._paymentService.getSubscription(
-              organizationId
-            );
+            const subscription =
+              await this._paymentService.getSubscription(organizationId);
             // picked one by one: the row also holds the id of the payment provider
             return {
               output: {

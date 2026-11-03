@@ -204,10 +204,12 @@ export class MediaController {
   }
 
   @Post('/video/function')
-  videoFunction(
-    @Body() body: VideoFunctionDto
-  ) {
-    return this._mediaService.videoFunction(body.identifier, body.functionName, body.params);
+  videoFunction(@Body() body: VideoFunctionDto) {
+    return this._mediaService.videoFunction(
+      body.identifier,
+      body.functionName,
+      body.params
+    );
   }
 
   @Get('/generate-video/:type/allowed')

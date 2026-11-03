@@ -64,9 +64,8 @@ export class JobSeeder {
     // A post whose publish ever began is not re-published on boot: it may be
     // live although the flow never recorded it. One that is past due with no
     // job alive is reported to its owner instead of being skipped silently.
-    const { publish, unconfirmed } = await this._queue.classifyQueuedPosts(
-      posts
-    );
+    const { publish, unconfirmed } =
+      await this._queue.classifyQueuedPosts(posts);
     await this._act.markUnconfirmedPosts(
       posts.filter((post) => unconfirmed.includes(post.id))
     );

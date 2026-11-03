@@ -137,8 +137,7 @@ export const InformationComponent: FC<{
         }
 
         return (
-          countFor(p.integration.identifier) >
-          (chars?.[p.integration.id] || 0)
+          countFor(p.integration.identifier) > (chars?.[p.integration.id] || 0)
         );
       })
     ) {
@@ -256,7 +255,10 @@ export const InformationComponent: FC<{
                 isGlobal && selectedIntegrations.length && 'mb-[12px]'
               )}
             >
-              {t('your_post_should_have_at_least_one_character_or_one_image', 'Your post should have at least one character or one image.')}
+              {t(
+                'your_post_should_have_at_least_one_character_or_one_image',
+                'Your post should have at least one character or one image.'
+              )}
             </div>
           )}
           {isGlobal && (
@@ -278,9 +280,9 @@ export const InformationComponent: FC<{
                       isInternal?.[index]
                         ? ''
                         : countFor(p.integration.identifier) >
-                          (chars?.[p.integration.id] || 0)
-                        ? 'text-[#FF3F3F]'
-                        : ''
+                            (chars?.[p.integration.id] || 0)
+                          ? 'text-[#FF3F3F]'
+                          : ''
                     )}
                   >
                     {p.integration.name} (
@@ -292,9 +294,9 @@ export const InformationComponent: FC<{
                       isInternal?.[index]
                         ? ''
                         : countFor(p.integration.identifier) >
-                          (chars?.[p.integration.id] || 0)
-                        ? 'text-[#FF3F3F]'
-                        : ''
+                            (chars?.[p.integration.id] || 0)
+                          ? 'text-[#FF3F3F]'
+                          : ''
                     )}
                   >
                     {isInternal?.[index]

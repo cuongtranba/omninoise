@@ -20,7 +20,7 @@ afterAll(() => {
 
 test('fetch with the SSRF dispatcher refuses a loopback IP literal', async () => {
   await expect(
-    fetch(url, { dispatcher: ssrfSafeDispatcher } as any),
+    fetch(url, { dispatcher: ssrfSafeDispatcher } as any)
   ).rejects.toThrow();
 });
 

@@ -44,7 +44,7 @@ export class GenerateVideoTool implements AgentToolInterface {
                     Here are the type of video that can be generated:
                     ${this._videoManager
                       .getAllVideos()
-                      .map((p) => "-" + p.title)
+                      .map((p) => '-' + p.title)
                       .join('\n')}
       `,
       inputSchema: z.object({
@@ -63,13 +63,18 @@ export class GenerateVideoTool implements AgentToolInterface {
       }),
       execute: async (inputData, context) => {
         checkAuth(inputData, context);
-        const org = JSON.parse((context?.requestContext as any)?.get('organization') as string);
+        const org = JSON.parse(
+          (context?.requestContext as any)?.get('organization') as string
+        );
         try {
           const value = await this._mediaService.startGenerateVideo(org, {
             type: inputData.identifier,
             output: inputData.output,
             customParams: inputData.customParams.reduce(
-              (all: Record<string, any>, current: { key: string; value: any }) => ({
+              (
+                all: Record<string, any>,
+                current: { key: string; value: any }
+              ) => ({
                 ...all,
                 [current.key]: current.value,
               }),
@@ -87,8 +92,8 @@ export class GenerateVideoTool implements AgentToolInterface {
             err instanceof HttpException && err.getStatus() === 402
               ? 'No AI video credits are available on this account.'
               : err instanceof Error
-              ? err.message
-              : String(err);
+                ? err.message
+                : String(err);
           return {
             error: `Video generation failed: ${message}. The user's video credit was not used.`,
           };

@@ -24,7 +24,7 @@ import { DashboardFunction } from '@gitroom/nestjs-libraries/integrations/dashbo
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 
 @Rules(
-  "Instagram should have at least one attachment, if it's a story, it can have only one picture",
+  "Instagram should have at least one attachment, if it's a story, it can have only one picture"
 )
 export class InstagramProvider
   extends SocialAbstract
@@ -54,7 +54,7 @@ export class InstagramProvider
 
   override async checkValidity(
     [firstPost]: Array<ValidityMedia[]>,
-    settings: any,
+    settings: any
   ): Promise<string | true> {
     if (!firstPost?.length) {
       return 'Should have at least one media';
@@ -67,7 +67,7 @@ export class InstagramProvider
         return 'Trial Reels can only have one video';
       }
       const hasVideo = firstPost?.some(
-        (f) => (f?.path?.indexOf?.('mp4') ?? -1) > -1,
+        (f) => (f?.path?.indexOf?.('mp4') ?? -1) > -1
       );
       if (!hasVideo) {
         return 'Trial Reels must be a video';
@@ -81,7 +81,7 @@ export class InstagramProvider
         return 'Audio can only be added to a single video Reel';
       }
       const hasVideo = firstPost?.some(
-        (f) => (f?.path?.indexOf?.('mp4') ?? -1) > -1,
+        (f) => (f?.path?.indexOf?.('mp4') ?? -1) > -1
       );
       if (!hasVideo) {
         return 'Audio can only be added to a video Reel';
@@ -104,7 +104,7 @@ export class InstagramProvider
 
   public override handleErrors(
     body: string,
-    status: number,
+    status: number
   ):
     | {
         type: 'refresh-token' | 'bad-body' | 'retry' | 'disconnect';
@@ -453,11 +453,11 @@ export class InstagramProvider
   async reConnect(
     id: string,
     requiredId: string,
-    token: string,
+    token: string
   ): Promise<Omit<AuthTokenDetails, 'refreshToken' | 'expiresIn'>> {
     const [accessToken, userToken] = token.split('___');
     const findPage = (await this.pages(accessToken)).find(
-      (p) => p.id === requiredId,
+      (p) => p.id === requiredId
     );
 
     const information = await this.fetchPageInformation(accessToken, {
@@ -481,7 +481,7 @@ export class InstagramProvider
         `https://www.facebook.com/${META_GRAPH_API_VERSION}/dialog/oauth` +
         `?client_id=${process.env.FACEBOOK_APP_ID}` +
         `&redirect_uri=${encodeURIComponent(
-          `${process.env.FRONTEND_URL}/integrations/social/instagram`,
+          `${process.env.FRONTEND_URL}/integrations/social/instagram`
         )}` +
         `&state=${state}` +
         `&scope=${encodeURIComponent(this.scopes.join(','))}`,
@@ -502,10 +502,10 @@ export class InstagramProvider
           `&redirect_uri=${encodeURIComponent(
             `${process.env.FRONTEND_URL}/integrations/social/instagram${
               params.refresh ? `?refresh=${params.refresh}` : ''
-            }`,
+            }`
           )}` +
           `&client_secret=${process.env.FACEBOOK_APP_SECRET}` +
-          `&code=${params.code}`,
+          `&code=${params.code}`
       )
     ).json();
 
@@ -515,13 +515,13 @@ export class InstagramProvider
           '?grant_type=fb_exchange_token' +
           `&client_id=${process.env.FACEBOOK_APP_ID}` +
           `&client_secret=${process.env.FACEBOOK_APP_SECRET}` +
-          `&fb_exchange_token=${getAccessToken.access_token}`,
+          `&fb_exchange_token=${getAccessToken.access_token}`
       )
     ).json();
 
     const { data } = await (
       await fetch(
-        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/permissions?access_token=${access_token}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/permissions?access_token=${access_token}`
       )
     ).json();
 
@@ -532,7 +532,7 @@ export class InstagramProvider
 
     const { id, name, picture } = await (
       await fetch(
-        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me?fields=id,name,picture&access_token=${access_token}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me?fields=id,name,picture&access_token=${access_token}`
       )
     ).json();
 
@@ -571,7 +571,7 @@ export class InstagramProvider
 
     // Fetch pages the user explicitly shared during the OAuth dialog
     await fetchPaginated(
-      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/accounts?fields=id,instagram_business_account,username,name,picture.type(large)&limit=100&access_token=${accessToken}`,
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/accounts?fields=id,instagram_business_account,username,name,picture.type(large)&limit=100&access_token=${accessToken}`
     );
 
     // Also fetch pages via Business Manager API to discover pages
@@ -586,7 +586,7 @@ export class InstagramProvider
           for (const business of bizResponse.data) {
             try {
               await fetchPaginated(
-                `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${business.id}/owned_pages?fields=id,instagram_business_account,username,name,picture.type(large)&limit=100&access_token=${accessToken}`,
+                `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${business.id}/owned_pages?fields=id,instagram_business_account,username,name,picture.type(large)&limit=100&access_token=${accessToken}`
               );
             } catch {
               // Continue with other businesses
@@ -594,7 +594,7 @@ export class InstagramProvider
 
             try {
               await fetchPaginated(
-                `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${business.id}/client_pages?fields=id,instagram_business_account,username,name,picture.type(large)&limit=100&access_token=${accessToken}`,
+                `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${business.id}/client_pages?fields=id,instagram_business_account,username,name,picture.type(large)&limit=100&access_token=${accessToken}`
               );
             } catch {
               // Continue with other businesses
@@ -615,12 +615,12 @@ export class InstagramProvider
             pageId: p.id,
             ...(await (
               await fetch(
-                `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${p.instagram_business_account.id}?fields=name,profile_picture_url&access_token=${accessToken}`,
+                `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${p.instagram_business_account.id}?fields=name,profile_picture_url&access_token=${accessToken}`
               )
             ).json()),
             id: p.instagram_business_account.id,
           };
-        }),
+        })
     );
 
     return onlyConnectedAccounts.map((p: any) => ({
@@ -633,18 +633,18 @@ export class InstagramProvider
 
   async fetchPageInformation(
     token: string,
-    data: { pageId: string; id: string },
+    data: { pageId: string; id: string }
   ) {
     const [accessToken, userToken] = token.split('___');
     const { access_token, ...all } = await (
       await fetch(
-        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(data.pageId)}?fields=access_token,name,picture.type(large)&access_token=${accessToken}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(data.pageId)}?fields=access_token,name,picture.type(large)&access_token=${accessToken}`
       )
     ).json();
 
     const { id, name, profile_picture_url, username } = await (
       await fetch(
-        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(data.id)}?fields=username,name,profile_picture_url&access_token=${accessToken}`,
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(data.id)}?fields=username,name,profile_picture_url&access_token=${accessToken}`
       )
     ).json();
 
@@ -668,7 +668,7 @@ export class InstagramProvider
   private async igContainerStatus(
     containerId: string,
     checkToken: string,
-    type: string,
+    type: string
   ): Promise<string> {
     const { status_code, status } = await (
       await this.fetch(
@@ -676,7 +676,7 @@ export class InstagramProvider
         undefined,
         '',
         0,
-        true,
+        true
       )
     ).json();
 
@@ -687,7 +687,7 @@ export class InstagramProvider
           this.identifier,
           JSON.stringify({ status_code, status }),
           '{}',
-          handleError?.value,
+          handleError?.value
         );
       }
       throw new BadBody(
@@ -696,7 +696,7 @@ export class InstagramProvider
         '{}',
         handleError?.value ||
           (status !== status_code && status) ||
-          'Instagram could not process the media',
+          'Instagram could not process the media'
       );
     }
 
@@ -709,12 +709,12 @@ export class InstagramProvider
     mediaId: string,
     checkToken: string,
     type: string,
-    integration: Integration,
+    integration: Integration
   ): Promise<string> {
     try {
       const { permalink } = await (
         await this.fetch(
-          `https://${type}/${META_GRAPH_API_VERSION}/${mediaId}?fields=permalink&access_token=${checkToken}`,
+          `https://${type}/${META_GRAPH_API_VERSION}/${mediaId}?fields=permalink&access_token=${checkToken}`
         )
       ).json();
       return permalink;
@@ -728,7 +728,7 @@ export class InstagramProvider
     token: string,
     postDetails: PostDetails<InstagramDto>[],
     integration: Integration,
-    type = 'graph.facebook.com',
+    type = 'graph.facebook.com'
   ): Promise<PostResponse[]> {
     const [accessToken] = token.split('___');
     const [firstPost] = postDetails;
@@ -738,9 +738,9 @@ export class InstagramProvider
         ? `&collaborators=${encodeURIComponent(
             JSON.stringify(
               firstPost?.settings?.collaborators.map((p) =>
-                this.stripHandle(p.label),
-              ),
-            ),
+                this.stripHandle(p.label)
+              )
+            )
           )}`
         : ``;
     const isTrialReel = this.assetBoolean(firstPost.settings.is_trial_reel);
@@ -760,7 +760,7 @@ export class InstagramProvider
               ? `video_url=${m.path}&media_type=STORIES`
               : m?.thumbnail
                 ? `video_url=${m.path}&media_type=REELS&cover_url=${encodeURIComponent(
-                    m.thumbnail,
+                    m.thumbnail
                   )}`
                 : `video_url=${m.path}&media_type=REELS&thumb_offset=${
                     m?.thumbnailTimestamp || 0
@@ -779,7 +779,7 @@ export class InstagramProvider
               JSON.stringify({
                 graduation_strategy:
                   firstPost.settings.graduation_strategy || 'MANUAL',
-              }),
+              })
             )}`
           : ``;
 
@@ -807,7 +807,7 @@ export class InstagramProvider
                   'undefined'
                     ? { video_volume: +firstPost.settings.audio.video_volume }
                     : {}),
-                }),
+                })
               )}`
             : ``;
 
@@ -816,12 +816,12 @@ export class InstagramProvider
             `https://${type}/${META_GRAPH_API_VERSION}/${id}/media?${mediaType}${isCarousel}${itemCollaborators}${trialParams}${audioConfiguration}&access_token=${accessToken}${caption}`,
             {
               method: 'POST',
-            },
+            }
           )
         ).json();
 
         return photoId;
-      }) || [],
+      }) || []
     );
 
     // Containers are invisible until media_publish runs: the processing wait
@@ -846,7 +846,7 @@ export class InstagramProvider
           ...(collaborators
             ? {
                 collaborators: firstPost.settings.collaborators!.map((p) =>
-                  this.stripHandle(p.label),
+                  this.stripHandle(p.label)
                 ),
               }
             : {}),
@@ -865,7 +865,7 @@ export class InstagramProvider
       carouselId?: string;
       collaborators?: string[];
     },
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     const [accessToken, userToken] = token.split('___');
     const checkToken = userToken || accessToken;
@@ -875,7 +875,7 @@ export class InstagramProvider
       const status = await this.igContainerStatus(
         pendingData.carouselId,
         checkToken,
-        pendingData.type,
+        pendingData.type
       );
 
       if (status === 'IN_PROGRESS') {
@@ -899,7 +899,7 @@ export class InstagramProvider
       const status = await this.igContainerStatus(
         containerId,
         checkToken,
-        pendingData.type,
+        pendingData.type
       );
 
       if (status === 'IN_PROGRESS') {
@@ -932,7 +932,7 @@ export class InstagramProvider
       carouselId?: string;
       collaborators?: string[];
     },
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     const [accessToken, userToken] = token.split('___');
     const checkToken = userToken || accessToken;
@@ -946,7 +946,7 @@ export class InstagramProvider
         const status = await this.igContainerStatus(
           mediaCreationId,
           checkToken,
-          pendingData.type,
+          pendingData.type
         );
         if (status === 'PUBLISHED') {
           continue;
@@ -957,7 +957,7 @@ export class InstagramProvider
             `https://${pendingData.type}/${META_GRAPH_API_VERSION}/${igId}/media_publish?creation_id=${mediaCreationId}&access_token=${accessToken}&field=id`,
             {
               method: 'POST',
-            },
+            }
           )
         ).json();
         lastMediaId = mediaId;
@@ -972,7 +972,7 @@ export class InstagramProvider
               lastMediaId,
               checkToken,
               pendingData.type,
-              integration,
+              integration
             ),
       };
     }
@@ -984,19 +984,19 @@ export class InstagramProvider
       const { id: containerId } = await (
         await this.fetch(
           `https://${pendingData.type}/${META_GRAPH_API_VERSION}/${igId}/media?caption=${encodeURIComponent(
-            pendingData.message || '',
+            pendingData.message || ''
           )}&media_type=CAROUSEL&children=${encodeURIComponent(
-            pendingData.containers.join(','),
+            pendingData.containers.join(',')
           )}${
             pendingData.collaborators?.length
               ? `&collaborators=${encodeURIComponent(
-                  JSON.stringify(pendingData.collaborators),
+                  JSON.stringify(pendingData.collaborators)
                 )}`
               : ``
           }&access_token=${accessToken}`,
           {
             method: 'POST',
-          },
+          }
         )
       ).json();
 
@@ -1016,7 +1016,7 @@ export class InstagramProvider
         `https://${pendingData.type}/${META_GRAPH_API_VERSION}/${igId}/media_publish?creation_id=${creationId}&access_token=${accessToken}&field=id`,
         {
           method: 'POST',
-        },
+        }
       )
     ).json();
 
@@ -1027,7 +1027,7 @@ export class InstagramProvider
         mediaId,
         checkToken,
         pendingData.type,
-        integration,
+        integration
       ),
     };
   }
@@ -1039,7 +1039,7 @@ export class InstagramProvider
     token: string,
     postDetails: PostDetails<InstagramDto>[],
     integration: Integration,
-    type = 'graph.facebook.com',
+    type = 'graph.facebook.com'
   ): Promise<PostResponse[]> {
     const [firstPost] = postDetails;
     const [response] = await this.postPending(
@@ -1047,7 +1047,7 @@ export class InstagramProvider
       token,
       postDetails,
       integration,
-      type,
+      type
     );
 
     let pendingData = response.pendingData;
@@ -1063,7 +1063,7 @@ export class InstagramProvider
           this.identifier,
           '{}',
           '{}',
-          'Media processing timed out',
+          'Media processing timed out'
         );
       }
 
@@ -1103,7 +1103,7 @@ export class InstagramProvider
     token: string,
     postDetails: PostDetails<InstagramDto>[],
     integration: Integration,
-    type = 'graph.facebook.com',
+    type = 'graph.facebook.com'
   ): Promise<PostResponse[]> {
     const [accessToken, userToken] = token.split('___');
     const [commentPost] = postDetails;
@@ -1111,11 +1111,11 @@ export class InstagramProvider
     const { id: commentId } = await (
       await this.fetch(
         `https://${type}/${META_GRAPH_API_VERSION}/${postId}/comments?message=${encodeURIComponent(
-          commentPost.message,
+          commentPost.message
         )}&access_token=${accessToken}`,
         {
           method: 'POST',
-        },
+        }
       )
     ).json();
 
@@ -1124,7 +1124,7 @@ export class InstagramProvider
       await this.fetch(
         `https://${type}/${META_GRAPH_API_VERSION}/${postId}?fields=permalink&access_token=${
           userToken || accessToken
-        }`,
+        }`
       )
     ).json();
 
@@ -1240,7 +1240,7 @@ export class InstagramProvider
     token: string,
     date: number,
     offset = 0,
-    type = 'graph.facebook.com',
+    type = 'graph.facebook.com'
   ): Promise<AnalyticsData[]> {
     const [accessToken, userToken] = token.split('___');
     // The window ends `offset` days ago (the previous period of a trend)
@@ -1256,16 +1256,16 @@ export class InstagramProvider
 
     const { data: data2, ...all2 } = await (
       await fetch(
-        `${base}/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&${window}`,
+        `${base}/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&${window}`
       )
     ).json();
 
     const [engaged, reposts, followers] = await Promise.all([
       this.optionalInsights(
-        `${base}/insights?metric_type=total_value&metric=accounts_engaged,total_interactions,profile_links_taps&${window}`,
+        `${base}/insights?metric_type=total_value&metric=accounts_engaged,total_interactions,profile_links_taps&${window}`
       ),
       this.optionalInsights(
-        `${base}/insights?metric_type=total_value&metric=reposts&${window}`,
+        `${base}/insights?metric_type=total_value&metric=reposts&${window}`
       ),
       // Only the current count exists, so no previous window has one
       offset
@@ -1285,7 +1285,7 @@ export class InstagramProvider
           total: v.value,
           date: dayjs(v.end_time).format('YYYY-MM-DD'),
         })),
-      })) || []),
+      })) || [])
     );
 
     // A single total for the window, dated at its end
@@ -1302,7 +1302,7 @@ export class InstagramProvider
               date: untilDay.format('YYYY-MM-DD'),
             },
           ],
-        })),
+        }))
     );
 
     if (followers?.followers_count !== undefined) {
@@ -1325,8 +1325,8 @@ export class InstagramProvider
   music(accessToken: string, data: { q: string }) {
     return this.fetch(
       `https://graph.facebook.com/${META_GRAPH_API_VERSION}/music/search?q=${encodeURIComponent(
-        data.q,
-      )}&access_token=${accessToken}`,
+        data.q
+      )}&access_token=${accessToken}`
     );
   }
 
@@ -1351,7 +1351,7 @@ export class InstagramProvider
   async audioSearch(
     token: string,
     data: { q?: string; type?: 'music' | 'original_sound' },
-    internalId?: string,
+    internalId?: string
   ) {
     const [accessToken, userToken] = token.split('___');
     const audioType =
@@ -1361,7 +1361,7 @@ export class InstagramProvider
       await this.fetch(
         `https://graph.facebook.com/${META_GRAPH_API_VERSION}/ig_audio?audio_type=${audioType}&user_id=${internalId}${
           data?.q ? `&search_query=${encodeURIComponent(data.q)}` : ''
-        }&access_token=${userToken || accessToken}`,
+        }&access_token=${userToken || accessToken}`
       )
     ).json();
 
@@ -1384,7 +1384,7 @@ export class InstagramProvider
     token: string,
     postId: string,
     date: number,
-    type = 'graph.facebook.com',
+    type = 'graph.facebook.com'
   ): Promise<AnalyticsData[]> {
     const [accessToken, userToken] = token.split('___');
     const today = dayjs().format('YYYY-MM-DD');
@@ -1393,7 +1393,7 @@ export class InstagramProvider
       // Fetch media insights from Instagram Graph API
       const { data } = await (
         await fetch(
-          `https://${type}/${META_GRAPH_API_VERSION}/${postId}/insights?metric=views,reach,saved,likes,comments,shares&access_token=${accessToken}`,
+          `https://${type}/${META_GRAPH_API_VERSION}/${postId}/insights?metric=views,reach,saved,likes,comments,shares&access_token=${accessToken}`
         )
       ).json();
 
@@ -1446,18 +1446,18 @@ export class InstagramProvider
       // Newer metrics, asked apart so they can't fail the ones above
       const base = `https://${type}/${META_GRAPH_API_VERSION}/${postId}`;
       const { media_product_type } = await fetch(
-        `${base}?fields=media_product_type&access_token=${accessToken}`,
+        `${base}?fields=media_product_type&access_token=${accessToken}`
       )
         .then((res) => res.json())
         .catch(() => ({}) as { media_product_type?: string });
 
       const [more, reels] = await Promise.all([
         this.optionalInsights(
-          `${base}/insights?metric=total_interactions,follows,profile_visits&access_token=${accessToken}`,
+          `${base}/insights?metric=total_interactions,follows,profile_visits&access_token=${accessToken}`
         ),
         media_product_type === 'REELS'
           ? this.optionalInsights(
-              `${base}/insights?metric=ig_reels_avg_watch_time,ig_reels_video_view_total_time&access_token=${accessToken}`,
+              `${base}/insights?metric=ig_reels_avg_watch_time,ig_reels_video_view_total_time&access_token=${accessToken}`
             )
           : Promise.resolve([]),
       ]);

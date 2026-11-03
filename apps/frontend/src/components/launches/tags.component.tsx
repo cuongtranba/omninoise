@@ -157,9 +157,7 @@ export const TagsComponentInner: FC<{
         if (val) {
           const updated = newValues.tags.find((p: any) => p.id === tag.id);
           if (updated && tagValue.find((a) => a.id === tag.id)) {
-            const modify = tagValue.map((a) =>
-              a.id === tag.id ? updated : a
-            );
+            const modify = tagValue.map((a) => (a.id === tag.id ? updated : a));
             setTagValue(modify);
             onChange({
               target: {

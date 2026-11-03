@@ -70,7 +70,7 @@ type XPendingData = {
     process.env.STRIP_LINKS_FROM_X_POSTS
       ? 'do not add links, they will be stripped from the post'
       : ''
-  }`,
+  }`
 )
 export class XProvider extends SocialAbstract implements SocialProvider {
   identifier = 'x';
@@ -131,13 +131,13 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       message,
       true,
       false,
-      !/<\/?[a-z][\s\S]*>/i.test(message),
+      !/<\/?[a-z][\s\S]*>/i.test(message)
     );
   }
 
   override async checkValidity(
     [firstPost, ...comments]: Array<{ path: string }[]>,
-    settings: any,
+    settings: any
   ): Promise<string | true> {
     if (settings?.post_type !== 'article') {
       return true;
@@ -145,7 +145,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
 
     if (
       [...(firstPost || []), ...comments.flat()].some((m) =>
-        hasExtension(m.path, 'mp4'),
+        hasExtension(m.path, 'mp4')
       )
     ) {
       return 'X articles only support images';
@@ -246,7 +246,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     }
     if (
       body.includes(
-        'This user is not allowed to post a video longer than 2 minutes',
+        'This user is not allowed to post a video longer than 2 minutes'
       )
     ) {
       return {
@@ -257,7 +257,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     }
     if (
       body.includes(
-        'This user is not allowed to post a video longer than 10 minutes',
+        'This user is not allowed to post a video longer than 10 minutes'
       )
     ) {
       return {
@@ -331,7 +331,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   async autoRepostPost(
     integration: Integration,
     id: string,
-    fields: { likesAmount: string },
+    fields: { likesAmount: string }
   ) {
     // oxlint-disable-next-line prefer-rest-params
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
@@ -365,7 +365,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     integration: Integration,
     originalIntegration: Integration,
     postId: string,
-    information: any,
+    information: any
   ) {
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
     const client = new TwitterApi({
@@ -414,7 +414,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   async autoPlugPost(
     integration: Integration,
     id: string,
-    fields: { likesAmount: string; post: string },
+    fields: { likesAmount: string; post: string }
   ) {
     // oxlint-disable-next-line prefer-rest-params
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
@@ -467,7 +467,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           authAccessType: 'write',
           linkMode: 'authenticate',
           forceLogin: false,
-        },
+        }
       );
     return {
       url,
@@ -535,7 +535,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     method: string,
     url: string,
     accessToken: string,
-    accessSecret: string,
+    accessSecret: string
   ): string {
     const pct = (s: string) =>
       encodeURIComponent(s)
@@ -600,7 +600,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         media_type: mediaType,
         total_bytes: totalBytes,
         media_category: 'tweet_video',
-      },
+      }
     );
     const mediaId = init.data.id;
 
@@ -610,7 +610,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, totalBytes) - 1;
       setHeartbeatDetails(
-        `x: upload append ${i + 1}/${totalChunkCount} media=${mediaId}`,
+        `x: upload append ${i + 1}/${totalChunkCount} media=${mediaId}`
       );
       await client.v2.post(
         `media/upload/${mediaId}/append`,
@@ -618,7 +618,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           segment_index: i,
           media: await this.mediaChunk(path, start, end, this.identifier),
         },
-        { forceBodyMode: 'form-data' },
+        { forceBodyMode: 'form-data' }
       );
     }
 
@@ -642,7 +642,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           (processing as any)?.error?.message
             ? `: ${(processing as any).error.message}`
             : ''
-        }`,
+        }`
       );
     }
 
@@ -691,7 +691,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           Buffer.from('{}'),
           `X failed to process the uploaded video${
             processing?.error?.message ? `: ${processing.error.message}` : ''
-          }`,
+          }`
         );
       }
 
@@ -709,7 +709,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   // at upload time, so a retried upload can never duplicate a post.
   private async uploadWithRateLimitRetry<T>(
     func: () => Promise<T>,
-    totalRetries = 0,
+    totalRetries = 0
   ): Promise<T> {
     try {
       return await func();
@@ -726,7 +726,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   private async uploadMediaEntries(
     client: TwitterApi,
     postDetails: PostDetails<any>[],
-    asArticleImage = false,
+    asArticleImage = false
   ) {
     // Media is uploaded sequentially on purpose: uploading everything with
     // Promise.all holds every file in memory at the same time.
@@ -739,7 +739,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           async () =>
             hasExtension(m.path, 'mp4')
               ? this.uploadWithRateLimitRetry(() =>
-                  this.uploadVideoInChunks(client, m.path),
+                  this.uploadVideoInChunks(client, m.path)
                 )
               : {
                   // Articles reject GIF media, so the tweet pipeline (which
@@ -758,7 +758,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
                           {
                             media_type: 'image/jpeg' as any,
                             media_category: 'tweet_image' as any,
-                          },
+                          }
                         )
                       : client.v2.uploadMedia(
                           await sharp(await this.readOrFetch(m.path), {
@@ -771,12 +771,12 @@ export class XProvider extends SocialAbstract implements SocialProvider {
                             .toBuffer(),
                           {
                             media_type: (lookup(m.path) || '') as any,
-                          },
-                        ),
+                          }
+                        )
                   ),
                   processing: false,
                 },
-          true,
+          true
         );
 
         if (!uploaded?.mediaId) {
@@ -799,11 +799,11 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   // post()): waits for the processing inside the activity like before.
   private async uploadMedia(
     client: TwitterApi,
-    postDetails: PostDetails<any>[],
+    postDetails: PostDetails<any>[]
   ) {
     const { media, processingIds } = await this.uploadMediaEntries(
       client,
-      postDetails,
+      postDetails
     );
 
     for (const mediaId of processingIds) {
@@ -833,7 +833,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       article_status?: 'draft' | 'published';
       article_cover?: { id: string; path: string };
     }>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const client = await this.getClient(accessToken);
     const [firstPost] = postDetails;
@@ -845,7 +845,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     const { media, processingIds } = await this.uploadMediaEntries(
       client,
       [firstPost],
-      isArticle,
+      isArticle
     );
 
     // The article cover is picked in the settings, separate from the post
@@ -858,7 +858,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           await this.uploadMediaEntries(
             client,
             [{ id: 'article-cover', media: [{ path: coverPath }] } as any],
-            true,
+            true
           )
         ).media['article-cover']?.[0]
       : undefined;
@@ -871,9 +871,9 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     const { media: inlineMedia } = await this.uploadMediaEntries(
       client,
       inlineImages.map(
-        (path, index) => ({ id: String(index), media: [{ path }] }) as any,
+        (path, index) => ({ id: String(index), media: [{ path }] }) as any
       ),
-      true,
+      true
     );
 
     return [
@@ -905,7 +905,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
                   inlineImages.map((path, index) => [
                     path,
                     inlineMedia[String(index)]?.[0],
-                  ]),
+                  ])
                 ),
               }
             : {}),
@@ -918,7 +918,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   override async checkPostStatus(
     accessToken: string,
     pendingData: XPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // A confirmed create attempt died without reporting its result: X gives
     // no cheap way to ask whether that tweet was created, so never run the
@@ -928,7 +928,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         this.identifier,
         '{}',
         Buffer.from('{}'),
-        'X may have already published this post, please check your account before posting again to avoid duplicates',
+        'X may have already published this post, please check your account before posting again to avoid duplicates'
       );
     }
 
@@ -963,7 +963,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
             this.identifier,
             body,
             Buffer.from('{}'),
-            handleError.value,
+            handleError.value
           );
         }
 
@@ -980,7 +980,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           Buffer.from('{}'),
           `X failed to process the uploaded video${
             processing?.error?.message ? `: ${processing.error.message}` : ''
-          }`,
+          }`
         );
       }
 
@@ -1023,7 +1023,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     }
 
     return (node.childNodes || []).flatMap((child: any) =>
-      this.articleImages(child),
+      this.articleImages(child)
     );
   }
 
@@ -1038,14 +1038,14 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   private articleContentState(
     html: string,
     embeddedMediaIds: string[],
-    inlineMediaIds: Record<string, string> = {},
+    inlineMediaIds: Record<string, string> = {}
   ) {
     const blocks: any[] = [];
     const entities: any[] = [];
 
     const walkInline = (
       node: any,
-      ctx: { text: string; styles: any[]; entityRanges: any[] },
+      ctx: { text: string; styles: any[]; entityRanges: any[] }
     ) => {
       for (const child of node.childNodes || []) {
         if (child.nodeName === '#text') {
@@ -1066,7 +1066,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
 
         if (child.nodeName === 'a') {
           const url = (child.attrs || []).find(
-            (a: any) => a.name === 'href',
+            (a: any) => a.name === 'href'
           )?.value;
           if (url) {
             const key = entities.length;
@@ -1088,7 +1088,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       text: string,
       type: string,
       styles: any[] = [],
-      entityRanges: any[] = [],
+      entityRanges: any[] = []
     ) => ({
       key: `b${blocks.length}`,
       text,
@@ -1130,7 +1130,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         },
       });
       blocks.push(
-        makeBlock(' ', 'atomic', [], [{ offset: 0, length: 1, key }]),
+        makeBlock(' ', 'atomic', [], [{ offset: 0, length: 1, key }])
       );
     };
 
@@ -1152,13 +1152,13 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         case 'ul':
         case 'ol':
           for (const li of (node.childNodes || []).filter(
-            (n: any) => n.nodeName === 'li',
+            (n: any) => n.nodeName === 'li'
           )) {
             pushBlock(
               li,
               node.nodeName === 'ol'
                 ? 'ordered-list-item'
-                : 'unordered-list-item',
+                : 'unordered-list-item'
             );
           }
           break;
@@ -1188,7 +1188,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   private async finalizeArticle(
     accessToken: string,
     pendingData: XPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     const [accessTokenSplit, accessSecretSplit] = accessToken.split(':');
     const settings = pendingData.settings || {};
@@ -1205,7 +1205,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           'POST',
           draftUrl,
           accessTokenSplit,
-          accessSecretSplit,
+          accessSecretSplit
         ),
         'Content-Type': 'application/json',
       },
@@ -1214,7 +1214,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         content_state: this.articleContentState(
           pendingData.message,
           embeddedMediaIds,
-          pendingData.inlineMediaIds,
+          pendingData.inlineMediaIds
         ),
         ...(coverMediaId
           ? {
@@ -1237,7 +1237,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     if (draftJson?.errors?.length) {
       console.log(
         'X article draft returned errors:',
-        JSON.stringify(draftJson.errors),
+        JSON.stringify(draftJson.errors)
       );
     }
 
@@ -1246,7 +1246,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         this.identifier,
         JSON.stringify(draftJson),
         Buffer.from('{}'),
-        'X could not create the article draft',
+        'X could not create the article draft'
       );
     }
 
@@ -1266,7 +1266,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           'POST',
           publishUrl,
           accessTokenSplit,
-          accessSecretSplit,
+          accessSecretSplit
         ),
         'Content-Type': 'application/json',
       },
@@ -1279,7 +1279,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     if (publishJson?.errors?.length) {
       console.log(
         'X article publish returned errors:',
-        JSON.stringify(publishJson.errors),
+        JSON.stringify(publishJson.errors)
       );
     }
 
@@ -1288,7 +1288,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         this.identifier,
         JSON.stringify(publishJson),
         Buffer.from('{}'),
-        'X created the article draft but could not publish it, check your drafts on X',
+        'X created the article draft but could not publish it, check your drafts on X'
       );
     }
 
@@ -1302,7 +1302,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   override async finalizePost(
     accessToken: string,
     pendingData: XPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // Create with an arm -> confirm -> publish handshake: the create only runs
     // after checkPostStatus witnessed the intent, so a run that dies
@@ -1353,7 +1353,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           'POST',
           tweetUrl,
           accessTokenSplit,
-          accessSecretSplit,
+          accessSecretSplit
         ),
         'Content-Type': 'application/json',
       },
@@ -1389,13 +1389,13 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       made_with_ai?: boolean;
       paid_partnership?: boolean;
     }>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const [response] = await this.postPending(
       id,
       accessToken,
       postDetails,
-      integration,
+      integration
     );
 
     let pendingData = response.pendingData;
@@ -1412,14 +1412,14 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           Buffer.from('{}'),
-          'X took too long to process the media, please try again',
+          'X took too long to process the media, please try again'
         );
       }
 
       const check = await this.checkPostStatus(
         accessToken,
         pendingData,
-        integration,
+        integration
       );
 
       if (check.status === 'pending') {
@@ -1461,7 +1461,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       made_with_ai?: boolean;
       paid_partnership?: boolean;
     }>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const [accessTokenSplit, accessSecretSplit] = accessToken.split(':');
     const client = await this.getClient(accessToken);
@@ -1484,7 +1484,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       reply: { in_reply_to_tweet_id: replyToId },
       made_with_ai: this.assetBoolean(commentPost?.settings?.made_with_ai),
       paid_partnership: this.assetBoolean(
-        commentPost?.settings?.paid_partnership,
+        commentPost?.settings?.paid_partnership
       ),
     };
 
@@ -1495,7 +1495,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           'POST',
           tweetUrl,
           accessTokenSplit,
-          accessSecretSplit,
+          accessSecretSplit
         ),
         'Content-Type': 'application/json',
       },
@@ -1520,7 +1520,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     id: string,
     until: string,
     since: string,
-    token = '',
+    token = ''
   ): Promise<TweetV2[]> => {
     const tweets = await client.v2.userTimeline(id, {
       'tweet.fields': ['id'],
@@ -1545,7 +1545,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
             id,
             until,
             since,
-            tweets.meta.next_token,
+            tweets.meta.next_token
           )
         : []),
     ];
@@ -1554,7 +1554,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   async analytics(
     id: string,
     accessToken: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     if (process.env.DISABLE_X_ANALYTICS) {
       return [];
@@ -1577,9 +1577,9 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           client,
           id,
           until.format('YYYY-MM-DDTHH:mm:ssZ'),
-          since.format('YYYY-MM-DDTHH:mm:ssZ'),
+          since.format('YYYY-MM-DDTHH:mm:ssZ')
         ),
-        (p) => p.id,
+        (p) => p.id
       );
 
       const result: AnalyticsData[] = [];
@@ -1589,7 +1589,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
           tweets.map((p) => p.id),
           {
             'tweet.fields': ['public_metrics'],
-          },
+          }
         );
 
         const metrics = data.data.reduce(
@@ -1618,7 +1618,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
             quote_count: 0,
             reply_count: 0,
             retweet_count: 0,
-          },
+          }
         );
 
         // Same labels and the same two points as always (public API)
@@ -1646,7 +1646,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
                 date: until.format('YYYY-MM-DD'),
               },
             ],
-          })),
+          }))
         );
       }
 
@@ -1679,7 +1679,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     if (process.env.DISABLE_X_ANALYTICS) {
       return [];

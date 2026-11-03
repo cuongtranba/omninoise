@@ -1,5 +1,9 @@
 import { Global, Module } from '@nestjs/common';
-import { PrismaRepository, PrismaService, PrismaTransaction } from './prisma.service';
+import {
+  PrismaRepository,
+  PrismaService,
+  PrismaTransaction,
+} from './prisma.service';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';

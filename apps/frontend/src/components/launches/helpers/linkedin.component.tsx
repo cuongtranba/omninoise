@@ -26,7 +26,7 @@ export const ShowLinkedinCompany = () => {
         setCallback(params);
         setId(params.id);
         setShowPostSelector(true);
-      },
+      }
     );
     return () => {
       setShowPostSelector(false);

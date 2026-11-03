@@ -40,8 +40,18 @@ export class OrganizationService {
     return this._organizationRepository.getCount();
   }
 
-  async createMaxUser(id: string, name: string, saasName: string, email: string) {
-    return this._organizationRepository.createMaxUser(id, name, saasName, email);
+  async createMaxUser(
+    id: string,
+    name: string,
+    saasName: string,
+    email: string
+  ) {
+    return this._organizationRepository.createMaxUser(
+      id,
+      name,
+      saasName,
+      email
+    );
   }
 
   addUserToOrg(
@@ -200,9 +210,7 @@ export class OrganizationService {
           400
         );
       }
-      const inviter = user.name
-        ? `${user.name} (${user.email})`
-        : user.email;
+      const inviter = user.name ? `${user.name} (${user.email})` : user.email;
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,

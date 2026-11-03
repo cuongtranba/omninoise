@@ -216,10 +216,10 @@ export const RenderAnalytics: FC<{
 
   const refreshChannel = useCallback(
     (
-        integrationData: Integration & {
-          identifier: string;
-        }
-      ) =>
+      integrationData: Integration & {
+        identifier: string;
+      }
+    ) =>
       async () => {
         const { url } = await (
           await fetch(

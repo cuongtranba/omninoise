@@ -11,7 +11,10 @@ export const setSentryUserContext = (params: {
   try {
     Sentry.setUser(
       params.userId
-        ? { id: params.userId, ...(params.email ? { email: params.email } : {}) }
+        ? {
+            id: params.userId,
+            ...(params.email ? { email: params.email } : {}),
+          }
         : null
     );
     if (params.orgId) {
@@ -49,22 +52,39 @@ export const initializeSentry = (appName: string, allowLogs = false) => {
       integrations: [
         // Add our Profiling integration
         nodeProfilingIntegration(),
-        Sentry.consoleLoggingIntegration({ levels: ['log', 'info', 'warn', 'error', 'debug', 'assert', 'trace'] }),
+        Sentry.consoleLoggingIntegration({
+          levels: ['log', 'info', 'warn', 'error', 'debug', 'assert', 'trace'],
+        }),
         // AI calls are traced for timing and errors only; prompts and outputs are users' content and stay out.
         Sentry.openAIIntegration({
           recordInputs: false,
           recordOutputs: false,
         }),
       ],
-      tracesSampler: ({ name, attributes, normalizedRequest, inheritOrSampleWith }) => {
+      tracesSampler: ({
+        name,
+        attributes,
+        normalizedRequest,
+        inheritOrSampleWith,
+      }) => {
         const path = String(
-          normalizedRequest?.url || attributes?.['http.target'] || attributes?.['url.path'] || name || ''
+          normalizedRequest?.url ||
+            attributes?.['http.target'] ||
+            attributes?.['url.path'] ||
+            name ||
+            ''
         );
         const method = String(
-          normalizedRequest?.method || attributes?.['http.request.method'] || attributes?.['http.method'] || ''
+          normalizedRequest?.method ||
+            attributes?.['http.request.method'] ||
+            attributes?.['http.method'] ||
+            ''
         );
         // MCP stream GETs are declined with 405; never trace them
-        if (method === 'GET' && /^(https?:\/\/[^/]+)?\/mcp(\/|-oauth|\?|$)/.test(path)) {
+        if (
+          method === 'GET' &&
+          /^(https?:\/\/[^/]+)?\/mcp(\/|-oauth|\?|$)/.test(path)
+        ) {
           return 0;
         }
         if (name?.startsWith('prisma:')) {
@@ -82,7 +102,8 @@ export const initializeSentry = (appName: string, allowLogs = false) => {
       enableLogs: true,
 
       // Profiling
-      profileSessionSampleRate: process.env.NODE_ENV === 'development' ? 1.0 : 0.4,
+      profileSessionSampleRate:
+        process.env.NODE_ENV === 'development' ? 1.0 : 0.4,
       profileLifecycle: 'trace',
     });
   } catch (err) {

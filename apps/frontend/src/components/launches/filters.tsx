@@ -1,6 +1,9 @@
 'use client';
 
-import { useCalendar, ListStateFilter } from '@gitroom/frontend/components/launches/calendar.context';
+import {
+  useCalendar,
+  ListStateFilter,
+} from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { useCallback, useState } from 'react';
@@ -392,7 +395,8 @@ export const Filters = () => {
             </div>
             <div className="min-w-[200px] mobile:min-w-0 mobile:flex-1 text-center bg-newBgColorInner h-full flex items-center justify-center">
               <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
-                {t('page', 'Page')} {calendar.listPage + 1} {t('of', 'of')} {Math.max(1, calendar.listTotalPages)}
+                {t('page', 'Page')} {calendar.listPage + 1} {t('of', 'of')}{' '}
+                {Math.max(1, calendar.listTotalPages)}
               </div>
             </div>
             <div

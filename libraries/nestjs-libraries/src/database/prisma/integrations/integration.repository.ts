@@ -657,7 +657,7 @@ export class IntegrationRepository {
             ({
               integrationId: group.integrationId,
               [field]: group.date,
-            } as Prisma.PostWhereInput)
+            }) as Prisma.PostWhereInput
         ),
       },
       orderBy: {

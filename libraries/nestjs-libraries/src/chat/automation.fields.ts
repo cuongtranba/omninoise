@@ -82,4 +82,4 @@ export const toAutopostDto = (inputData: {
     onSlot: inputData.onSlot,
     // the app saves it empty when it posts the latest item as well
     lastUrl: inputData.syncLast ? '' : inputData.lastUrl || '',
-  } as AutopostDto);
+  }) as AutopostDto;

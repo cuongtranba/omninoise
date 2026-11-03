@@ -111,9 +111,8 @@ export class PostActivity {
     // although the flow never recorded it): publishing it again could
     // duplicate it, so it is never picked up automatically. One that is past
     // due with nothing left alive is reported to its owner instead.
-    const { publish, unconfirmed } = await this._queue.classifyQueuedPosts(
-      list
-    );
+    const { publish, unconfirmed } =
+      await this._queue.classifyQueuedPosts(list);
     await this.markUnconfirmedPosts(
       list.filter((post) => unconfirmed.includes(post.id))
     );
@@ -190,9 +189,8 @@ export class PostActivity {
 
   async getPost(orgId: string, postId: string) {
     if (process.env.STRIPE_SECRET_KEY) {
-      const subscription = await this._subscriptionService.getSubscription(
-        orgId
-      );
+      const subscription =
+        await this._subscriptionService.getSubscription(orgId);
       if (!subscription) {
         return false;
       }
@@ -217,9 +215,8 @@ export class PostActivity {
 
   async getPostsList(orgId: string, postId: string) {
     if (process.env.STRIPE_SECRET_KEY) {
-      const subscription = await this._subscriptionService.getSubscription(
-        orgId
-      );
+      const subscription =
+        await this._subscriptionService.getSubscription(orgId);
       if (!subscription) {
         return [];
       }
@@ -618,9 +615,8 @@ export class PostActivity {
     );
 
     try {
-      const refresh = await this._refreshIntegrationService.refresh(
-        integration
-      );
+      const refresh =
+        await this._refreshIntegrationService.refresh(integration);
       if (!refresh) {
         return false;
       }

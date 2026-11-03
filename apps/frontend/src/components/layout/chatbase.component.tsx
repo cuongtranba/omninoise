@@ -41,7 +41,7 @@ export const ChatbaseComponentLoad: FC = () => {
       refreshWhenHidden: false,
       refreshWhenOffline: false,
       refreshInterval: 0,
-    },
+    }
   );
 
   if (!data) {
@@ -90,7 +90,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
       stripe_refund: async () => {
         try {
           const previewResponse = await fetch(
-            '/billing/chatbase-refund/preview',
+            '/billing/chatbase-refund/preview'
           );
 
           if (!previewResponse.ok) {
@@ -116,7 +116,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
               preview.currency || ''
             ).toUpperCase()}. Do you approve?`,
             'Yes, cancel and refund',
-            'Cancel subscription',
+            'Cancel subscription'
           );
 
           if (!approved) {

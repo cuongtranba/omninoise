@@ -1,4 +1,10 @@
-import { IsDefined, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsDefined,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 
 // The consent screen navigates to this url: only a full http(s) url is a
 // redirect, anything else (javascript:1/%0aalert(1) passes without a protocol)

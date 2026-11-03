@@ -22,8 +22,8 @@ function mergeDataPoints(
         aggregate === 'last'
           ? Number(row.at(-1)!.total)
           : aggregate === 'average'
-          ? sum / row.length
-          : sum,
+            ? sum / row.length
+            : sum,
     };
   });
 }
@@ -37,8 +37,7 @@ export const ChartSocial: FC<{
   const [mode] = useCookie('mode', 'dark');
 
   const list = useMemo(() => {
-    const merged =
-      data.length < 7 ? data : mergeDataPoints(data, 7, aggregate);
+    const merged = data.length < 7 ? data : mergeDataPoints(data, 7, aggregate);
     if (merged.length === 1) {
       return [
         // duplicating single datapoints metrics for chart to display a line on analytics

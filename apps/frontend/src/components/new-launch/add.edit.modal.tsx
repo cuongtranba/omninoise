@@ -238,35 +238,33 @@ export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
       0,
       props.onlyValues?.length
         ? props.onlyValues.map((p) => ({
-            content:
-              /<p[\s>]/i.test(p.content)
-                ? p.content
-                : p.content
-                    .split('\n')
-                    .map((line: string) => `<p>${line}</p>`)
-                    .join(''),
+            content: /<p[\s>]/i.test(p.content)
+              ? p.content
+              : p.content
+                  .split('\n')
+                  .map((line: string) => `<p>${line}</p>`)
+                  .join(''),
             id: makeId(10),
             media: p.image || [],
           }))
         : props.set?.posts?.length
-        ? props.set.posts[0].value.map((p: any) => ({
-            id: makeId(10),
-            content:
-              /<p[\s>]/i.test(p.content)
+          ? props.set.posts[0].value.map((p: any) => ({
+              id: makeId(10),
+              content: /<p[\s>]/i.test(p.content)
                 ? p.content
                 : p.content
                     .split('\n')
                     .map((line: string) => `<p>${line}</p>`)
                     .join(''),
-            media: p.media,
-          }))
-        : [
-            {
-              content: '',
-              id: makeId(10),
-              media: [],
-            },
-          ]
+              media: p.media,
+            }))
+          : [
+              {
+                content: '',
+                id: makeId(10),
+                media: [],
+              },
+            ]
     );
 
     return () => {
@@ -280,9 +278,7 @@ export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
 
   return (
     <>
-      <style>
-        {`#support-discord {display: none !important;}`}
-      </style>
+      <style>{`#support-discord {display: none !important;}`}</style>
       <ManageModal {...props} />
     </>
   );

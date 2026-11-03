@@ -70,7 +70,7 @@ function generateRandomString() {
 export default async function handleR2Upload(
   endpoint: string,
   req: Request,
-  res: Response,
+  res: Response
 ) {
   switch (endpoint) {
     case 'create-multipart-upload':
@@ -92,7 +92,7 @@ export default async function handleR2Upload(
 export async function simpleUpload(
   data: Buffer,
   originalFilename: string,
-  _contentType: string,
+  _contentType: string
 ) {
   const detected = await fileTypeFromBuffer(data);
   if (
@@ -213,7 +213,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     const safeExt = normalizeExtension(key || '');
     if (!safeExt) {
       await R2.send(
-        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key }),
+        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
       );
       return res.status(400).json({ message: 'Unsupported file type.' });
     }
@@ -224,7 +224,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
         Bucket: CLOUDFLARE_BUCKETNAME,
         Key: key,
         Range: 'bytes=0-4100',
-      }),
+      })
     );
     const chunks: Buffer[] = [];
     for await (const chunk of head.Body as AsyncIterable<Buffer>) {
@@ -244,7 +244,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
         : [expectedMime];
     if (!detected || !acceptedMimes.includes(detected.mime)) {
       await R2.send(
-        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key }),
+        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
       );
       return res
         .status(400)

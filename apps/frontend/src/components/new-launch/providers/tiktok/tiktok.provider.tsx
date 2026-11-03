@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  FC,
-  Fragment,
-  useMemo,
-} from 'react';
+import { FC, Fragment, useMemo } from 'react';
 import {
   PostComment,
   withProvider,
@@ -33,7 +29,9 @@ const TikTokSettings: FC<{
   const isBusiness = integration?.identifier === 'tiktok-business';
 
   const isTitle = useMemo(() => {
-    return value?.[0]?.image?.some((p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1);
+    return value?.[0]?.image?.some(
+      (p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1
+    );
   }, [value]);
 
   const hasMedia = (value?.[0]?.image?.length ?? 0) > 0;
@@ -170,7 +168,12 @@ const TikTokSettings: FC<{
           </option>
         ))}
       </Select>
-      {isUploadMode && <div className="-mt-[23px] mb-[23px] text-red-600">After posting you fill find a notification inside your Inbox about your post (not content studio)</div>}
+      {isUploadMode && (
+        <div className="-mt-[23px] mb-[23px] text-red-600">
+          After posting you fill find a notification inside your Inbox about
+          your post (not content studio)
+        </div>
+      )}
       <div className={clsx('flex flex-col', directPostOnly)}>
         <Select
           label={
@@ -194,7 +197,7 @@ const TikTokSettings: FC<{
           {isBusiness
             ? t(
                 'tiktok_random_music_only_for_photos',
-                'This feature is available only for photos, it adds a random trending track from TikTok\'s commercial music library.'
+                "This feature is available only for photos, it adds a random trending track from TikTok's commercial music library."
               )
             : t(
                 'this_feature_available_only_for_photos',
@@ -308,7 +311,12 @@ const TikTokSettings: FC<{
             )}
           </div>
         </div>
-        <div className={clsx(!disclose && 'invisible h-0 overflow-hidden', 'mt-[20px]')}>
+        <div
+          className={clsx(
+            !disclose && 'invisible h-0 overflow-hidden',
+            'mt-[20px]'
+          )}
+        >
           <Checkbox
             variant="hollow"
             label={t('label_your_brand', 'Your brand')}

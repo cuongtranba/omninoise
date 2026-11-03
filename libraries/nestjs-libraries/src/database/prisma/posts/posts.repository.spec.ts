@@ -51,7 +51,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' },
+    { env: process.env, stdio: 'pipe' }
   );
   orgId = (await prisma.organization.create({ data: { name: 'curated' } })).id;
 });
@@ -76,15 +76,15 @@ test('refresh_token failures surface their message instead of null', async () =>
   });
   const refreshId = await addErrorPost(
     integration.id,
-    stored('refresh_token', 'Threads access token expired'),
+    stored('refresh_token', 'Threads access token expired')
   );
   const unmappedId = await addErrorPost(
     integration.id,
-    stored('bad_body', 'Unknown Error'),
+    stored('bad_body', 'Unknown Error')
   );
 
   const errors = Object.fromEntries(
-    (await posts.getPosts(orgId, window)).map((p) => [p.id, p.error]),
+    (await posts.getPosts(orgId, window)).map((p) => [p.id, p.error])
   );
 
   expect(errors[refreshId]).toBe('Threads access token expired');

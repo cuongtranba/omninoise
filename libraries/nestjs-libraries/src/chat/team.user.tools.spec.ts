@@ -47,7 +47,7 @@ const org = async (name: string, apiKey?: string) => {
 
 const user = async (
   name: string,
-  data: { isSuperAdmin?: boolean; name?: string; password?: string } = {},
+  data: { isSuperAdmin?: boolean; name?: string; password?: string } = {}
 ) => {
   const created = await moduleRef.get(PrismaService).user.create({
     data: {
@@ -70,7 +70,7 @@ const member = (organizationId: string, userId: string, role: Role) =>
 const approve = async (
   userId: string,
   organizationId: string,
-  name: string,
+  name: string
 ) => {
   const token = `pos_${name}_${run}`;
   const authorization = await moduleRef
@@ -97,7 +97,7 @@ const connection = async (
   id: string,
   role: Role,
   userId?: string,
-  impersonating = false,
+  impersonating = false
 ) => {
   const organization = await moduleRef
     .get(PrismaService)
@@ -111,7 +111,7 @@ const connection = async (
     JSON.stringify({
       ...organization,
       users: [{ role, userId, impersonating }],
-    }),
+    })
   );
   return { requestContext };
 };
@@ -131,7 +131,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' },
+    { env: process.env, stdio: 'pipe' }
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule, ChatModule],
@@ -186,20 +186,20 @@ test('a USER member cannot invite or remove team members', async () => {
   await expect(
     tools.teamTool.execute(
       { action: 'invite', role: 'USER', sendEmail: false },
-      await connection(team, 'USER', regular),
-    ),
+      await connection(team, 'USER', regular)
+    )
   ).rejects.toThrow();
   await expect(
     tools.teamTool.execute(
       { action: 'remove', id: other },
-      await connection(team, 'USER', regular),
-    ),
+      await connection(team, 'USER', regular)
+    )
   ).rejects.toThrow();
   expect(await isMember(team, other)).toBe(true);
   // the same call of an admin goes through
   const adminRemove = await tools.teamTool.execute(
     { action: 'remove', id: other },
-    await connection(team, 'ADMIN', regular),
+    await connection(team, 'ADMIN', regular)
   );
   expect(adminRemove.output).toEqual({ removed: { id: other } });
   expect(await isMember(team, other)).toBe(false);
@@ -217,11 +217,11 @@ test('a removed member loses the OAuth connection they approved and the team lis
 
   const removed = await tools.teamTool.execute(
     { action: 'remove', id: leaving },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   const list = await tools.teamTool.execute(
     { action: 'list' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
 
   expect(removed.output).toEqual({ removed: { id: leaving } });
@@ -237,7 +237,7 @@ test('a member of another organization cannot be removed', async () => {
 
   const result = await tools.teamTool.execute(
     { action: 'remove', id: stranger },
-    await connection(mine, 'SUPERADMIN'),
+    await connection(mine, 'SUPERADMIN')
   );
 
   expect(result.output).toHaveProperty('errors');
@@ -253,7 +253,7 @@ test('an admin cannot remove a member with a higher role', async () => {
 
   const result = await tools.teamTool.execute(
     { action: 'remove', id: owner },
-    await connection(team, 'ADMIN', admin),
+    await connection(team, 'ADMIN', admin)
   );
 
   expect(result.output).toHaveProperty('errors');
@@ -271,11 +271,11 @@ test('adding an account by email needs the super admin of the instance and a con
 
   const byRegular = await tools.teamAddMemberTool.execute(
     input,
-    await connection(team, 'SUPERADMIN', regular),
+    await connection(team, 'SUPERADMIN', regular)
   );
   const byApiKey = await tools.teamAddMemberTool.execute(
     input,
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
 
   expect(byRegular.output).toEqual({ errors: 'Unauthorized' });
@@ -284,7 +284,7 @@ test('adding an account by email needs the super admin of the instance and a con
   // the super admin adds it
   const byOperator = await tools.teamAddMemberTool.execute(
     input,
-    await connection(team, 'SUPERADMIN', operator),
+    await connection(team, 'SUPERADMIN', operator)
   );
   expect(byOperator.output).toEqual({ added: true });
   expect(await isMember(team, target)).toBe(true);
@@ -299,24 +299,24 @@ test('an invitation link adds the user who opens it once', async () => {
 
   const invite = await tools.teamTool.execute(
     { action: 'invite', role: 'ADMIN', sendEmail: false },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   const link = invite.output.url as string;
   const joinedFirst = await tools.userOrganizationsTool.execute(
     { action: 'join', invite: link },
-    await connection(team, 'SUPERADMIN', first),
+    await connection(team, 'SUPERADMIN', first)
   );
   const joinedSecond = await tools.userOrganizationsTool.execute(
     { action: 'join', invite: link },
-    await connection(team, 'SUPERADMIN', second),
+    await connection(team, 'SUPERADMIN', second)
   );
   const forged = await tools.userOrganizationsTool.execute(
     { action: 'join', invite: 'not-an-invitation' },
-    await connection(team, 'SUPERADMIN', second),
+    await connection(team, 'SUPERADMIN', second)
   );
   const byApiKey = await tools.userOrganizationsTool.execute(
     { action: 'join', invite: link },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
 
   expect(joinedFirst.output).toEqual({ joined: true, organizationId: team });
@@ -335,7 +335,7 @@ test('an API key connection cannot read or change the personal settings and a us
 
   const byApiKey = await tools.userAccountTool.execute(
     { action: 'updatePersonal', fullname: 'Taken Over' },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   const notifications = await tools.userAccountTool.execute(
     {
@@ -344,7 +344,7 @@ test('an API key connection cannot read or change the personal settings and a us
       sendFailureEmails: false,
       sendStreakEmails: false,
     },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
 
   expect(byApiKey.output).toHaveProperty('errors');
@@ -357,7 +357,7 @@ test('an API key connection cannot read or change the personal settings and a us
   // the user's own connection can
   const byUser = await tools.userAccountTool.execute(
     { action: 'updatePersonal', fullname: 'New Name', bio: 'Hello' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   expect(byUser.output.personal).toMatchObject({
     name: 'New Name',
@@ -374,7 +374,7 @@ test('the account of the user shows the plan and never the password or the API k
 
   const result = await tools.userAccountTool.execute(
     { action: 'self' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
 
   expect(result.output.account).toMatchObject({
@@ -400,7 +400,7 @@ test('an account is not deleted by an API key connection or without the confirma
 
   const info = await tools.accountDeleteTool.execute(
     { action: 'info' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   const byApiKey = await tools.accountDeleteTool.execute(
     {
@@ -409,11 +409,11 @@ test('an account is not deleted by an API key connection or without the confirma
       hasSubscription: true,
       hasAdditionalMembers: true,
     },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   const withoutConfirm = await tools.accountDeleteTool.execute(
     { action: 'delete', hasSubscription: true, hasAdditionalMembers: true },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   const wrongInfo = await tools.accountDeleteTool.execute(
     {
@@ -422,7 +422,7 @@ test('an account is not deleted by an API key connection or without the confirma
       hasSubscription: true,
       hasAdditionalMembers: false,
     },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
 
   expect(info.output).toEqual({
@@ -442,7 +442,7 @@ test('an account is not deleted by an API key connection or without the confirma
       hasSubscription: true,
       hasAdditionalMembers: true,
     },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   expect(deleted.output).toEqual({ deleted: true });
   expect(await deletedAt()).not.toBeNull();
@@ -468,7 +468,7 @@ test('an account is not deleted while a super admin impersonates it', async () =
 
   const impersonated = await tools.accountDeleteTool.execute(
     input,
-    await connection(team, 'SUPERADMIN', owner, true),
+    await connection(team, 'SUPERADMIN', owner, true)
   );
 
   expect(impersonated.output).toEqual({
@@ -478,7 +478,7 @@ test('an account is not deleted while a super admin impersonates it', async () =
   // the same call without the impersonation deletes it
   const own = await tools.accountDeleteTool.execute(
     input,
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   expect(own.output).toEqual({ deleted: true });
   expect(await deletedAt()).not.toBeNull();
@@ -503,15 +503,15 @@ test('saving the personal settings keeps the profile picture and a timezone that
 
   const saved = await tools.userAccountTool.execute(
     { action: 'updatePersonal', fullname: 'With Picture' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   const badZone = await tools.userAccountTool.execute(
     { action: 'setTimezone', timezoneName: 'Nowhere/Land' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
   const goodZone = await tools.userAccountTool.execute(
     { action: 'setTimezone', timezoneName: 'Europe/Berlin' },
-    await connection(team, 'SUPERADMIN', owner),
+    await connection(team, 'SUPERADMIN', owner)
   );
 
   expect(saved.output.personal.picture).toEqual({
@@ -544,7 +544,7 @@ test('an OAuth app redirect url that is not an http(s) url is refused and nothin
   for (const redirectUrl of unsafe) {
     const created = await tools.oauthAppTool.execute(
       { action: 'create', name: 'Unsafe app', redirectUrl },
-      await connection(team, 'SUPERADMIN'),
+      await connection(team, 'SUPERADMIN')
     );
     expect(created.output).toHaveProperty('errors');
   }
@@ -556,13 +556,13 @@ test('an OAuth app redirect url that is not an http(s) url is refused and nothin
       name: 'Safe app',
       redirectUrl: 'http://localhost:3000/callback',
     },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   expect(created.output.app.redirectUrl).toBe('http://localhost:3000/callback');
   for (const redirectUrl of unsafe) {
     const updated = await tools.oauthAppTool.execute(
       { action: 'update', redirectUrl },
-      await connection(team, 'SUPERADMIN'),
+      await connection(team, 'SUPERADMIN')
     );
     expect(updated.output).toHaveProperty('errors');
   }
@@ -581,23 +581,23 @@ test('the OAuth app of another organization is not visible, changed or deleted',
       name: 'My app',
       redirectUrl: 'https://postiz.test/mine',
     },
-    await connection(mine, 'SUPERADMIN'),
+    await connection(mine, 'SUPERADMIN')
   );
   const seenByStranger = await tools.oauthAppTool.execute(
     { action: 'get' },
-    await connection(theirs, 'SUPERADMIN'),
+    await connection(theirs, 'SUPERADMIN')
   );
   const updatedByStranger = await tools.oauthAppTool.execute(
     { action: 'update', name: 'Hijacked' },
-    await connection(theirs, 'SUPERADMIN'),
+    await connection(theirs, 'SUPERADMIN')
   );
   const deletedByStranger = await tools.oauthAppTool.execute(
     { action: 'delete' },
-    await connection(theirs, 'SUPERADMIN'),
+    await connection(theirs, 'SUPERADMIN')
   );
   const seenByOwner = await tools.oauthAppTool.execute(
     { action: 'get' },
-    await connection(mine, 'SUPERADMIN'),
+    await connection(mine, 'SUPERADMIN')
   );
 
   expect(seenByStranger.output).toEqual({ app: null });
@@ -618,7 +618,7 @@ test('the client secret of the OAuth app is returned only when it is created or 
       name: 'Secret app',
       redirectUrl: 'https://postiz.test/secret',
     },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   const secret = created.output.clientSecret as string;
   const storedBefore = await prisma.oAuthApp.findFirstOrThrow({
@@ -627,15 +627,15 @@ test('the client secret of the OAuth app is returned only when it is created or 
 
   const read = await tools.oauthAppTool.execute(
     { action: 'get' },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   const updated = await tools.oauthAppTool.execute(
     { action: 'update', description: 'Changed' },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
   const rotated = await tools.oauthAppTool.execute(
     { action: 'rotateSecret' },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
 
   expect(secret.startsWith('pcs_')).toBe(true);
@@ -649,7 +649,7 @@ test('the client secret of the OAuth app is returned only when it is created or 
     where: { organizationId: team, deletedAt: null },
   });
   expect(stored.clientSecret).toBe(
-    AuthService.fixedEncryption(rotated.output.clientSecret),
+    AuthService.fixedEncryption(rotated.output.clientSecret)
   );
 });
 
@@ -665,20 +665,20 @@ test('the approved apps of a user hide the tokens and only that user can revoke 
 
   const list = await tools.approvedAppsTool.execute(
     { action: 'list' },
-    await connection(team, 'USER', mine),
+    await connection(team, 'USER', mine)
   );
   const revokeTheirs = await tools.approvedAppsTool.execute(
     { action: 'revoke', id: theirApproval.id },
-    await connection(team, 'USER', mine),
+    await connection(team, 'USER', mine)
   );
   const byApiKey = await tools.approvedAppsTool.execute(
     { action: 'revoke', id: myApproval.id },
-    await connection(team, 'SUPERADMIN'),
+    await connection(team, 'SUPERADMIN')
   );
 
   expect(list.output.apps.map((app: any) => app.id)).toEqual([myApproval.id]);
   expect(JSON.stringify(list)).not.toContain(
-    AuthService.fixedEncryption(myApproval.token),
+    AuthService.fixedEncryption(myApproval.token)
   );
   expect(JSON.stringify(list)).not.toContain(myApproval.token);
   expect(revokeTheirs.output).toHaveProperty('errors');
@@ -688,7 +688,7 @@ test('the approved apps of a user hide the tokens and only that user can revoke 
   // the user revokes their own
   const revokeMine = await tools.approvedAppsTool.execute(
     { action: 'revoke', id: myApproval.id },
-    await connection(team, 'USER', mine),
+    await connection(team, 'USER', mine)
   );
   expect(revokeMine.output).toEqual({ revoked: { id: myApproval.id } });
   expect(await oauth.resolveAccessToken(myApproval.token)).toBeNull();
@@ -704,10 +704,10 @@ test('a USER member cannot rotate the API key, manage the OAuth app or set the s
 
   await expect(tools.apiKeyRotateTool.execute({}, asUser)).rejects.toThrow();
   await expect(
-    tools.oauthAppTool.execute({ action: 'get' }, asUser),
+    tools.oauthAppTool.execute({ action: 'get' }, asUser)
   ).rejects.toThrow();
   await expect(
-    tools.shortlinkPreferenceSetTool.execute({ shortlink: 'YES' }, asUser),
+    tools.shortlinkPreferenceSetTool.execute({ shortlink: 'YES' }, asUser)
   ).rejects.toThrow();
   const after = await prisma.organization.findUniqueOrThrow({
     where: { id: team },
@@ -726,7 +726,7 @@ test('rotating the API key returns the new key and the old one stops working', a
 
   const result = await tools.apiKeyRotateTool.execute(
     {},
-    await connection(team, 'ADMIN'),
+    await connection(team, 'ADMIN')
   );
 
   const stored = await moduleRef
@@ -750,17 +750,17 @@ test('without billing a USER member is refused the admin tools while the plan li
 
   const webhook = await tools.webhookCreateTool.execute(
     { name: 'hook', url: 'https://8.8.8.8/hook', channels: [] },
-    await connection(created.id, 'USER', regular),
+    await connection(created.id, 'USER', regular)
   );
   await expect(
     tools.teamTool.execute(
       { action: 'invite', role: 'USER', sendEmail: false },
-      await connection(created.id, 'USER', regular),
-    ),
+      await connection(created.id, 'USER', regular)
+    )
   ).rejects.toThrow();
   const invite = await tools.teamTool.execute(
     { action: 'invite', role: 'USER', sendEmail: false },
-    await connection(created.id, 'ADMIN', regular),
+    await connection(created.id, 'ADMIN', regular)
   );
 
   expect(webhook.output).toHaveProperty('created');
@@ -777,7 +777,7 @@ test('rotating the API key and reading the account answer with no credentials', 
   });
   await member(team, owner, 'ADMIN');
   const caller = JSON.parse(
-    (await connection(team, 'ADMIN', owner)).requestContext.get('organization'),
+    (await connection(team, 'ADMIN', owner)).requestContext.get('organization')
   );
   const row = await moduleRef
     .get(PrismaService)

@@ -40,7 +40,7 @@ Without adjust the status is "ready" and the path can be used immediately. With 
           .boolean()
           .optional()
           .describe(
-            'Adjust the media to the platforms\' limits (resize and re-encode) after the upload. Defaults to false'
+            "Adjust the media to the platforms' limits (resize and re-encode) after the upload. Defaults to false"
           ),
       }),
       // Mastra validates a tool's return against this schema, so it must also

@@ -44,7 +44,9 @@ Each item has an "id", its publish date, state, error (for errored posts), conte
       inputSchema: z.object({
         startDate: z
           .string()
-          .describe('Start of the window (UTC), for example 2026-07-20T00:00:00'),
+          .describe(
+            'Start of the window (UTC), for example 2026-07-20T00:00:00'
+          ),
         endDate: z
           .string()
           .describe('End of the window (UTC), for example 2026-08-20T00:00:00'),
@@ -57,9 +59,7 @@ Each item has an "id", its publish date, state, error (for errored posts), conte
         output: z.object({
           posts: z.array(
             z.object({
-              id: z
-                .string()
-                .describe('The post id'),
+              id: z.string().describe('The post id'),
               publishDate: z.string().describe('UTC time'),
               state: z.string().describe('QUEUE, DRAFT, PUBLISHED or ERROR'),
               error: z
@@ -69,9 +69,7 @@ Each item has an "id", its publish date, state, error (for errored posts), conte
                   'Curated failure message for errored posts, null otherwise'
                 ),
               content: z.string(),
-              settings: z
-                .any()
-                .describe('The post current provider settings'),
+              settings: z.any().describe('The post current provider settings'),
               group: z.string(),
               integrationId: z.string(),
               platform: z.string(),

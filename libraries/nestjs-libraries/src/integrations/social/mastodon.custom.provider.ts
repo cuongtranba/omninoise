@@ -88,7 +88,9 @@ export class MastodonCustomProvider extends MastodonProvider {
       const { instanceUrl } = JSON.parse(
         AuthService.fixedDecryption(integration?.customInstanceDetails || '')
       );
-      return instanceUrl || process.env.MASTODON_URL || 'https://mastodon.social';
+      return (
+        instanceUrl || process.env.MASTODON_URL || 'https://mastodon.social'
+      );
     } catch (err) {
       return process.env.MASTODON_URL || 'https://mastodon.social';
     }

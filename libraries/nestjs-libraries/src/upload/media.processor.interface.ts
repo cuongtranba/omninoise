@@ -65,7 +65,7 @@ export type MediaProcessorStatus<Result = MediaProcessorResult> =
 
 export interface IMediaProcessor<
   Job = MediaProcessorJob,
-  Result = MediaProcessorResult
+  Result = MediaProcessorResult,
 > {
   submit(job: Job): Promise<string>;
   status(jobId: string): Promise<MediaProcessorStatus<Result>>;

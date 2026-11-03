@@ -36,7 +36,7 @@ export const Autopost: FC = () => {
         children: <AddOrEditWebhook data={data} reload={mutate} />,
       });
     },
-    [],
+    []
   );
   const deleteHook = useCallback(
     (data: any) => async () => {
@@ -45,8 +45,8 @@ export const Autopost: FC = () => {
           t(
             'are_you_sure_you_want_to_delete',
             `Are you sure you want to delete ${data.name}?`,
-            { name: data.name },
-          ),
+            { name: data.name }
+          )
         )
       ) {
         await fetch(`/autopost/${data.id}`, {
@@ -55,11 +55,11 @@ export const Autopost: FC = () => {
         mutate();
         toaster.show(
           t('webhook_deleted_successfully', 'Webhook deleted successfully'),
-          'success',
+          'success'
         );
       }
     },
-    [],
+    []
   );
   const changeActive = useCallback(
     (data: any) => async (ac: 'on' | 'off') => {
@@ -71,7 +71,7 @@ export const Autopost: FC = () => {
       });
       mutate();
     },
-    [mutate],
+    [mutate]
   );
   return (
     <div className="flex flex-col">
@@ -79,7 +79,7 @@ export const Autopost: FC = () => {
       <div className="text-customColor18 mt-[4px]">
         {t(
           'autopost_creates_drafts_from_your_rss_new_items',
-          'Autopost creates drafts from your RSS new items, review and schedule them from the calendar to publish them',
+          'Autopost creates drafts from your RSS new items, review and schedule them from the calendar to publish them'
         )}
       </div>
       <div className="my-[16px] mt-[16px] bg-sixth border-fifth items-center border rounded-[4px] p-[24px] flex gap-[24px]">
@@ -145,7 +145,7 @@ const details = object().shape({
   integrations: array().of(
     object().shape({
       id: string().required(),
-    }),
+    })
   ),
 });
 const getOptions = (t: (key: string, fallback: string) => string) => [
@@ -180,7 +180,7 @@ export const AddOrEditWebhook: FC<{
   const [allIntegrations, setAllIntegrations] = useState(
     (JSON.parse(data?.integrations || '[]')?.length || 0) > 0
       ? options[1]
-      : options[0],
+      : options[0]
   );
   const modal = useModals();
   const toast = useToaster();
@@ -215,14 +215,14 @@ export const AddOrEditWebhook: FC<{
   const changeIntegration = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const findValue = options.find(
-        (option) => option.value === e.target.value,
+        (option) => option.value === e.target.value
       )!;
       setAllIntegrations(findValue);
       if (findValue.value === 'all') {
         form.setValue('integrations', []);
       }
     },
-    [],
+    []
   );
   const { data: dataList, isLoading } = useSWR('integrations', integration, {
     revalidateOnFocus: false,
@@ -256,12 +256,12 @@ export const AddOrEditWebhook: FC<{
         data?.id
           ? t('autopost_updated_successfully', 'Autopost updated successfully')
           : t('autopost_added_successfully', 'Autopost added successfully'),
-        'success',
+        'success'
       );
       modal.closeAll();
       reload();
     },
-    [data, integrations, lastUrl, syncLast],
+    [data, integrations, lastUrl, syncLast]
   );
   const sendTest = useCallback(async () => {
     const url = form.getValues('url');
@@ -278,7 +278,7 @@ export const AddOrEditWebhook: FC<{
         setValid('');
         toast.show(
           t('could_not_use_rss_feed', 'Could not use this RSS feed'),
-          'warning',
+          'warning'
         );
         return;
       }
@@ -341,7 +341,7 @@ export const AddOrEditWebhook: FC<{
                 <CopilotTextarea
                   disableBranding={true}
                   className={clsx(
-                    '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-brand bg-customColor2 outline-none mb-[16px] border-fifth border rounded-[4px]',
+                    '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-brand bg-customColor2 outline-none mb-[16px] border-fifth border rounded-[4px]'
                   )}
                   value={content}
                   onChange={(e) => {
@@ -349,7 +349,7 @@ export const AddOrEditWebhook: FC<{
                   }}
                   placeholder={t(
                     'write_your_post_placeholder',
-                    'Write your post...',
+                    'Write your post...'
                   )}
                   autosuggestionsConfig={{
                     textareaPurpose: `Assist me in writing social media post`,

@@ -82,12 +82,12 @@ async function reduceImageBySize(url: string, maxSizeKB = 976) {
 // getPostThread answers with a NotFoundPost or BlockedPost, which have no post,
 // when the post can't be read
 const getThreadPost = (
-  thread: AppBskyFeedGetPostThread.OutputSchema['thread'],
+  thread: AppBskyFeedGetPostThread.OutputSchema['thread']
 ) => (AppBskyFeedDefs.isThreadViewPost(thread) ? thread.post : undefined);
 
 async function startVideoUpload(
   agent: AtpAgent,
-  videoPath: string,
+  videoPath: string
 ): Promise<AppBskyVideoDefs.JobStatus> {
   const { data: serviceAuth } = await agent.com.atproto.server.getServiceAuth({
     aud: `did:web:${agent.dispatchUrl.host}`,
@@ -110,7 +110,7 @@ async function startVideoUpload(
       'bluesky',
       '{}',
       {} as any,
-      'Could not determine the video size for Bluesky upload',
+      'Could not determine the video size for Bluesky upload'
     );
   }
 
@@ -126,7 +126,7 @@ async function startVideoUpload(
   console.log('Uploading video', videoPath, videoSize);
 
   const uploadUrl = new URL(
-    'https://video.bsky.app/xrpc/app.bsky.video.uploadVideo',
+    'https://video.bsky.app/xrpc/app.bsky.video.uploadVideo'
   );
   uploadUrl.searchParams.append('did', agent.session!.did);
   uploadUrl.searchParams.append('name', videoPath.split('/').pop()!);
@@ -152,7 +152,7 @@ async function startVideoUpload(
       'bluesky',
       JSON.stringify({}),
       {} as any,
-      'Could not upload video, job failed',
+      'Could not upload video, job failed'
     );
   }
 
@@ -162,7 +162,7 @@ async function startVideoUpload(
 // Single read of the processing job - the endpoint is public (no login), so
 // status checks never spend Bluesky's strict createSession rate limits.
 async function getVideoJobStatus(
-  jobId: string,
+  jobId: string
 ): Promise<AppBskyVideoDefs.JobStatus> {
   const videoAgent = new AtpAgent({ service: 'https://video.bsky.app' });
   const { data: status } = await videoAgent.app.bsky.video.getJobStatus({
@@ -175,7 +175,7 @@ async function getVideoJobStatus(
 // one activity (comments, and post() for pre-v1.0.6 workflows).
 async function uploadVideo(
   agent: AtpAgent,
-  videoPath: string,
+  videoPath: string
 ): Promise<AppBskyEmbedVideo.Main> {
   const jobStatus = await startVideoUpload(agent, videoPath);
   let blob: BlobRef | undefined = jobStatus.blob;
@@ -188,7 +188,7 @@ async function uploadVideo(
         'bluesky',
         JSON.stringify({}),
         {} as any,
-        'Video upload timed out, job did not complete',
+        'Video upload timed out, job did not complete'
       );
     }
 
@@ -203,7 +203,7 @@ async function uploadVideo(
         'bluesky',
         JSON.stringify({}),
         {} as any,
-        'Could not upload video, job failed',
+        'Could not upload video, job failed'
       );
     }
 
@@ -238,7 +238,7 @@ type BlueskyPendingData = {
 };
 
 @Rules(
-  'Bluesky can have maximum 1 video or 4 pictures in one post, it can also be without attachments',
+  'Bluesky can have maximum 1 video or 4 pictures in one post, it can also be without attachments'
 )
 export class BlueskyProvider extends SocialAbstract implements SocialProvider {
   override maxConcurrentJob = 6; // Bluesky limits are per account and per IP
@@ -255,13 +255,13 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
   }
 
   override async checkValidity(
-    posts: Array<ValidityMedia[]>,
+    posts: Array<ValidityMedia[]>
   ): Promise<string | true> {
     if (
       posts?.some(
         (p) =>
           p?.some((a) => (a?.path?.indexOf?.('mp4') ?? -1) > -1) &&
-          (p?.length ?? 0) > 1,
+          (p?.length ?? 0) > 1
       )
     ) {
       return 'You can only upload one video per post.';
@@ -369,7 +369,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
 
   private async getAgent(integration: Integration) {
     const body = JSON.parse(
-      AuthService.fixedDecryption(integration.customInstanceDetails!),
+      AuthService.fixedDecryption(integration.customInstanceDetails!)
     );
     const agent = new BskyAgent({
       service: body.service,
@@ -403,7 +403,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
 
   private async uploadMediaForPost(
     agent: BskyAgent,
-    post: PostDetails,
+    post: PostDetails
   ): Promise<{ embed: any; images: any[] }> {
     // Separate images and videos
     const imageMedia =
@@ -423,7 +423,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
             return agent.uploadBlob(new Blob([buffer]));
           })(),
         };
-      }),
+      })
     );
 
     // Upload videos (only one video per post is supported by Bluesky)
@@ -457,7 +457,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const [firstPost] = postDetails;
     const videoMedia =
@@ -496,7 +496,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
   override async checkPostStatus(
     accessToken: string,
     pendingData: BlueskyPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // A confirmed create attempt died without reporting its result: never run
     // the create again - stop with an explicit warning instead.
@@ -505,7 +505,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
         'bluesky',
         JSON.stringify({}),
         {} as any,
-        'Bluesky may have already published this post, please check your account before posting again to avoid duplicates',
+        'Bluesky may have already published this post, please check your account before posting again to avoid duplicates'
       );
     }
 
@@ -543,7 +543,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
         'bluesky',
         JSON.stringify(status),
         {} as any,
-        'Could not upload video, job failed',
+        'Could not upload video, job failed'
       );
     }
 
@@ -557,7 +557,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
   override async finalizePost(
     accessToken: string,
     pendingData: BlueskyPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // Create with an arm -> confirm -> publish handshake: the create only runs
     // after checkPostStatus witnessed the intent, so a run that dies
@@ -590,7 +590,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
             'bluesky',
             JSON.stringify(status),
             {} as any,
-            'Could not upload video, job failed',
+            'Could not upload video, job failed'
           );
         }
 
@@ -640,7 +640,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
           'bluesky',
           JSON.stringify({ message: reason }),
           {} as any,
-          `Could not prepare the post for Bluesky, nothing was published: ${reason}`,
+          `Could not prepare the post for Bluesky, nothing was published: ${reason}`
         );
       }
 
@@ -685,7 +685,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
           'bluesky',
           JSON.stringify(err?.error || err?.message || {}),
           {} as any,
-          'Bluesky rejected the post, nothing was published, please check the content and try again',
+          'Bluesky rejected the post, nothing was published, please check the content and try again'
         );
       }
 
@@ -708,13 +708,13 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const [response] = await this.postPending(
       id,
       accessToken,
       postDetails,
-      integration,
+      integration
     );
 
     let pendingData = response.pendingData;
@@ -731,14 +731,14 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
           'bluesky',
           JSON.stringify({}),
           {} as any,
-          'Video upload timed out, job did not complete',
+          'Video upload timed out, job did not complete'
         );
       }
 
       const check = await this.checkPostStatus(
         accessToken,
         pendingData,
-        integration,
+        integration
       );
 
       if (check.status === 'pending') {
@@ -780,7 +780,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     lastCommentId: string | undefined,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     const agent = await this.getAgent(integration);
     const [commentPost] = postDetails;
@@ -862,10 +862,10 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
   async autoRepostPost(
     integration: Integration,
     id: string,
-    fields: { likesAmount: string },
+    fields: { likesAmount: string }
   ) {
     const body = JSON.parse(
-      AuthService.fixedDecryption(integration.customInstanceDetails!),
+      AuthService.fixedDecryption(integration.customInstanceDetails!)
     );
     const agent = new BskyAgent({
       service: body.service,
@@ -918,10 +918,10 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
   async autoPlugPost(
     integration: Integration,
     id: string,
-    fields: { likesAmount: string; post: string },
+    fields: { likesAmount: string; post: string }
   ) {
     const body = JSON.parse(
-      AuthService.fixedDecryption(integration.customInstanceDetails!),
+      AuthService.fixedDecryption(integration.customInstanceDetails!)
     );
     const agent = new BskyAgent({
       service: body.service,
@@ -973,8 +973,8 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       const profile = await (
         await fetch(
           `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(
-            id,
-          )}`,
+            id
+          )}`
         )
       ).json();
 
@@ -995,7 +995,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
                 percentageChange: 0,
                 data: [{ total: String(total), date: today }],
               },
-            ],
+            ]
       );
     } catch (err) {
       console.error('Error fetching Bluesky analytics:', err);
@@ -1007,7 +1007,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -1016,8 +1016,8 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       const { posts } = await (
         await fetch(
           `https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts?uris=${encodeURIComponent(
-            postId,
-          )}`,
+            postId
+          )}`
         )
       ).json();
 
@@ -1044,7 +1044,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
                 percentageChange: 0,
                 data: [{ total: String(total), date: today }],
               },
-            ],
+            ]
       );
     } catch (err) {
       console.error('Error fetching Bluesky post analytics:', err);
@@ -1056,10 +1056,10 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     token: string,
     d: { query: string },
     id: string,
-    integration: Integration,
+    integration: Integration
   ) {
     const body = JSON.parse(
-      AuthService.fixedDecryption(integration.customInstanceDetails!),
+      AuthService.fixedDecryption(integration.customInstanceDetails!)
     );
 
     const agent = new BskyAgent({

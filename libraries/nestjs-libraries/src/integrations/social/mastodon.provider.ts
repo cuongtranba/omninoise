@@ -46,7 +46,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
 
   override handleErrors(
     body: string,
-    status: number,
+    status: number
   ):
     | { type: 'refresh-token' | 'bad-body' | 'retry'; value: string }
     | undefined {
@@ -91,10 +91,10 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     customUrl: string,
     state: string,
     clientId: string,
-    url: string,
+    url: string
   ) {
     return `${customUrl}/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(
-      `${url}/integrations/social/mastodon`,
+      `${url}/integrations/social/mastodon`
     )}&scope=${this.scopes.join('+')}&state=${state}`;
   }
 
@@ -104,7 +104,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       process.env.MASTODON_URL || 'https://mastodon.social',
       state,
       process.env.MASTODON_CLIENT_ID!,
-      process.env.FRONTEND_URL!,
+      process.env.FRONTEND_URL!
     );
     return {
       url,
@@ -117,7 +117,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     clientId: string,
     clientSecret: string,
     url: string,
-    code: string,
+    code: string
   ) {
     const form = new FormData();
     form.append('client_id', clientId);
@@ -126,7 +126,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     form.append('grant_type', 'authorization_code');
     form.append(
       'redirect_uri',
-      `${process.env.FRONTEND_URL}/integrations/social/mastodon`,
+      `${process.env.FRONTEND_URL}/integrations/social/mastodon`
     );
     form.append('scope', this.scopes.join(' '));
 
@@ -165,7 +165,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       process.env.MASTODON_CLIENT_ID!,
       process.env.MASTODON_CLIENT_SECRET!,
       process.env.MASTODON_URL || 'https://mastodon.social',
-      params.code,
+      params.code
     );
   }
 
@@ -173,7 +173,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     instanceUrl: string,
     fileUrl: string,
     accessToken: string,
-    alt?: string,
+    alt?: string
   ) {
     // The file is streamed straight from storage into the Mastodon upload
     // request instead of being buffered in memory. Both requests keep the
@@ -190,7 +190,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
         throw new Error(`Failed to fetch media: ${fileResponse.statusText}`);
       }
       const contentLength = Number(
-        fileResponse.headers.get('content-length') || 0,
+        fileResponse.headers.get('content-length') || 0
       );
 
       const form = new FormDataUpload();
@@ -244,7 +244,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     url: string,
-    postDetails: PostDetails[],
+    postDetails: PostDetails[]
   ): Promise<PostResponse[]> {
     const [firstPost] = postDetails;
 
@@ -254,8 +254,8 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     // created by finalizePost, so nothing here is irreversible.
     const uploadFiles = await Promise.all(
       firstPost?.media?.map((media) =>
-        this.uploadFile(url, media.path, accessToken, media.alt),
-      ) || [],
+        this.uploadFile(url, media.path, accessToken, media.alt)
+      ) || []
     );
 
     return [
@@ -282,7 +282,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
   override async checkPostStatus(
     accessToken: string,
     pendingData: MastodonPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // Text-only statuses have no asynchronous processing step.
     if (!pendingData.mediaIds?.length) {
@@ -319,7 +319,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
         throw new RefreshToken(
           this.identifier,
           await response.text().catch(() => '{}'),
-          '{}',
+          '{}'
         );
       }
 
@@ -339,7 +339,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           await response.text().catch(() => '{}'),
           '{}',
-          'The uploaded media expired before the post was published, please post again',
+          'The uploaded media expired before the post was published, please post again'
         );
       }
 
@@ -357,7 +357,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
   override async finalizePost(
     accessToken: string,
     pendingData: MastodonPendingData,
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     const form = new FormData();
     form.append('status', pendingData.message);
@@ -398,13 +398,13 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     url: string,
-    postDetails: PostDetails[],
+    postDetails: PostDetails[]
   ): Promise<PostResponse[]> {
     const [response] = await this.dynamicPostPending(
       id,
       accessToken,
       url,
-      postDetails,
+      postDetails
     );
 
     let pendingData = response.pendingData;
@@ -418,14 +418,14 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       const check = await this.checkPostStatus(
         accessToken,
         pendingData,
-        {} as Integration,
+        {} as Integration
       );
 
       if (check.status === 'ready') {
         const finalize = await this.finalizePost(
           accessToken,
           check.pendingData,
-          {} as Integration,
+          {} as Integration
         );
 
         if (finalize.status === 'completed') {
@@ -462,7 +462,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           '{}',
-          'The media took too long to process, please try again',
+          'The media took too long to process, please try again'
         );
       }
 
@@ -476,15 +476,15 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     lastCommentId: string | undefined,
     accessToken: string,
     url: string,
-    postDetails: PostDetails[],
+    postDetails: PostDetails[]
   ): Promise<PostResponse[]> {
     const [commentPost] = postDetails;
     const replyToId = lastCommentId || postId;
 
     const uploadFiles = await Promise.all(
       commentPost?.media?.map((media) =>
-        this.uploadFile(url, media.path, accessToken, media.alt),
-      ) || [],
+        this.uploadFile(url, media.path, accessToken, media.alt)
+      ) || []
     );
 
     const form = new FormData();
@@ -521,13 +521,13 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     return this.dynamicPost(
       id,
       accessToken,
       process.env.MASTODON_URL || 'https://mastodon.social',
-      postDetails,
+      postDetails
     );
   }
 
@@ -535,13 +535,13 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     return this.dynamicPostPending(
       id,
       accessToken,
       process.env.MASTODON_URL || 'https://mastodon.social',
-      postDetails,
+      postDetails
     );
   }
 
@@ -550,7 +550,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
   async analytics(
     id: string,
     accessToken: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -565,7 +565,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
               Authorization: `Bearer ${accessToken}`,
             },
           },
-          this.identifier,
+          this.identifier
         )
       ).json();
 
@@ -586,7 +586,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
                 percentageChange: 0,
                 data: [{ total: String(total), date: today }],
               },
-            ],
+            ]
       );
     } catch (err) {
       if (err instanceof RefreshToken) {
@@ -601,7 +601,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -613,7 +613,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
             process.env.MASTODON_URL || 'https://mastodon.social'
           }/api/v1/statuses/${encodeURIComponent(postId)}`,
           {},
-          this.identifier,
+          this.identifier
         )
       ).json();
 
@@ -634,7 +634,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
                 percentageChange: 0,
                 data: [{ total: String(total), date: today }],
               },
-            ],
+            ]
       );
     } catch (err) {
       console.error('Error fetching Mastodon post analytics:', err);
@@ -648,7 +648,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     lastCommentId: string | undefined,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     return this.dynamicComment(
       id,
@@ -656,7 +656,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       lastCommentId,
       accessToken,
       process.env.MASTODON_URL || 'https://mastodon.social',
-      postDetails,
+      postDetails
     );
   }
 }

@@ -273,7 +273,7 @@ export const run = async (argv: string[], ctx: Context): Promise<number> => {
     return 0;
   } catch (e: any) {
     ctx.stderr.write(
-      `error: ${e instanceof CliError ? e.message : e?.stack ?? e}\n`
+      `error: ${e instanceof CliError ? e.message : (e?.stack ?? e)}\n`
     );
     return 1;
   }

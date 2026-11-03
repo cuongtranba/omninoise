@@ -104,8 +104,8 @@ export class AgenciesService {
                 <a href="${
                   body.website
                 }" style="text-decoration: none; color: #007bff;">${
-        body.website
-      }</a>
+                  body.website
+                }</a>
             </td>
         </tr>
         <tr>
@@ -116,33 +116,33 @@ export class AgenciesService {
                     <a href="${
                       body.facebook
                     }" style="margin: 0 10px; text-decoration: none; color: #007bff;">${
-        body.facebook
-      }</a><br />
+                      body.facebook
+                    }</a><br />
                     <a href="${
                       body.instagram
                     }" style="margin: 0 10px; text-decoration: none; color: #007bff;">${
-        body.instagram
-      }</a><br />
+                      body.instagram
+                    }</a><br />
                     <a href="${
                       body.twitter
                     }" style="margin: 0 10px; text-decoration: none; color: #007bff;">${
-        body.twitter
-      }</a><br />
+                      body.twitter
+                    }</a><br />
                     <a href="${
                       body.linkedIn
                     }" style="margin: 0 10px; text-decoration: none; color: #007bff;">${
-        body.linkedIn
-      }</a><br />
+                      body.linkedIn
+                    }</a><br />
                     <a href="${
                       body.youtube
                     }" style="margin: 0 10px; text-decoration: none; color: #007bff;">${
-        body.youtube
-      }</a><br />
+                      body.youtube
+                    }</a><br />
                     <a href="${
                       body.tiktok
                     }" style="margin: 0 10px; text-decoration: none; color: #007bff;">${
-        body.tiktok
-      }</a>
+                      body.tiktok
+                    }</a>
                 </p>
             </td>
         </tr>

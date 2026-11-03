@@ -163,16 +163,16 @@ export const stripHtmlValidation = (
         convertMentionFunction
       ),
       [
-      'ul',
-      'li',
-      'h1',
-      'h2',
-      'h3',
-      'p',
-      'strong',
-      'u',
-      'a',
-      ...(inlineImages ? ['img'] : []),
+        'ul',
+        'li',
+        'h1',
+        'h2',
+        'h3',
+        'p',
+        'strong',
+        'u',
+        'a',
+        ...(inlineImages ? ['img'] : []),
       ]
     )
       .replace(/&gt;/gi, '>')

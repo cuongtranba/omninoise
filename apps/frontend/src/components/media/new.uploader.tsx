@@ -277,7 +277,11 @@ export function useUppyUploader(props: {
         // the transloadit plugin reports one assembly per upload in the result
         const [assembly] = result.transloadit as AssemblyResponse[];
         const allRes = assembly.results;
-        const toSave = uniqBy<{ name: string; originalName: string; order: number }>(
+        const toSave = uniqBy<{
+          name: string;
+          originalName: string;
+          order: number;
+        }>(
           Object.values(allRes).flatMap((p) => {
             return p.flatMap((item) => ({
               name: item.url.split('/').pop() ?? '',

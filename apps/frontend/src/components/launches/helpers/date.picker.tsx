@@ -156,10 +156,10 @@ export const DatePickerPanel: FC<{
                 modifiers.selected
                   ? '!bg-boxFocused !text-textItemFocused !font-[600] !outline-none'
                   : modifiers.outside
-                  ? '!text-newTextColor/20 !font-[400]'
-                  : dayjs(day).isSame(toPickerDate(newDayjs()), 'day')
-                  ? '!text-brandLight !font-[600]'
-                  : '!text-textItemBlur !font-[400]'
+                    ? '!text-newTextColor/20 !font-[400]'
+                    : dayjs(day).isSame(toPickerDate(newDayjs()), 'day')
+                      ? '!text-brandLight !font-[600]'
+                      : '!text-textItemBlur !font-[400]'
               )
             }
             classNames={{

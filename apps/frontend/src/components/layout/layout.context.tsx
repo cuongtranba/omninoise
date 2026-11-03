@@ -93,7 +93,7 @@ function LayoutContextInner(params: { children: ReactNode }) {
           await deleteDialog(
             "This feature is not available during the trial. You can end the trial now: your plan's first payment is charged today instead of at the end of the trial.",
             'End trial and pay now',
-            'Trial',
+            'Trial'
           )
         ) {
           window.open('/billing?finishTrial=true', '_blank');
@@ -112,7 +112,7 @@ function LayoutContextInner(params: { children: ReactNode }) {
                 .catch(() => ({}))
             ).message,
             'Move to billing',
-            'Payment Required',
+            'Payment Required'
           )
         ) {
           window.open('/billing', '_blank');
@@ -122,7 +122,7 @@ function LayoutContextInner(params: { children: ReactNode }) {
       }
       return true;
     },
-    [],
+    []
   );
   return (
     <FetchWrapperComponent baseUrl={backendUrl} afterRequest={afterRequest}>

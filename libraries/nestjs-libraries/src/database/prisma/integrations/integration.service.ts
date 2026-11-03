@@ -575,10 +575,11 @@ export class IntegrationService {
     newProvider: string,
     auth: { id: string; username: string }
   ) {
-    const existing = await this._integrationRepository.getIntegrationByInternalId(
-      org,
-      oldInternalId
-    );
+    const existing =
+      await this._integrationRepository.getIntegrationByInternalId(
+        org,
+        oldInternalId
+      );
 
     if (
       !existing ||
@@ -858,9 +859,8 @@ export class IntegrationService {
       dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
       forceRefresh
     ) {
-      const data = await this._refreshIntegrationService.refresh(
-        getIntegration
-      );
+      const data =
+        await this._refreshIntegrationService.refresh(getIntegration);
       if (!data) {
         return [];
       }
@@ -933,9 +933,7 @@ export class IntegrationService {
       cacheKey,
       JSON.stringify(loadAnalytics),
       'EX',
-      !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
-        ? 1
-        : 3600
+      !process.env.NODE_ENV || process.env.NODE_ENV === 'development' ? 1 : 3600
     );
     return loadAnalytics;
   }

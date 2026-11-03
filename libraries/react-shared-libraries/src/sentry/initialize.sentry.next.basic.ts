@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 export const initializeSentryBasic = (
   environment: string,
   dsn: string,
-  extension: any,
+  extension: any
 ) => {
   if (!dsn) {
     return;
@@ -60,11 +60,11 @@ export const initializeSentryBasic = (
           .filter((frame) => frame.filename && (frame.lineno || frame.colno));
         if (!callbackFrames.length) {
           return thirdPartyFramelessPatterns.some((pattern) =>
-            pattern.test(value.value || ''),
+            pattern.test(value.value || '')
           );
         }
         return callbackFrames.every(
-          (frame) => !frame.filename!.includes('/_next/'),
+          (frame) => !frame.filename!.includes('/_next/')
         );
       })
     );
@@ -137,7 +137,7 @@ export const initializeSentryBasic = (
                   // oxlint-disable-next-line no-console
                   console.error(
                     'Failed to import @sentry/react for report dialog:',
-                    importErr,
+                    importErr
                   );
                 });
             }

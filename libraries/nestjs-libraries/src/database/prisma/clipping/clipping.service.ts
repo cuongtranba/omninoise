@@ -161,9 +161,10 @@ export class ClippingService {
 
     // loaded here and not taken from the caller: the MCP organization comes
     // without the subscription dates the billing window is computed from
-    const org = await this._organizationService.getOrgByIdWithSubscription(
-      organizationId
-    );
+    const org =
+      await this._organizationService.getOrgByIdWithSubscription(
+        organizationId
+      );
     return (await this._subscriptionService.checkCredits(org!, CREDITS_TYPE))
       .credits;
   }
@@ -1061,8 +1062,8 @@ export class ClippingService {
         error: customer
           ? error.slice(0, 4000)
           : rendered
-          ? 'Something went wrong after the clips were made.'
-          : SOMETHING_WENT_WRONG,
+            ? 'Something went wrong after the clips were made.'
+            : SOMETHING_WENT_WRONG,
         ...(rendered ? {} : { creditsId: null }),
       }
     );

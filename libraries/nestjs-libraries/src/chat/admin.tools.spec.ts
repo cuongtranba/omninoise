@@ -37,7 +37,7 @@ const user = async (name: string, isSuperAdmin: boolean) => {
 // the user and an API key one does not
 const connection = async (
   userId?: string,
-  extra: { impersonating?: boolean; isSuperAdmin?: boolean } = {},
+  extra: { impersonating?: boolean; isSuperAdmin?: boolean } = {}
 ) => {
   const organization = await moduleRef
     .get(PrismaService)
@@ -48,7 +48,7 @@ const connection = async (
     JSON.stringify({
       ...organization,
       users: [{ role: 'SUPERADMIN', userId, ...extra }],
-    }),
+    })
   );
   return { requestContext };
 };
@@ -69,7 +69,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' },
+    { env: process.env, stdio: 'pipe' }
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule, ChatModule],
@@ -117,7 +117,7 @@ test('the admin tools refuse an API key, a regular user and a regular user who c
     (c: any) =>
       tools.announcementsTool.execute(
         { action: 'create', title: `refused-${run}`, description: 'text' },
-        c,
+        c
       ),
     (c: any) =>
       tools.announcementsTool.execute({ action: 'delete', id: 'unknown' }, c),
@@ -137,7 +137,7 @@ test('the admin tools refuse an API key, a regular user and a regular user who c
 
   const allowed = await tools.adminTool.execute(
     { action: 'stats' },
-    await connection(operatorId),
+    await connection(operatorId)
   );
   expect(allowed.output).toHaveProperty('stats.posts.total');
 });
@@ -153,7 +153,7 @@ test('the super admin publishes and deletes an announcement and every connection
       description: 'Tonight at 22:00',
       color: 'WARNING',
     },
-    operator,
+    operator
   );
   const id = created.output.created.id;
   expect(created.output.created).toMatchObject({
@@ -164,19 +164,19 @@ test('the super admin publishes and deletes an announcement and every connection
 
   const listed = await tools.announcementsTool.execute(
     { action: 'list' },
-    await connection(),
+    await connection()
   );
   expect(
-    listed.output.announcements.map((announcement: any) => announcement.id),
+    listed.output.announcements.map((announcement: any) => announcement.id)
   ).toContain(id);
 
   const deleted = await tools.announcementsTool.execute(
     { action: 'delete', id },
-    operator,
+    operator
   );
   const again = await tools.announcementsTool.execute(
     { action: 'delete', id },
-    operator,
+    operator
   );
   expect(deleted.output).toEqual({ deleted: { id } });
   expect(again.output).toEqual({ errors: 'The announcement was not found' });
@@ -186,7 +186,7 @@ test('the super admin publishes and deletes an announcement and every connection
 test('the user search returns the users with their organizations and no payment data', async () => {
   const result = await tools.adminTool.execute(
     { action: 'searchUsers', name: `admin-regular-${run}` },
-    await connection(operatorId),
+    await connection(operatorId)
   );
 
   expect(result.output.users).toEqual([
@@ -237,11 +237,11 @@ test('the failed posts list the organization members and filter by platform', as
 
   const platforms = await tools.adminTool.execute(
     { action: 'errorPlatforms' },
-    operator,
+    operator
   );
   const errors = await tools.adminTool.execute(
     { action: 'publishErrors', platform: `platform-${run}` },
-    operator,
+    operator
   );
 
   expect(platforms.output.platforms).toContain(`platform-${run}`);
@@ -260,8 +260,8 @@ test('the failed posts list the organization members and filter by platform', as
   });
   expect(
     errors.output.publishErrors.items[0].organization.users.map(
-      (member: any) => member.id,
-    ),
+      (member: any) => member.id
+    )
   ).toEqual(expect.arrayContaining([operatorId, regularId]));
   expect(JSON.stringify(errors.output)).not.toContain('secret-token');
 });

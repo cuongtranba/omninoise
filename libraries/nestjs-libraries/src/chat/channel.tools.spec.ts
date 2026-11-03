@@ -40,7 +40,7 @@ const connection = (id: string, subscription?: { totalChannels: number }) => {
       createdAt: new Date(),
       subscription,
       users: [{ role: 'SUPERADMIN' }],
-    }),
+    })
   );
   return { requestContext };
 };
@@ -48,7 +48,7 @@ const connection = (id: string, subscription?: { totalChannels: number }) => {
 const channel = (
   organizationId: string,
   name: string,
-  data: { providerIdentifier?: string; disabled?: boolean } = {},
+  data: { providerIdentifier?: string; disabled?: boolean } = {}
 ) =>
   moduleRef.get(PrismaService).integration.create({
     data: {
@@ -72,7 +72,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' },
+    { env: process.env, stdio: 'pipe' }
   );
   process.env.LINKEDIN_CLIENT_ID = 'client-id';
   process.env.FRONTEND_URL = 'https://postiz.test';
@@ -117,13 +117,13 @@ test('a group of another organization cannot be linked to a channel', async () =
 
   const result = await tools.integrationGroupTool.execute(
     { action: 'assign', id: mine.id, groupId: foreignGroup.id },
-    connection(owner),
+    connection(owner)
   );
 
   expect(result.output).toHaveProperty('errors');
   expect(
     (await prisma.integration.findUniqueOrThrow({ where: { id: mine.id } }))
-      .customerId,
+      .customerId
   ).toBeNull();
 });
 
@@ -133,7 +133,7 @@ test('a plug cannot be set up on a channel of another organization', async () =>
   const stranger = await org('plug-stranger');
   const available = await tools.integrationPlugsTool.execute(
     { action: 'available' },
-    connection(stranger),
+    connection(stranger)
   );
   const provider = available.output.plugs[0];
   const victim = await channel(owner, 'victim', {
@@ -147,12 +147,12 @@ test('a plug cannot be set up on a channel of another organization', async () =>
       func: provider.plugs[0].methodName,
       fields: [],
     },
-    connection(stranger),
+    connection(stranger)
   );
 
   expect(result.output).toHaveProperty('errors');
   expect(
-    await prisma.plugs.count({ where: { integrationId: victim.id } }),
+    await prisma.plugs.count({ where: { integrationId: victim.id } })
   ).toBe(0);
 });
 
@@ -160,7 +160,7 @@ test('a plug the platform of the channel does not have is refused', async () => 
   const owner = await org('plug-func');
   const available = await tools.integrationPlugsTool.execute(
     { action: 'available' },
-    connection(owner),
+    connection(owner)
   );
   const mine = await channel(owner, 'plug-func', {
     providerIdentifier: available.output.plugs[0].identifier,
@@ -169,7 +169,7 @@ test('a plug the platform of the channel does not have is refused', async () => 
   // a method of the provider that is not one of its plugs
   const result = await tools.integrationPlugsTool.execute(
     { action: 'save', id: mine.id, func: 'refreshToken', fields: [] },
-    connection(owner),
+    connection(owner)
   );
 
   expect(result.output).toHaveProperty('errors');
@@ -191,7 +191,7 @@ test('deleting a channel deletes its posts too', async () => {
 
   const result = await tools.integrationStateTool.execute(
     { action: 'delete', id: mine.id },
-    connection(owner),
+    connection(owner)
   );
 
   expect(result.output).toEqual({ id: mine.id, state: 'deleted' });
@@ -199,12 +199,12 @@ test('deleting a channel deletes its posts too', async () => {
     .poll(
       async () =>
         (await prisma.post.findUniqueOrThrow({ where: { id: post.id } }))
-          .deletedAt,
+          .deletedAt
     )
     .not.toBeNull();
   expect(
     (await prisma.integration.findUniqueOrThrow({ where: { id: mine.id } }))
-      .deletedAt,
+      .deletedAt
   ).not.toBeNull();
 });
 
@@ -217,13 +217,13 @@ test('a disabled channel is enabled only while the channels limit of the subscri
   const enable = (totalChannels: number) =>
     tools.integrationStateTool.execute(
       { action: 'enable', id: off.id },
-      connection(owner, { totalChannels }),
+      connection(owner, { totalChannels })
     );
 
   expect((await enable(1)).output.errors).toMatch(/maximum number of channels/);
   expect(
     (await prisma.integration.findUniqueOrThrow({ where: { id: off.id } }))
-      .disabled,
+      .disabled
   ).toBe(true);
 
   expect((await enable(2)).output).toEqual({ id: off.id, state: 'enabled' });
@@ -238,13 +238,13 @@ test('a channel at the channels limit can be reconnected but a new one cannot be
   await expect(
     tools.integrationConnectTool.execute(
       { provider: 'linkedin' },
-      connection(owner),
-    ),
+      connection(owner)
+    )
   ).rejects.toThrow(/channel/i);
 
   const reconnect = await tools.integrationConnectTool.execute(
     { reconnectChannelId: mine.id },
-    connection(owner),
+    connection(owner)
   );
   const state = new URL(reconnect.output.url).searchParams.get('state')!;
 
@@ -260,11 +260,11 @@ test('posting times set in UTC hours and minutes are read back as the same time 
 
   await tools.integrationTimesTool.execute(
     { id: mine.id, times: [{ hour: 1, minute: 30 }] },
-    connection(owner),
+    connection(owner)
   );
   const result = await tools.integrationGetTool.execute(
     { id: mine.id },
-    connection(owner),
+    connection(owner)
   );
 
   expect(result.output.postingTimes).toEqual([{ time: 90, utc: '01:30' }]);

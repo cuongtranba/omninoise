@@ -98,8 +98,8 @@ export class ClippingTool implements AgentToolInterface {
             err instanceof HttpException && err.getStatus() === 402
               ? 'No clipping minutes are left on this account for this month'
               : err instanceof HttpException
-              ? err.message
-              : 'Something went wrong';
+                ? err.message
+                : 'Something went wrong';
           if (!(err instanceof HttpException)) {
             console.error('clippingTool failed:', err);
           }

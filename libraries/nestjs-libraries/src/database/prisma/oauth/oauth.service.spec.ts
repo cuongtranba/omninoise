@@ -23,7 +23,7 @@ let appId: string;
 const approve = async (
   name: string,
   membership: { role: 'USER' | 'ADMIN'; disabled?: boolean } | null,
-  organizationId = orgId,
+  organizationId = orgId
 ) => {
   const user = await prisma.user.create({
     data: {
@@ -59,7 +59,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' },
+    { env: process.env, stdio: 'pipe' }
   );
   orgId = (await prisma.organization.create({ data: { name: `org-${run}` } }))
     .id;

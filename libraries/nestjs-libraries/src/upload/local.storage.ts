@@ -109,7 +109,7 @@ export class LocalStorage implements IUploadProvider {
   async uploadStream(
     stream: Readable,
     mimetype: string,
-    ext: string,
+    ext: string
   ): Promise<UploadedStream> {
     try {
       if (!LOCAL_STORAGE_ALLOWED_MIME.has(mimetype)) {
@@ -146,7 +146,7 @@ export class LocalStorage implements IUploadProvider {
     const localPath = resolve(
       filePath.startsWith(publicPrefix)
         ? this.uploadDirectory + filePath.slice(publicPrefix.length)
-        : filePath,
+        : filePath
     );
     if (!localPath.startsWith(base + sep)) {
       throw new Error('Unsafe file path');

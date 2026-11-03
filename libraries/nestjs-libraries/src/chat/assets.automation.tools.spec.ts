@@ -53,7 +53,7 @@ const connection = (id: string) => {
       id,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN' }],
-    }),
+    })
   );
   return { requestContext };
 };
@@ -90,7 +90,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' },
+    { env: process.env, stdio: 'pipe' }
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule, ChatModule],
@@ -156,7 +156,7 @@ test('updating a signature, set, autopost or webhook of another organization cha
   const results = [
     await tools.signaturesTool.execute(
       { action: 'update', id: signature.id, content: 'taken', autoAdd: false },
-      theirs,
+      theirs
     ),
     await tools.setsTool.execute(
       {
@@ -165,11 +165,11 @@ test('updating a signature, set, autopost or webhook of another organization cha
         name: 'taken',
         content: setContent(theirChannel.id),
       },
-      theirs,
+      theirs
     ),
     await tools.autopostTool.execute(
       { action: 'update', id: autopost.id, title: 'taken' },
-      theirs,
+      theirs
     ),
     await tools.webhooksTool.execute(
       {
@@ -179,7 +179,7 @@ test('updating a signature, set, autopost or webhook of another organization cha
         url: 'https://8.8.8.8/h',
         channels: [],
       },
-      theirs,
+      theirs
     ),
   ];
 
@@ -189,16 +189,16 @@ test('updating a signature, set, autopost or webhook of another organization cha
     });
   }
   expect(
-    (await prisma.signatures.findMany({ where: { content: 'taken' } })).length,
+    (await prisma.signatures.findMany({ where: { content: 'taken' } })).length
   ).toBe(0);
   expect(
-    (await prisma.sets.findMany({ where: { name: 'taken' } })).length,
+    (await prisma.sets.findMany({ where: { name: 'taken' } })).length
   ).toBe(0);
   expect(
-    (await prisma.autoPost.findMany({ where: { title: 'taken' } })).length,
+    (await prisma.autoPost.findMany({ where: { title: 'taken' } })).length
   ).toBe(0);
   expect(
-    (await prisma.webhooks.findMany({ where: { name: 'taken' } })).length,
+    (await prisma.webhooks.findMany({ where: { name: 'taken' } })).length
   ).toBe(0);
 });
 
@@ -213,8 +213,8 @@ test('the web update of a signature, autopost or webhook with an id that does no
       .createOrUpdateSignature(
         owner,
         { content: 'ghost', autoAdd: false },
-        unknown,
-      ),
+        unknown
+      )
   ).rejects.toThrow('The signature was not found');
   await expect(
     moduleRef.get(AutopostService).createAutopost(
@@ -230,8 +230,8 @@ test('the web update of a signature, autopost or webhook with an id that does no
         addPicture: false,
         generateContent: false,
       },
-      unknown,
-    ),
+      unknown
+    )
   ).rejects.toThrow('The autopost was not found');
   await expect(
     moduleRef.get(WebhooksService).createWebhook(owner, {
@@ -239,7 +239,7 @@ test('the web update of a signature, autopost or webhook with an id that does no
       name: 'ghost',
       url: 'https://8.8.8.8/h',
       integrations: [],
-    }),
+    })
   ).rejects.toThrow('The webhook was not found');
 
   const inOwner = { organizationId: owner };
@@ -280,20 +280,20 @@ test('deleting a signature, set, autopost or webhook of another organization kee
   const results = [
     await tools.signaturesTool.execute(
       { action: 'delete', id: signature.id },
-      theirs,
+      theirs
     ),
     await tools.setsTool.execute({ action: 'delete', id: set.id }, theirs),
     await tools.autopostTool.execute(
       { action: 'delete', id: autopost.id },
-      theirs,
+      theirs
     ),
     await tools.autopostTool.execute(
       { action: 'setActive', id: autopost.id, active: false },
-      theirs,
+      theirs
     ),
     await tools.webhooksTool.execute(
       { action: 'delete', id: webhook.id },
-      theirs,
+      theirs
     ),
   ];
 
@@ -303,17 +303,16 @@ test('deleting a signature, set, autopost or webhook of another organization kee
   }
   expect(
     (await prisma.signatures.findUnique({ where: { id: signature.id } }))
-      ?.deletedAt,
+      ?.deletedAt
   ).toBeNull();
   expect(
-    await prisma.sets.findUnique({ where: { id: set.id } }),
+    await prisma.sets.findUnique({ where: { id: set.id } })
   ).not.toBeNull();
   const kept = await prisma.autoPost.findUnique({ where: { id: autopost.id } });
   expect(kept?.deletedAt).toBeNull();
   expect(kept?.active).toBe(true);
   expect(
-    (await prisma.webhooks.findUnique({ where: { id: webhook.id } }))
-      ?.deletedAt,
+    (await prisma.webhooks.findUnique({ where: { id: webhook.id } }))?.deletedAt
   ).toBeNull();
 });
 
@@ -329,7 +328,7 @@ test('a webhook only listens to the channels of its own organization', async () 
       url: 'https://8.8.8.8/hook',
       channels: [own.id, foreign.id],
     },
-    connection(mine),
+    connection(mine)
   );
   const created = await tools.webhookCreateTool.execute(
     {
@@ -337,11 +336,11 @@ test('a webhook only listens to the channels of its own organization', async () 
       url: 'https://8.8.8.8/hook',
       channels: [own.id, own.id],
     },
-    connection(mine),
+    connection(mine)
   );
   const list = await tools.webhooksTool.execute(
     { action: 'list' },
-    connection(mine),
+    connection(mine)
   );
 
   expect(refused.output).toEqual({
@@ -365,15 +364,15 @@ test('a webhook created past the plan limit is refused, an existing one can stil
 
   const first = await tools.webhookCreateTool.execute(
     input(1),
-    connection(team),
+    connection(team)
   );
   const second = await tools.webhookCreateTool.execute(
     input(2),
-    connection(team),
+    connection(team)
   );
 
   await expect(
-    tools.webhookCreateTool.execute(input(3), connection(team)),
+    tools.webhookCreateTool.execute(input(3), connection(team))
   ).rejects.toThrow();
   const update = await tools.webhooksTool.execute(
     {
@@ -382,11 +381,11 @@ test('a webhook created past the plan limit is refused, an existing one can stil
       ...input(1),
       name: 'renamed',
     },
-    connection(team),
+    connection(team)
   );
   const list = await tools.webhooksTool.execute(
     { action: 'list' },
-    connection(team),
+    connection(team)
   );
   expect(second.output).toHaveProperty('created');
   expect(update.output).toHaveProperty('saved');
@@ -404,19 +403,19 @@ test('addresses that are not public https ones are refused by the tools that rea
   const results = [
     await tools.webhooksTool.execute(
       { action: 'send', url: internal, payload: { a: 1 } },
-      connection(team),
+      connection(team)
     ),
     await tools.webhooksTool.execute(
       { action: 'send', url: insecure, payload: {} },
-      connection(team),
+      connection(team)
     ),
     await tools.webhookCreateTool.execute(
       { name: 'hook', url: internal, channels: [] },
-      connection(team),
+      connection(team)
     ),
     await tools.autopostTool.execute(
       { action: 'test', url: internal },
-      connection(team),
+      connection(team)
     ),
     await tools.autopostCreateTool.execute(
       {
@@ -429,7 +428,7 @@ test('addresses that are not public https ones are refused by the tools that rea
         syncLast: true,
         onSlot: false,
       },
-      connection(team),
+      connection(team)
     ),
   ];
 
@@ -439,12 +438,12 @@ test('addresses that are not public https ones are refused by the tools that rea
   expect(
     await moduleRef
       .get(PrismaService)
-      .webhooks.count({ where: { organizationId: team } }),
+      .webhooks.count({ where: { organizationId: team } })
   ).toBe(0);
   expect(
     await moduleRef
       .get(PrismaService)
-      .autoPost.count({ where: { organizationId: team } }),
+      .autoPost.count({ where: { organizationId: team } })
   ).toBe(0);
 });
 
@@ -454,17 +453,17 @@ test('a set saved by the tool is the JSON the editor of the app loads back', asy
 
   const created = await tools.setsTool.execute(
     { action: 'create', name: 'weekly', content: setContent(own.id) },
-    connection(team),
+    connection(team)
   );
   const stored = await moduleRef.get(SetsService).getSets(team);
   const list = await tools.setsTool.execute(
     { action: 'list' },
-    connection(team),
+    connection(team)
   );
   const invalid = await tools.setsTool
     .execute(
       { action: 'create', name: 'empty', content: { posts: [] } },
-      connection(team),
+      connection(team)
     )
     .catch((err: Error) => err);
 
@@ -492,23 +491,23 @@ test('third party apps never return their stored API key and only run exposed fu
 
   const list = await tools.thirdPartyTool.execute(
     { action: 'list' },
-    connection(mine),
+    connection(mine)
   );
   const available = await tools.thirdPartyTool.execute(
     { action: 'available' },
-    connection(mine),
+    connection(mine)
   );
   const hidden = await tools.thirdPartyTool.execute(
     { action: 'callFunction', id: saved.id, functionName: 'checkConnection' },
-    connection(mine),
+    connection(mine)
   );
   const foreign = await tools.thirdPartyTool.execute(
     { action: 'callFunction', id: saved.id, functionName: 'voices' },
-    connection(stranger),
+    connection(stranger)
   );
   const foreignDelete = await tools.thirdPartyTool.execute(
     { action: 'delete', id: saved.id },
-    connection(stranger),
+    connection(stranger)
   );
 
   expect(stored.apiKey).not.toBe(apiKey);
@@ -548,24 +547,24 @@ test('updating an autopost only changes the settings that are passed', async () 
       onSlot: true,
       lastUrl: 'https://8.8.8.8/item-1',
     },
-    connection(team),
+    connection(team)
   );
 
   const updated = await tools.autopostTool.execute(
     { action: 'update', id: created.output.created.id, title: 'renamed' },
-    connection(team),
+    connection(team)
   );
   const toggled = await tools.autopostTool.execute(
     { action: 'setActive', id: created.output.created.id, active: true },
-    connection(team),
+    connection(team)
   );
   await tools.autopostTool.execute(
     { action: 'setActive', id: created.output.created.id, active: false },
-    connection(team),
+    connection(team)
   );
   const list = await tools.autopostTool.execute(
     { action: 'list' },
-    connection(team),
+    connection(team)
   );
 
   expect(updated.output).toHaveProperty('saved');
@@ -613,7 +612,7 @@ test('an autopost is allowed by the autopost flag of the plan, not by the number
     .catch((err: Error) => err);
   const created = await tools.autopostCreateTool.execute(
     input,
-    connection(team),
+    connection(team)
   );
 
   expect(refused).not.toHaveProperty('output');
@@ -642,8 +641,8 @@ test('the saved third party apps skip a provider that no longer exists in the co
 test('the autopost feed and page loaders refuse a private address like the webhooks do', async () => {
   const server = createServer((_req, res) =>
     res.end(
-      '<rss version="2.0"><channel><item><title>t</title><link>https://8.8.8.8/i</link><pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate><description>hello feed</description></item></channel></rss>',
-    ),
+      '<rss version="2.0"><channel><item><title>t</title><link>https://8.8.8.8/i</link><pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate><description>hello feed</description></item></channel></rss>'
+    )
   );
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${

@@ -12,16 +12,16 @@ test('the hit after the limit is blocked and a new window starts counting again'
     expect(record).toMatchObject({ totalHits: hit, isBlocked: false });
   }
   expect(
-    await storage.increment(key, ttl, limit, ttl, 'default'),
+    await storage.increment(key, ttl, limit, ttl, 'default')
   ).toMatchObject({ totalHits: limit + 1, isBlocked: true });
 
   // Block and window both last one second, so both lapse together.
   await vi.waitFor(
     async () => {
       expect(
-        await storage.increment(key, ttl, limit, ttl, 'default'),
+        await storage.increment(key, ttl, limit, ttl, 'default')
       ).toMatchObject({ totalHits: 1, isBlocked: false });
     },
-    { timeout: 5000, interval: 200 },
+    { timeout: 5000, interval: 200 }
   );
 });

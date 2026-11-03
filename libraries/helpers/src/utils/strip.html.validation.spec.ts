@@ -9,7 +9,7 @@ test('entities from the editor are decoded to plain text for every output type',
   expect(stripHtmlValidation('markdown', input)).toBe(`${text}\n`);
   expect(stripHtmlValidation('none', input)).toBe(text);
   expect(
-    stripHtmlValidation('normal', '<p><strong>a &amp; b</strong></p>', true),
+    stripHtmlValidation('normal', '<p><strong>a &amp; b</strong></p>', true)
   ).toBe('𝗮 & 𝗯');
 });
 

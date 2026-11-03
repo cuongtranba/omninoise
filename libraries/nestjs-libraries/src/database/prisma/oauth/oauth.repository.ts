@@ -225,8 +225,8 @@ export class OAuthRepository {
         organization: {
           select: {
             paymentId: true,
-          }
-        }
+          },
+        },
       },
       data: {
         accessToken: encryptedToken,
@@ -392,14 +392,12 @@ export class OAuthRepository {
 
   // Abandoned consent flows leave rows (and API keys) that never got a token
   deleteAbandonedSelfHostedAuthorizations(olderThan: Date) {
-    return this._oauthSelfHosted.model.oAuthSelfHostedAuthorization.deleteMany(
-      {
-        where: {
-          accessToken: null,
-          createdAt: { lt: olderThan },
-        },
-      }
-    );
+    return this._oauthSelfHosted.model.oAuthSelfHostedAuthorization.deleteMany({
+      where: {
+        accessToken: null,
+        createdAt: { lt: olderThan },
+      },
+    });
   }
 
   findSelfHostedByCode(encryptedCode: string) {
@@ -471,10 +469,8 @@ export class OAuthRepository {
   }
 
   deleteSelfHostedAuthorization(id: string) {
-    return this._oauthSelfHosted.model.oAuthSelfHostedAuthorization.deleteMany(
-      {
-        where: { id },
-      }
-    );
+    return this._oauthSelfHosted.model.oAuthSelfHostedAuthorization.deleteMany({
+      where: { id },
+    });
   }
 }

@@ -56,8 +56,8 @@ export const customFetch = (
         ...(showorg
           ? { showorg }
           : authNonSecuredOrg
-          ? { showorg: authNonSecuredOrg }
-          : {}),
+            ? { showorg: authNonSecuredOrg }
+            : {}),
         ...(options.body instanceof FormData
           ? {}
           : { 'Content-Type': 'application/json' }),
@@ -67,8 +67,8 @@ export const customFetch = (
         ...(auth
           ? { auth }
           : authNonSecuredCookie
-          ? { auth: authNonSecuredCookie }
-          : {}),
+            ? { auth: authNonSecuredCookie }
+            : {}),
         ...(authNonSecuredImpersonate
           ? { impersonate: authNonSecuredImpersonate }
           : {}),

@@ -28,7 +28,8 @@ export default async function AuthLayout({
         </div>
         <div className="text-[36px] flex-1 hidden lg:flex flex-col items-center justify-center">
           <div className="text-center">
-            Every channel. <span className="text-[42px] text-brandLight">One calendar.</span>
+            Every channel.{' '}
+            <span className="text-[42px] text-brandLight">One calendar.</span>
             <br />
             Grow Your Social Presence With Omninoise
           </div>

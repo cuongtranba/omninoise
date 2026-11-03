@@ -18,7 +18,10 @@ const MIME: Record<string, string> = {
 
 /** The Public API, /public/v1. The Authorization header carries the raw key or `pos_` token, never "Bearer". */
 export class Api {
-  constructor(readonly url: string, private readonly secret: string) {}
+  constructor(
+    readonly url: string,
+    private readonly secret: string
+  ) {}
 
   private async send(
     method: string,

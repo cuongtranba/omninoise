@@ -75,8 +75,8 @@ const FirstStep: FC = (props) => {
               data.message ||
                 t(
                   'generation_failed',
-                  'Failed to generate posts, please try again.',
-                ),
+                  'Failed to generate posts, please try again.'
+                )
             );
           }
 
@@ -87,15 +87,15 @@ const FirstStep: FC = (props) => {
                 break;
               case 'research':
                 setShowStep(
-                  t('researching_your_content', 'Researching your content...'),
+                  t('researching_your_content', 'Researching your content...')
                 );
                 break;
               case 'find-category':
                 setShowStep(
                   t(
                     'understanding_the_category',
-                    'Understanding the category...',
-                  ),
+                    'Understanding the category...'
+                  )
                 );
                 break;
               case 'find-topic':
@@ -105,8 +105,8 @@ const FirstStep: FC = (props) => {
                 setShowStep(
                   t(
                     'finding_popular_posts_to_match_with',
-                    'Finding popular posts to match with...',
-                  ),
+                    'Finding popular posts to match with...'
+                  )
                 );
                 break;
               case 'generate-hook':
@@ -123,7 +123,7 @@ const FirstStep: FC = (props) => {
                 break;
               case 'post-time':
                 setShowStep(
-                  t('finding_time_to_post', 'Finding time to post...'),
+                  t('finding_time_to_post', 'Finding time to post...')
                 );
                 break;
             }
@@ -132,7 +132,7 @@ const FirstStep: FC = (props) => {
         }
       }
     },
-    [t],
+    [t]
   );
   const onSubmit: SubmitHandler<{
     research: string;
@@ -148,8 +148,8 @@ const FirstStep: FC = (props) => {
           throw new Error(
             t(
               'generation_failed',
-              'Failed to generate posts, please try again.',
-            ),
+              'Failed to generate posts, please try again.'
+            )
           );
         }
         const reader = response.body.getReader();
@@ -158,8 +158,8 @@ const FirstStep: FC = (props) => {
           throw new Error(
             t(
               'generation_failed',
-              'Failed to generate posts, please try again.',
-            ),
+              'Failed to generate posts, please try again.'
+            )
           );
         }
         const messages = load.content.map((p: any, index: number) => {
@@ -215,16 +215,16 @@ const FirstStep: FC = (props) => {
           e?.message ||
             t(
               'generation_failed',
-              'Failed to generate posts, please try again.',
+              'Failed to generate posts, please try again.'
             ),
-          'warning',
+          'warning'
         );
       } finally {
         setShowStep('');
         setLoading(false);
       }
     },
-    [integrations, reloadCalendarView, fetch, generateStep, modal, toaster, t],
+    [integrations, reloadCalendarView, fetch, generateStep, modal, toaster, t]
   );
   return (
     <form
@@ -251,7 +251,7 @@ const FirstStep: FC = (props) => {
                   disabled={loading}
                   placeholder={t(
                     'you_can_write_anything_you_want_and_also_add_links_we_will_do_the_research_for_you',
-                    'You can write anything you want, and also add links, we will do the research for you...',
+                    'You can write anything you want, and also add links, we will do the research for you...'
                   )}
                   {...form.register('research')}
                 />
@@ -268,7 +268,7 @@ const FirstStep: FC = (props) => {
                   <option value="thread_short">
                     {t(
                       'a_thread_with_short_posts',
-                      'A thread with short posts',
+                      'A thread with short posts'
                     )}
                   </option>
                   <option value="thread_long">
@@ -282,13 +282,13 @@ const FirstStep: FC = (props) => {
                   <option value="personal">
                     {t(
                       'personal_voice_i_am_happy_to_announce',
-                      'Personal voice ("I am happy to announce")',
+                      'Personal voice ("I am happy to announce")'
                     )}
                   </option>
                   <option value="company">
                     {t(
                       'company_voice_we_are_happy_to_announce',
-                      'Company voice ("We are happy to announce")',
+                      'Company voice ("We are happy to announce")'
                     )}
                   </option>
                 </Select>
@@ -343,7 +343,7 @@ export const GeneratorComponent = () => {
         await deleteDialog(
           t('upgrade_required', 'You need to upgrade to use this feature'),
           t('move_to_billing', 'Move to billing'),
-          t('payment_required', 'Payment Required'),
+          t('payment_required', 'Payment Required')
         )
       ) {
         router.push('/billing');

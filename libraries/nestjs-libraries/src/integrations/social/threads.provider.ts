@@ -92,7 +92,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
     const { access_token } = await (
       await this.fetch(
-        `https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=${refresh_token}`,
+        `https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=${refresh_token}`
       )
     ).json();
 
@@ -121,7 +121,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
             process?.env.FRONTEND_URL?.indexOf('https') == -1
               ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
               : `${process?.env.FRONTEND_URL}`
-          }/integrations/social/threads`,
+          }/integrations/social/threads`
         )}` +
         `&state=${state}` +
         `&scope=${encodeURIComponent(this.scopes.join(','))}`,
@@ -144,11 +144,11 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
               process?.env.FRONTEND_URL?.indexOf('https') == -1
                 ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
                 : `${process?.env.FRONTEND_URL}`
-            }/integrations/social/threads`,
+            }/integrations/social/threads`
           )}` +
           `&grant_type=authorization_code` +
           `&client_secret=${process.env.THREADS_APP_SECRET}` +
-          `&code=${params.code}`,
+          `&code=${params.code}`
       )
     ).json();
 
@@ -157,7 +157,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         'https://graph.threads.net/access_token' +
           '?grant_type=th_exchange_token' +
           `&client_secret=${process.env.THREADS_APP_SECRET}` +
-          `&access_token=${getAccessToken.access_token}`,
+          `&access_token=${getAccessToken.access_token}`
       )
     ).json();
 
@@ -179,11 +179,11 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   // timers, so the post workflow can poll it with durable timers.
   private async checkContainerStatus(
     mediaContainerId: string,
-    accessToken: string,
+    accessToken: string
   ): Promise<'FINISHED' | 'IN_PROGRESS' | 'PUBLISHED'> {
     const { status, error_message } = await (
       await this.fetch(
-        `https://graph.threads.net/v1.0/${mediaContainerId}?fields=status,error_message&access_token=${accessToken}`,
+        `https://graph.threads.net/v1.0/${mediaContainerId}?fields=status,error_message&access_token=${accessToken}`
       )
     ).json();
 
@@ -194,7 +194,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         '{}',
         error_message && error_message !== 'UNKNOWN'
           ? error_message
-          : 'Threads could not process the media, please check the media format and try again',
+          : 'Threads could not process the media, please check the media format and try again'
       );
     }
 
@@ -207,14 +207,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
 
   private async checkLoaded(
     mediaContainerId: string,
-    accessToken: string,
+    accessToken: string
   ): Promise<boolean> {
     // Bounded (the old version recursed forever and could hang the activity
     // into a timeout): ~5.5 minutes at 2.2s intervals.
     for (let i = 0; i < 150; i++) {
       const status = await this.checkContainerStatus(
         mediaContainerId,
-        accessToken,
+        accessToken
       );
 
       if (status === 'FINISHED' || status === 'PUBLISHED') {
@@ -229,14 +229,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       this.identifier,
       '{}',
       '{}',
-      'Threads took too long to process the media, please try again',
+      'Threads took too long to process the media, please try again'
     );
   }
 
   private async fetchUserInfo(accessToken: string) {
     const { id, username, threads_profile_picture_url } = await (
       await this.fetch(
-        `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`,
+        `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
       )
     ).json();
 
@@ -254,7 +254,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     media: { path: string },
     message: string,
     isCarouselItem = false,
-    replyToId?: string,
+    replyToId?: string
   ): Promise<string> {
     const mediaType = hasExtension(media.path, 'mp4')
       ? 'video_url'
@@ -274,7 +274,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         `https://graph.threads.net/v1.0/${userId}/threads?${mediaParams.toString()}`,
         {
           method: 'POST',
-        },
+        }
       )
     ).json();
 
@@ -286,7 +286,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     accessToken: string,
     media: { path: string }[],
     message: string,
-    replyToId?: string,
+    replyToId?: string
   ): Promise<string> {
     // Create each media item
     const mediaIds = [];
@@ -296,14 +296,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         accessToken,
         mediaItem,
         message,
-        true,
+        true
       );
       mediaIds.push(mediaId);
     }
 
     // Wait for all media to be loaded
     await Promise.all(
-      mediaIds.map((id: string) => this.checkLoaded(id, accessToken)),
+      mediaIds.map((id: string) => this.checkLoaded(id, accessToken))
     );
 
     // Create carousel container
@@ -320,7 +320,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         `https://graph.threads.net/v1.0/${userId}/threads?${params.toString()}`,
         {
           method: 'POST',
-        },
+        }
       )
     ).json();
 
@@ -332,7 +332,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     accessToken: string,
     message: string,
     replyToId?: string,
-    quoteId?: string,
+    quoteId?: string
   ): Promise<string> {
     const form = new FormData();
     form.append('media_type', 'TEXT');
@@ -360,7 +360,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   private async publishThread(
     userId: string,
     accessToken: string,
-    creationId: string,
+    creationId: string
   ): Promise<{ threadId: string; permalink: string }> {
     await this.checkLoaded(creationId, accessToken);
 
@@ -369,13 +369,13 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         `https://graph.threads.net/v1.0/${userId}/threads_publish?creation_id=${creationId}&access_token=${accessToken}`,
         {
           method: 'POST',
-        },
+        }
       )
     ).json();
 
     const { permalink } = await (
       await this.fetch(
-        `https://graph.threads.net/v1.0/${threadId}?fields=id,permalink&access_token=${accessToken}`,
+        `https://graph.threads.net/v1.0/${threadId}?fields=id,permalink&access_token=${accessToken}`
       )
     ).json();
 
@@ -387,7 +387,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     accessToken: string,
     postDetails: PostDetails,
     replyToId?: string,
-    quoteId?: string,
+    quoteId?: string
   ): Promise<string> {
     // Handle content creation based on media type
     if (!postDetails.media || postDetails.media.length === 0) {
@@ -397,7 +397,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         accessToken,
         postDetails.message,
         replyToId,
-        quoteId,
+        quoteId
       );
     } else if (postDetails.media.length === 1) {
       // Single media content
@@ -407,7 +407,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         postDetails.media[0],
         postDetails.message,
         false,
-        replyToId,
+        replyToId
       );
     } else {
       // Carousel content
@@ -416,7 +416,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         accessToken,
         postDetails.media,
         postDetails.message,
-        replyToId,
+        replyToId
       );
     }
   }
@@ -426,12 +426,12 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   private async threadPermalink(
     threadId: string,
     accessToken: string,
-    integration: Integration,
+    integration: Integration
   ): Promise<string> {
     try {
       const { permalink } = await (
         await this.fetch(
-          `https://graph.threads.net/v1.0/${threadId}?fields=id,permalink&access_token=${accessToken}`,
+          `https://graph.threads.net/v1.0/${threadId}?fields=id,permalink&access_token=${accessToken}`
         )
       ).json();
       return permalink;
@@ -447,7 +447,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       active_thread_finisher: boolean;
       thread_finisher: string;
     }>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     if (!postDetails.length) {
       return [];
@@ -466,8 +466,8 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
             accessToken,
             mediaItem,
             firstPost.message,
-            true,
-          ),
+            true
+          )
         );
       }
 
@@ -496,7 +496,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
             accessToken,
             firstPost.media[0],
             firstPost.message,
-            false,
+            false
           );
 
     return [
@@ -518,7 +518,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       containerId?: string;
       message?: string;
     },
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // waiting for the carousel children to be processed
     if (pendingData.step === 'children') {
@@ -535,7 +535,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
 
     const status = await this.checkContainerStatus(
       pendingData.containerId!,
-      accessToken,
+      accessToken
     );
 
     if (status === 'IN_PROGRESS') {
@@ -563,7 +563,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       containerId?: string;
       message?: string;
     },
-    integration: Integration,
+    integration: Integration
   ): Promise<PendingCheckResponse> {
     // the carousel children are processed: create the carousel container and
     // hand back to the workflow to wait for it (an orphan container from a
@@ -581,7 +581,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
           `https://graph.threads.net/v1.0/${integration.internalId}/threads?${params.toString()}`,
           {
             method: 'POST',
-          },
+          }
         )
       ).json();
 
@@ -596,7 +596,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         `https://graph.threads.net/v1.0/${integration.internalId}/threads_publish?creation_id=${pendingData.containerId}&access_token=${accessToken}`,
         {
           method: 'POST',
-        },
+        }
       )
     ).json();
 
@@ -606,7 +606,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       releaseURL: await this.threadPermalink(
         threadId,
         accessToken,
-        integration,
+        integration
       ),
     };
   }
@@ -620,7 +620,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       active_thread_finisher: boolean;
       thread_finisher: string;
     }>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     if (!postDetails.length) {
       return [];
@@ -631,7 +631,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       userId,
       accessToken,
       postDetails,
-      integration,
+      integration
     );
 
     let pendingData = response.pendingData;
@@ -647,14 +647,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           '{}',
-          'Threads took too long to process the media, please try again',
+          'Threads took too long to process the media, please try again'
         );
       }
 
       const check = await this.checkPostStatus(
         accessToken,
         pendingData,
-        integration,
+        integration
       );
 
       if (check.status === 'pending') {
@@ -693,7 +693,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       active_thread_finisher: boolean;
       thread_finisher: string;
     }>[],
-    integration: Integration,
+    integration: Integration
   ): Promise<PostResponse[]> {
     if (!postDetails.length) {
       return [];
@@ -707,14 +707,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       userId,
       accessToken,
       commentPost,
-      replyToId,
+      replyToId
     );
 
     // Publish the reply
     const { threadId: replyThreadId, permalink } = await this.publishThread(
       userId,
       accessToken,
-      replyContentId,
+      replyContentId
     );
 
     return [
@@ -731,7 +731,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     date: number,
-    offset = 0,
+    offset = 0
   ): Promise<AnalyticsData[]> {
     // The window ends `offset` days ago (the previous period of a trend)
     const untilDay = dayjs().subtract(offset, 'day').endOf('day');
@@ -741,14 +741,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
 
     const { data, ...all } = await (
       await fetch(
-        `${base}?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}&period=day&since=${since}&until=${until}`,
+        `${base}?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}&period=day&since=${since}&until=${until}`
       )
     ).json();
 
     // Not part of the call above, so a failure here can't hide those metrics
     const [clicks, followers] = await Promise.all([
       fetch(
-        `${base}?metric=clicks&access_token=${accessToken}&period=day&since=${since}&until=${until}`,
+        `${base}?metric=clicks&access_token=${accessToken}&period=day&since=${since}&until=${until}`
       )
         .then((res) => res.json())
         .catch(() => ({}) as { data?: any[] }),
@@ -794,8 +794,8 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
             total: String(
               linkClicks.link_total_values.reduce(
                 (sum: number, link: any) => sum + (Number(link.value) || 0),
-                0,
-              ),
+                0
+              )
             ),
             date: day,
           },
@@ -804,7 +804,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     }
 
     const followersCount = followers?.data?.find(
-      (d: any) => d.name === 'followers_count',
+      (d: any) => d.name === 'followers_count'
     )?.total_value?.value;
     if (followersCount !== undefined) {
       analytics.push({
@@ -845,11 +845,11 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   async autoPlugPost(
     integration: Integration,
     id: string,
-    fields: { likesAmount: string; post: string },
+    fields: { likesAmount: string; post: string }
   ) {
     const { data } = await (
       await fetch(
-        `https://graph.threads.net/v1.0/${id}/insights?metric=likes&access_token=${integration.token}`,
+        `https://graph.threads.net/v1.0/${id}/insights?metric=likes&access_token=${integration.token}`
       )
     ).json();
 
@@ -878,7 +878,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
           `https://graph.threads.net/v1.0/${integration.internalId}/threads_publish?creation_id=${replyId}&access_token=${integration.token}`,
           {
             method: 'POST',
-          },
+          }
         )
       ).json();
       return true;
@@ -891,7 +891,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number,
+    date: number
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -899,7 +899,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       // Fetch thread insights from Threads API
       const { data } = await (
         await fetch(
-          `https://graph.threads.net/v1.0/${postId}/insights?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}`,
+          `https://graph.threads.net/v1.0/${postId}/insights?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}`
         )
       ).json();
 
@@ -909,7 +909,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
 
       // Shares are asked apart so they can't fail the metrics above
       const shares = await fetch(
-        `https://graph.threads.net/v1.0/${postId}/insights?metric=shares&access_token=${accessToken}`,
+        `https://graph.threads.net/v1.0/${postId}/insights?metric=shares&access_token=${accessToken}`
       )
         .then((res) => res.json())
         .catch(() => ({}) as { data?: any[] });
@@ -964,7 +964,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     } catch (err: any) {
       console.error(
         'Error fetching Threads post analytics:',
-        err?.cause?.code || err?.message || err,
+        err?.cause?.code || err?.message || err
       );
       return [];
     }

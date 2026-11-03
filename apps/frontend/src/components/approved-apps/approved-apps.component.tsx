@@ -48,7 +48,10 @@ export const ApprovedAppsComponent: FC = () => {
           );
           mutate();
         } catch {
-          toaster.show(t('failed_to_revoke', 'Failed to revoke access'), 'warning');
+          toaster.show(
+            t('failed_to_revoke', 'Failed to revoke access'),
+            'warning'
+          );
         }
       }
     },

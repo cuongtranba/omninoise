@@ -40,5 +40,8 @@ export function generationError(err: any): HttpException {
   // a generic message rather than mislabeling it as a content-safety issue.
   // The real reason (a quota, a bad key, ...) is only useful to the operator, so log it
   console.error('AI generation failed:', message);
-  return new HttpException('AI generation failed, please try again later.', 500);
+  return new HttpException(
+    'AI generation failed, please try again later.',
+    500
+  );
 }

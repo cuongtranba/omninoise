@@ -59,9 +59,8 @@ export class SubscriptionService {
 
   // Store-managed subscriptions (RevenueCat etc.) have no Stripe customer, they are keyed by org
   async deleteSubscriptionByOrgId(organizationId: string, provider: string) {
-    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
-      organizationId
-    );
+    const current =
+      await this._subscriptionRepository.getSubscriptionByOrgId(organizationId);
     if (!current || current.provider !== provider || current.isLifetime) {
       return false;
     }
@@ -115,9 +114,8 @@ export class SubscriptionService {
     const from = pricing[getCurrentSubscription?.subscriptionTier || 'FREE'];
     const to = pricing[billing];
 
-    const allChannels = await this._integrationService.getIntegrationsList(
-      organizationId
-    );
+    const allChannels =
+      await this._integrationService.getIntegrationsList(organizationId);
     const currentTotalChannels = allChannels.filter((f) => !f.disabled);
 
     if (currentTotalChannels.length > totalChannels) {
@@ -306,9 +304,8 @@ export class SubscriptionService {
     period: 'MONTHLY' | 'YEARLY',
     cancelAt: number | null
   ) {
-    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
-      organizationId
-    );
+    const current =
+      await this._subscriptionRepository.getSubscriptionByOrgId(organizationId);
     if (current && (current.isLifetime || current.provider !== provider)) {
       return {};
     }
@@ -380,9 +377,8 @@ export class SubscriptionService {
   }
 
   async resetCredits(organizationId: string, type: string) {
-    const subscription = await this._subscriptionRepository.getSubscription(
-      organizationId
-    );
+    const subscription =
+      await this._subscriptionRepository.getSubscription(organizationId);
 
     if (!subscription) {
       return null;
@@ -399,7 +395,10 @@ export class SubscriptionService {
 
   async checkCredits(
     organization: Organization & {
-      subscription?: Pick<Subscription, 'subscriptionTier' | 'createdAt'> | null;
+      subscription?: Pick<
+        Subscription,
+        'subscriptionTier' | 'createdAt'
+      > | null;
     },
     checkType = 'ai_images'
   ) {
@@ -416,8 +415,8 @@ export class SubscriptionService {
       checkType === 'ai_images'
         ? pricing[type].image_generation_count
         : checkType === 'clipping_minutes'
-        ? pricing[type].clipping_minutes
-        : pricing[type].generate_videos;
+          ? pricing[type].clipping_minutes
+          : pricing[type].generate_videos;
 
     const totalUse = await this._subscriptionRepository.getCreditsFrom(
       organization.id,

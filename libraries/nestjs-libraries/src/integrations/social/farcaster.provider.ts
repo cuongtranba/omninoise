@@ -44,9 +44,7 @@ const SIGNED_KEY_REQUEST_TYPE = [
   { name: 'deadline', type: 'uint256' },
 ] as const;
 
-@Rules(
-  'Farcaster/Warpcast can only accept pictures'
-)
+@Rules('Farcaster/Warpcast can only accept pictures')
 export class FarcasterProvider
   extends SocialAbstract
   implements SocialProvider

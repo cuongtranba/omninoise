@@ -29,7 +29,7 @@ export const removeAuth = (res: Response) => {
 export class AuthMiddleware implements NestMiddleware {
   constructor(
     private _organizationService: OrganizationService,
-    private _userService: UsersService,
+    private _userService: UsersService
   ) {}
   async use(req: Request, res: Response, next: NextFunction) {
     const auth = req.headers.auth || req.cookies.auth;
@@ -48,7 +48,7 @@ export class AuthMiddleware implements NestMiddleware {
       }
 
       let user = (await this._userService.getUserById(
-        payload.id,
+        payload.id
       )) as User | null;
 
       if (!user) {
@@ -73,7 +73,7 @@ export class AuthMiddleware implements NestMiddleware {
 
           loadImpersonate.organization.users =
             loadImpersonate.organization.users.filter(
-              (f) => f.userId === user.id,
+              (f) => f.userId === user.id
             );
           req.org = loadImpersonate.organization;
 

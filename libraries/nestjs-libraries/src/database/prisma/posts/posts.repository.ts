@@ -154,11 +154,11 @@ export class PostsRepository {
         typeof parsed?.type === 'string'
           ? [parsed.type, parsed.message]
           : parsed?.cause?.failure?.message
-          ? [parsed?.cause?.type, parsed?.cause?.failure?.message]
-          : [
-              parsed?.failure?.cause?.applicationFailureInfo?.type,
-              parsed?.failure?.cause?.message,
-            ];
+            ? [parsed?.cause?.type, parsed?.cause?.failure?.message]
+            : [
+                parsed?.failure?.cause?.applicationFailureInfo?.type,
+                parsed?.failure?.cause?.message,
+              ];
       return SURFACED_ERROR_TYPES.has(type) &&
         message &&
         message !== 'Unknown Error'
@@ -244,26 +244,26 @@ export class PostsRepository {
     return list
       .map((post) => ({ ...post, error: this.curatedError(post.error) }))
       .reduce((all, post) => {
-      if (!post.intervalInDays) {
-        return [...all, post];
-      }
-
-      const addMorePosts = [];
-      let startingDate = dayjs.utc(post.publishDate);
-      while (dayjs.utc(endDate).isSameOrAfter(startingDate)) {
-        if (dayjs(startingDate).isSameOrAfter(dayjs.utc(post.publishDate))) {
-          addMorePosts.push({
-            ...post,
-            publishDate: startingDate.toDate(),
-            actualDate: post.publishDate,
-          });
+        if (!post.intervalInDays) {
+          return [...all, post];
         }
 
-        startingDate = startingDate.add(post.intervalInDays, 'days');
-      }
+        const addMorePosts = [];
+        let startingDate = dayjs.utc(post.publishDate);
+        while (dayjs.utc(endDate).isSameOrAfter(startingDate)) {
+          if (dayjs(startingDate).isSameOrAfter(dayjs.utc(post.publishDate))) {
+            addMorePosts.push({
+              ...post,
+              publishDate: startingDate.toDate(),
+              actualDate: post.publishDate,
+            });
+          }
 
-      return [...all, ...addMorePosts];
-    }, [] as any[]);
+          startingDate = startingDate.add(post.intervalInDays, 'days');
+        }
+
+        return [...all, ...addMorePosts];
+      }, [] as any[]);
   }
 
   async getPostsList(orgId: string, query: GetPostsListDto) {
@@ -278,14 +278,14 @@ export class PostsRepository {
             state: State.QUEUE,
           }
         : stateFilter === 'draft'
-        ? { state: State.DRAFT }
-        : stateFilter === 'published'
-        ? { state: State.PUBLISHED }
-        : {
-            state: {
-              in: [State.QUEUE, State.DRAFT, State.PUBLISHED, State.ERROR],
-            },
-          };
+          ? { state: State.DRAFT }
+          : stateFilter === 'published'
+            ? { state: State.PUBLISHED }
+            : {
+                state: {
+                  in: [State.QUEUE, State.DRAFT, State.PUBLISHED, State.ERROR],
+                },
+              };
 
     const orderDirection: 'asc' | 'desc' =
       stateFilter === 'published' ? 'desc' : 'asc';
@@ -691,12 +691,12 @@ export class PostsRepository {
               },
             }
           : type === 'update'
-          ? {
-              parentPost: {
-                disconnect: true,
-              },
-            }
-          : {}),
+            ? {
+                parentPost: {
+                  disconnect: true,
+                },
+              }
+            : {}),
         content: value.content,
         delay: value.delay || 0,
         group,
