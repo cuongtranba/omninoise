@@ -951,6 +951,10 @@ export class PostsService {
     return this._postRepository.getPostByForWebhookId(id, integrationId);
   }
 
+  getPostForFailedWebhook(id: string) {
+    return this._postRepository.getPostForFailedWebhook(id);
+  }
+
   async startWorkflow(
     taskQueue: string,
     postId: string,

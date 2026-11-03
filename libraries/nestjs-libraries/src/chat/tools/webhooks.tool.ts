@@ -39,8 +39,8 @@ export class WebhooksTool implements AgentToolInterface {
         },
       },
       description: `
-Use this to manage the webhooks of the organization: a webhook is a public https address that Postiz sends the post to every time a post of its channels is published. Create one with webhookCreateTool.
-action "list": all the webhooks with their channels (an empty list of channels means all of them).
+Use this to manage the webhooks of the organization: a webhook is a public https address that Postiz sends the post to every time a post of its channels is published (type post.published) or fails to publish (type post.failed, the post with its error), or that gets a scheduled analytics report (type analytics.report). Create one with webhookCreateTool.
+action "list": all the webhooks with their type and channels (an empty list of channels means all of them).
 action "update": replaces the "name", "url" and "channels" of the webhook with the given "id" (list them first to get it), pass all three again.
 action "delete": removes the webhook with the given "id", nothing is sent to it any more. It cannot be undone, so show the user which webhook will be deleted and get their confirmation first.
 action "send": sends the "payload" (any JSON) as a POST to the https "url" to try an address out. It sends data to a third party, so only send what the user asked to send, to the address they gave, and confirm both first. It never reaches an internal network address, and the result only says the request was made, not whether the other side accepted it.
@@ -70,6 +70,7 @@ If something fails, the result contains output.errors.
                 id: z.string(),
                 name: z.string(),
                 url: z.string(),
+                type: z.string(),
                 channels: z.array(
                   z.object({
                     id: z.string(),
@@ -116,6 +117,7 @@ If something fails, the result contains output.errors.
                   id: webhook.id,
                   name: webhook.name,
                   url: webhook.url,
+                  type: webhook.type,
                   channels: webhook.integrations.map((i) => i.integration),
                   createdAt: webhook.createdAt.toISOString(),
                   updatedAt: webhook.updatedAt.toISOString(),

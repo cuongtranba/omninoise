@@ -13,7 +13,6 @@ import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integration
 import { timer } from '@gitroom/helpers/utils/timer';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
-import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
 import { markStarted } from '@gitroom/nestjs-libraries/jobs/job.context';
@@ -546,49 +545,28 @@ export class PostActivity {
   async sendWebhooks(postId: string, orgId: string, integrationId: string) {
     // Webhooks are best-effort and run after the post already published, so a
     // failure here must not fail the workflow.
-    try {
-      const webhooks = (await this._webhookService.getWebhooks(orgId)).filter(
-        (f) => {
-          return (
-            f.type === 'post.published' &&
-            (f.integrations.length === 0 ||
-              f.integrations.some((i) => i.integration.id === integrationId))
-          );
-        }
-      );
-
-      if (webhooks.length === 0) {
-        return;
-      }
-
-      const post = await this._postService.getPostByForWebhookId(
-        postId,
-        integrationId
-      );
-      await Promise.all(
-        webhooks.map(async (webhook) => {
-          try {
-            // webhook.url is validated at save time, but DNS can change
-            // between then and now - pin resolution like every other
-            // user-influenced outbound request.
-            await fetch(webhook.url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(post),
-              // @ts-ignore — undici option, not in lib.dom fetch types
-              dispatcher: getSsrfSafeDispatcher(),
-            });
-          } catch (e) {
-            /**empty**/
-          }
-        })
-      );
-    } catch (err) {
-      /**empty**/
-    }
+    await this._webhookService.sendPostWebhooks(
+      orgId,
+      integrationId,
+      'post.published',
+      () => this._postService.getPostByForWebhookId(postId, integrationId)
+    );
   }
+
+  // Best effort too: the post already ended in ERROR.
+  async sendFailedWebhooks(
+    postId: string,
+    orgId: string,
+    integrationId: string
+  ) {
+    await this._webhookService.sendPostWebhooks(
+      orgId,
+      integrationId,
+      'post.failed',
+      () => this._postService.getPostForFailedWebhook(postId)
+    );
+  }
+
   async processPlug(data: {
     plugId: string;
     postId: string;

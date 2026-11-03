@@ -461,6 +461,7 @@ export class PostJobs {
           false,
           'fail'
         );
+        await this.sendFailedWebhooks(post);
         return;
       }
 
@@ -740,6 +741,16 @@ export class PostJobs {
     }
   }
 
+  // The post.failed webhooks of a publish that ended in ERROR. Best effort,
+  // like notify: it never throws.
+  private sendFailedWebhooks(post: any) {
+    return this._act.sendFailedWebhooks(
+      post.id,
+      post.organizationId,
+      post.integration.id
+    );
+  }
+
   /**
    * Loads the root post the way the workflow did after its sleep. The first
    * stage also returns the comments to publish; later stages work with the
@@ -783,6 +794,7 @@ export class PostJobs {
             postsListBefore
           )
         );
+        await this.sendFailedWebhooks(post);
         return;
       }
 
@@ -806,6 +818,7 @@ export class PostJobs {
             postsListBefore
           )
         );
+        await this.sendFailedWebhooks(post);
         return;
       }
     }
@@ -889,6 +902,7 @@ export class PostJobs {
       false,
       'fail'
     );
+    await this.sendFailedWebhooks(post);
   }
 
   /**
@@ -1042,6 +1056,7 @@ export class PostJobs {
         );
 
         if (handle.type === 'stop') {
+          await this.sendFailedWebhooks(post);
           return;
         }
 
@@ -1059,6 +1074,7 @@ export class PostJobs {
             false,
             'fail'
           );
+          await this.sendFailedWebhooks(post);
           return;
         }
 

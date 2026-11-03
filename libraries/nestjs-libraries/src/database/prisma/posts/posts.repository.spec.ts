@@ -90,3 +90,27 @@ test('refresh_token failures surface their message instead of null', async () =>
   expect(errors[refreshId]).toBe('Threads access token expired');
   expect(errors[unmappedId]).toBeNull();
 });
+
+test('the failed post webhook body carries the stored error', async () => {
+  const integration = await prisma.integration.create({
+    data: {
+      organizationId: orgId,
+      internalId: 'threads-2',
+      name: 'Threads',
+      providerIdentifier: 'threads',
+      type: 'social',
+      token: 'x',
+    },
+  });
+  const id = await addErrorPost(integration.id, 'not the final error');
+  await posts.changeState(id, 'ERROR', '{"message":"fetch failed"}');
+
+  const [post] = await posts.getPostForFailedWebhook(id);
+
+  expect(post).toMatchObject({
+    id,
+    state: 'ERROR',
+    error: '{"message":"fetch failed"}',
+    integration: { id: integration.id },
+  });
+});
