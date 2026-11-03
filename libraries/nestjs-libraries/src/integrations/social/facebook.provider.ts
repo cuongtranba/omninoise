@@ -144,7 +144,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body' as const,
         value: 'Invalid file',
-      }
+      };
     }
 
     if (body.indexOf('1404102') > -1) {
@@ -421,9 +421,8 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     // Also fetch pages via Business Manager API to discover pages
     // not selected during the OAuth page selection step
     try {
-      let bizUrl:
-        | string
-        | undefined = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/businesses?access_token=${accessToken}`;
+      let bizUrl: string | undefined =
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/businesses?access_token=${accessToken}`;
 
       while (bizUrl) {
         const bizResponse = await (await fetch(bizUrl)).json();
@@ -495,9 +494,8 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
 
     // 2. Check Business Manager owned_pages and client_pages
     try {
-      let bizUrl:
-        | string
-        | undefined = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/businesses?access_token=${accessToken}`;
+      let bizUrl: string | undefined =
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/businesses?access_token=${accessToken}`;
 
       while (bizUrl) {
         const bizResponse = await (await fetch(bizUrl)).json();
@@ -780,7 +778,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method: failing here (non-retryable) is safe, timing the

@@ -22,7 +22,14 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
   identifier = 'whop';
   name = 'Whop';
   isBetweenSteps = false;
-  scopes = ['openid', 'profile', 'email', 'forum:post:create', 'forum:read', 'company:basic:read'];
+  scopes = [
+    'openid',
+    'profile',
+    'email',
+    'forum:post:create',
+    'forum:read',
+    'company:basic:read',
+  ];
   refreshCron = false;
   editor = 'markdown' as const;
   dto = WhopDto;
@@ -38,9 +45,7 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
 
   override handleErrors(
     body: string
-  ):
-    | { type: 'refresh-token' | 'bad-body'; value: string }
-    | undefined {
+  ): { type: 'refresh-token' | 'bad-body'; value: string } | undefined {
     if (body.includes('invalid_grant')) {
       return {
         type: 'refresh-token' as const,
@@ -237,7 +242,6 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
         method: 'HEAD',
         // identity encoding so content-length matches the bytes the GET streams
         headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
       const contentLength = Number(
@@ -274,7 +278,6 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
       if (createFileResponse.upload_url) {
         const fileResponse = await fetch(item.path, {
           headers: { 'accept-encoding': 'identity' },
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
         });
         if (!fileResponse.ok || !fileResponse.body) {

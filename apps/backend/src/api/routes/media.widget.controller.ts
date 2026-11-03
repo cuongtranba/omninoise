@@ -34,7 +34,6 @@ export class MediaWidgetController {
     }
     return this._mediaService.saveUploadSessionFile(
       org.id,
-      // @ts-ignore
       req.uploadSession,
       file.filename,
       file.path,
@@ -45,7 +44,6 @@ export class MediaWidgetController {
 
   @Get('/status')
   status(@GetOrgFromRequest() org: Organization, @Req() req: Request) {
-    // @ts-ignore
     return this._mediaService.getUploadSession(org.id, req.uploadSession);
   }
 }

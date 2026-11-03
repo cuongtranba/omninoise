@@ -20,9 +20,8 @@ export class NotificationsRepository {
   }
 
   async getMainPageCount(organizationId: string, userId: string) {
-    const { lastReadNotifications } = (await this.getLastReadNotification(
-      userId
-    ))!;
+    const { lastReadNotifications } =
+      (await this.getLastReadNotification(userId))!;
 
     return {
       total: await this._notifications.model.notifications.count({
@@ -93,9 +92,8 @@ export class NotificationsRepository {
   }
 
   async getNotifications(organizationId: string, userId: string) {
-    const { lastReadNotifications } = (await this.getLastReadNotification(
-      userId
-    ))!;
+    const { lastReadNotifications } =
+      (await this.getLastReadNotification(userId))!;
 
     await this._user.model.user.update({
       where: {

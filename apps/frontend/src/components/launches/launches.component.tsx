@@ -4,7 +4,7 @@ import {
   AddProviderButton,
   CustomVariables,
 } from '@gitroom/frontend/components/launches/add.provider.component';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { capitalize, groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
@@ -132,7 +132,7 @@ const EditGroupNameModal: FC<{
       body: JSON.stringify({ name: groupName }),
     });
     if (!response.ok) {
-      const { message } = await response.json().catch(() => ({} as any));
+      const { message } = await response.json().catch(() => ({}) as any);
       toaster.show(
         (Array.isArray(message) ? message[0] : message) ||
           t('could_not_save_group', 'Could not save the group.'),
@@ -258,12 +258,10 @@ export const MenuGroupComponent: FC<
       isOver: !!monitor.isOver(),
     }),
   }));
+  const dropRef = useRef<HTMLDivElement>(null);
+  drop(dropRef);
   return (
-    <div
-      className="gap-[16px] flex flex-col relative"
-      // @ts-ignore
-      ref={drop}
-    >
+    <div className="gap-[16px] flex flex-col relative" ref={dropRef}>
       {collectedProps.isOver && (
         <div className="absolute start-0 top-0 w-full h-full pointer-events-none">
           <div className="w-full h-full start-0 top-0 relative">
@@ -349,10 +347,13 @@ export const MenuComponent: FC<
       id: integration.id,
     },
   }));
+  const dragRef = useRef<HTMLDivElement>(null);
+  const dragPreviewRef = useRef<HTMLDivElement>(null);
+  drag(dragRef);
+  dragPreview(dragPreviewRef);
   return (
     <div
-      // @ts-ignore
-      ref={dragPreview}
+      ref={dragPreviewRef}
       {...(integration.refreshNeeded && {
         onClick: refreshChannel(integration),
         'data-tooltip-id': 'tooltip',
@@ -421,8 +422,7 @@ export const MenuComponent: FC<
         )}
       </div>
       <div
-        // @ts-ignore
-        ref={drag}
+        ref={dragRef}
         {...(integration.disabled &&
         totalNonDisabledChannels === user?.totalChannels
           ? {
@@ -549,12 +549,12 @@ export const LaunchesComponent = () => {
   );
   const refreshChannel = useCallback(
     (
-        integration: Integration & {
-          identifier: string;
-          isCustomFields?: boolean;
-          customFields?: any[];
-        }
-      ) =>
+      integration: Integration & {
+        identifier: string;
+        isCustomFields?: boolean;
+        customFields?: any[];
+      }
+    ) =>
       async () => {
         // Custom-fields providers (Bluesky, etc.) have no OAuth URL to redirect
         // to: reconnect by re-entering the credentials, like the menu does.
@@ -624,7 +624,6 @@ export const LaunchesComponent = () => {
     );
   }
 
-  // @ts-ignore
   return (
     <DNDProvider>
       <Onboarding />

@@ -472,12 +472,15 @@ export const CommentsComponents: FC<{ previewId: string }> = () => {
   const canResolve = !!user?.id && user?.orgId === organizationId;
 
   const threads = useMemo(() => {
-    const replies = comments.reduce((all, current) => {
-      if (current.parentId) {
-        all[current.parentId] = [...(all[current.parentId] || []), current];
-      }
-      return all;
-    }, {} as Record<string, PreviewComment[]>);
+    const replies = comments.reduce(
+      (all, current) => {
+        if (current.parentId) {
+          all[current.parentId] = [...(all[current.parentId] || []), current];
+        }
+        return all;
+      },
+      {} as Record<string, PreviewComment[]>
+    );
 
     const rank = (c: PreviewComment) => {
       if (c.resolvedAt) {

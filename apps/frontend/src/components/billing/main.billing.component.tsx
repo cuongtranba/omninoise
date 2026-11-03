@@ -846,12 +846,12 @@ export const MainBillingComponent: FC<{
           ? t('start_7_days_free_trial', 'Start 7 days free trial')
           : t('billing_purchase', 'Purchase')
         : direction > 0
-        ? t('billing_upgrade', 'Upgrade')
-        : direction < 0
-        ? t('billing_downgrade', 'Downgrade')
-        : yearly
-        ? t('billing_switch_to_yearly', 'Switch to yearly')
-        : t('billing_switch_to_monthly', 'Switch to monthly'),
+          ? t('billing_upgrade', 'Upgrade')
+          : direction < 0
+            ? t('billing_downgrade', 'Downgrade')
+            : yearly
+              ? t('billing_switch_to_yearly', 'Switch to yearly')
+              : t('billing_switch_to_monthly', 'Switch to monthly'),
       onClick: moveToCheckout(name as 'STANDARD' | 'PRO'),
       variant: !!subscription && direction < 0 ? 'simple' : 'primary',
     };

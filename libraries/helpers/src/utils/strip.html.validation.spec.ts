@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 
 test('entities from the editor are decoded to plain text for every output type', () => {

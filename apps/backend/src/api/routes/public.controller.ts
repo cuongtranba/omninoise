@@ -180,7 +180,6 @@ export class PublicController {
       r = await fetch(currentUrl, {
         signal: ac.signal,
         redirect: 'manual',
-        // @ts-ignore — undici option, not in lib.dom fetch types
         dispatcher: ssrfSafeDispatcher,
       });
 

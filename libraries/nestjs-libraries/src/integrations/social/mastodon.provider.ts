@@ -184,7 +184,6 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       const fileResponse = await fetch(fileUrl, {
         // identity encoding so content-length matches the streamed bytes
         headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
       if (!fileResponse.ok || !fileResponse.body) {
@@ -219,7 +218,6 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
         body: form.pipe(new PassThrough()),
         // Required by undici when streaming a request body.
         duplex: 'half',
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       } as any);
 
@@ -302,7 +300,6 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
         } as any);
       } catch (err) {
@@ -413,7 +410,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // {} as Integration is safe here: checkPostStatus and finalizePost read
       // everything from pendingData (including the instance url) - keep it

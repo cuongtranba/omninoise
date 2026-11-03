@@ -15,8 +15,7 @@ const DDL = [
     ON pgonly.kv_store(expires_at)`,
 ];
 
-const LIVE =
-  '(kv_store.expires_at IS NULL OR kv_store.expires_at > now())';
+const LIVE = '(kv_store.expires_at IS NULL OR kv_store.expires_at > now())';
 
 /**
  * The small subset of the Redis client API Postiz uses, backed by an UNLOGGED

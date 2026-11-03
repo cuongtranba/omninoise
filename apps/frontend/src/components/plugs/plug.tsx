@@ -200,7 +200,10 @@ export const PlugItem: FC<{
       key={plug.title}
       className="w-full h-[300px] mobile:h-auto rounded-[8px] bg-newTableHeader hover:bg-newTableBorder"
     >
-      <div key={plug.title} className="p-[16px] h-full flex flex-col flex-1 mobile:gap-[16px]">
+      <div
+        key={plug.title}
+        className="p-[16px] h-full flex flex-col flex-1 mobile:gap-[16px]"
+      >
         <div className="flex">
           <div className="text-[20px] mb-[8px] flex-1">{plug.title}</div>
           {!!data && (

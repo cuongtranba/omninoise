@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -79,7 +79,9 @@ afterAll(async () => {
   await prisma.oAuthAuthorization.deleteMany({ where });
   await prisma.userOrganization.deleteMany({ where });
   await prisma.oAuthApp.delete({ where: { id: appId } });
-  await prisma.user.deleteMany({ where: { email: { endsWith: `-${run}@example.com` } } });
+  await prisma.user.deleteMany({
+    where: { email: { endsWith: `-${run}@example.com` } },
+  });
   await prisma.organization.deleteMany({ where: { name: { endsWith: run } } });
   await prisma.$disconnect();
 });

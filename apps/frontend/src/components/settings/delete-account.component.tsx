@@ -50,19 +50,19 @@ const DeleteAccountComponent: FC<{ isLink?: boolean }> = ({ isLink }) => {
             'Your account, organizations, channels and posts will be deleted, your subscription will be cancelled and the additional team members will be removed from your organization. This action cannot be undone, are you sure?'
           )
         : info?.hasSubscription
-        ? t(
-            'delete_account_confirm_subscription',
-            'Your account, organizations, channels and posts will be deleted and your subscription will be cancelled. This action cannot be undone, are you sure?'
-          )
-        : info?.hasAdditionalMembers
-        ? t(
-            'delete_account_confirm_members',
-            'Your account, organizations, channels and posts will be deleted and the additional team members will be removed from your organization. This action cannot be undone, are you sure?'
-          )
-        : t(
-            'delete_account_confirm',
-            'Your account, organizations, channels and posts will be deleted. This action cannot be undone, are you sure?'
-          );
+          ? t(
+              'delete_account_confirm_subscription',
+              'Your account, organizations, channels and posts will be deleted and your subscription will be cancelled. This action cannot be undone, are you sure?'
+            )
+          : info?.hasAdditionalMembers
+            ? t(
+                'delete_account_confirm_members',
+                'Your account, organizations, channels and posts will be deleted and the additional team members will be removed from your organization. This action cannot be undone, are you sure?'
+              )
+            : t(
+                'delete_account_confirm',
+                'Your account, organizations, channels and posts will be deleted. This action cannot be undone, are you sure?'
+              );
 
     if (
       !(await deleteDialog(

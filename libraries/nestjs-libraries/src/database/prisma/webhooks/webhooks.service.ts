@@ -152,7 +152,6 @@ export class WebhooksService {
           webhook: { id: webhook.id, name: webhook.name },
         }),
         signal: AbortSignal.timeout(30000),
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
 
@@ -214,7 +213,7 @@ export class WebhooksService {
               },
               body: payload,
               signal: AbortSignal.timeout(30000),
-              // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+              // Blocks SSRF to internal IPs.
               dispatcher: getSsrfSafeDispatcher(),
             });
           } catch (e) {
@@ -233,7 +232,6 @@ export class WebhooksService {
         method: 'POST',
         body: JSON.stringify(body),
         headers: { 'Content-Type': 'application/json' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
     } catch (err) {

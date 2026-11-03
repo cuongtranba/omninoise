@@ -51,7 +51,9 @@ export class LoadToolsService {
         await refreshChannelId?.(inputData, org.id)
       );
 
-      const denied = policies.find(([action, section]) => !ability.can(action, section));
+      const denied = policies.find(
+        ([action, section]) => !ability.can(action, section)
+      );
       if (denied) {
         throw new Error(
           getErrorMessage({ action: denied[0], section: denied[1] }) ||

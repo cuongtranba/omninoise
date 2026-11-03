@@ -8,8 +8,8 @@ const openBrowser = (url: string) => {
     process.platform === 'darwin'
       ? ['open', [url]]
       : process.platform === 'win32'
-      ? ['cmd', ['/c', 'start', '""', url.replace(/&/g, '^&')]]
-      : ['xdg-open', [url]];
+        ? ['cmd', ['/c', 'start', '""', url.replace(/&/g, '^&')]]
+        : ['xdg-open', [url]];
   const child = spawn(cmd, args, { stdio: 'ignore', detached: true });
   child.on('error', () => undefined);
   child.unref();

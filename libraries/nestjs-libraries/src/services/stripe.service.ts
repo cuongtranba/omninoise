@@ -51,10 +51,13 @@ export class StripeService extends PaymentProviderAbstract {
 
   async processWebhook(event: Stripe.Event) {
     // Maybe it comes from another stripe webhook
+    const object = event?.data?.object;
+    const metadata =
+      typeof object === 'object' && object !== null && 'metadata' in object
+        ? object.metadata
+        : undefined;
     if (
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      event?.data?.object?.metadata?.service !== 'gitroom' &&
+      metadata?.service !== 'gitroom' &&
       event.type !== 'invoice.payment_succeeded'
     ) {
       return { ok: true };
@@ -804,10 +807,10 @@ export class StripeService extends PaymentProviderAbstract {
             invoice.status === 'paid'
               ? 'paid'
               : invoice.status === 'void'
-              ? 'void'
-              : invoice.status === 'uncollectible' || invoice.attempted
-              ? 'failed'
-              : 'pending',
+                ? 'void'
+                : invoice.status === 'uncollectible' || invoice.attempted
+                  ? 'failed'
+                  : 'pending',
           downloadUrl: invoice.invoice_pdf || null,
           viewUrl: invoice.hosted_invoice_url || null,
         };
@@ -959,9 +962,8 @@ export class StripeService extends PaymentProviderAbstract {
       return 2;
     }
 
-    const getCustomerSubscriptions = await this.getCustomerSubscriptions(
-      organizationId
-    );
+    const getCustomerSubscriptions =
+      await this.getCustomerSubscriptions(organizationId);
     if (getCustomerSubscriptions.data.length === 0) {
       return 0;
     }

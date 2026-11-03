@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 export function usePageVisibility(page: number) {
-  if (typeof document === 'undefined') {
-    return true;
-  }
-  const [isVisible, setIsVisible] = useState(!document.hidden);
+  const [isVisible, setIsVisible] = useState(
+    () => typeof document === 'undefined' || !document.hidden
+  );
   useEffect(() => {
     if (page > 1) {
       return;

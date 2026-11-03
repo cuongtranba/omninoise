@@ -62,8 +62,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     if (body.includes('4279013')) {
       return {
         type: 'bad-body',
-        value:
-          'User restricted',
+        value: 'User restricted',
       };
     }
     if (body.includes('The media could not be fetched from this URI')) {
@@ -97,9 +96,8 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       )
     ).json();
 
-    const { id, name, username, picture } = await this.fetchUserInfo(
-      access_token
-    );
+    const { id, name, username, picture } =
+      await this.fetchUserInfo(access_token);
 
     return {
       id,
@@ -163,9 +161,8 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       )
     ).json();
 
-    const { id, name, username, picture } = await this.fetchUserInfo(
-      access_token
-    );
+    const { id, name, username, picture } =
+      await this.fetchUserInfo(access_token);
 
     return {
       id,
@@ -606,7 +603,11 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     return {
       status: 'completed',
       postId: threadId,
-      releaseURL: await this.threadPermalink(threadId, accessToken, integration),
+      releaseURL: await this.threadPermalink(
+        threadId,
+        accessToken,
+        integration
+      ),
     };
   }
 
@@ -636,7 +637,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method: failing here (non-retryable) is safe, timing the
@@ -750,13 +751,13 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         `${base}?metric=clicks&access_token=${accessToken}&period=day&since=${since}&until=${until}`
       )
         .then((res) => res.json())
-        .catch(() => ({} as { data?: any[] })),
+        .catch(() => ({}) as { data?: any[] }),
       // Only the current count exists, so no previous window has one
       offset
         ? Promise.resolve({} as { data?: any[] })
         : fetch(`${base}?metric=followers_count&access_token=${accessToken}`)
             .then((res) => res.json())
-            .catch(() => ({} as { data?: any[] })),
+            .catch(() => ({}) as { data?: any[] }),
     ]);
 
     // A single total for the window, dated at its end
@@ -911,7 +912,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         `https://graph.threads.net/v1.0/${postId}/insights?metric=shares&access_token=${accessToken}`
       )
         .then((res) => res.json())
-        .catch(() => ({} as { data?: any[] }));
+        .catch(() => ({}) as { data?: any[] });
 
       const result: AnalyticsData[] = [];
 

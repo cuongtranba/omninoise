@@ -19,7 +19,6 @@ export class ClippingWidgetController {
   ) {
     return this._clippingService.getWidgetProgress(
       org.id,
-      // @ts-ignore
       req.clippingId,
       !!seen
     );

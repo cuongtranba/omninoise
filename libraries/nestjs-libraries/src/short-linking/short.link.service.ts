@@ -60,7 +60,7 @@ export class ShortLinkService {
       return text.replace(
         /&(amp|quest|num);/g,
         (_, name: 'amp' | 'quest' | 'num') =>
-          ({ amp: '&', quest: '?', num: '#' }[name])
+          ({ amp: '&', quest: '?', num: '#' })[name]
       );
     });
 

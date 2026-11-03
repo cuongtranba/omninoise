@@ -29,9 +29,7 @@ export function getYoutubeTagsLength(tags: YoutubeTagsSettings[]): number {
 }
 
 @ValidatorConstraint({ name: 'IsYoutubeTagsLength', async: false })
-export class IsYoutubeTagsLengthConstraint
-  implements ValidatorConstraintInterface
-{
+export class IsYoutubeTagsLengthConstraint implements ValidatorConstraintInterface {
   validate(value: unknown, _args: ValidationArguments): boolean {
     if (!Array.isArray(value)) {
       return true;

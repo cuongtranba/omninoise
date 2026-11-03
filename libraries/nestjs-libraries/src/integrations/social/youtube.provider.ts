@@ -249,7 +249,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body',
         value:
-          'Your video was uploaded to YouTube successfully, but we could not set the thumbnail: custom thumbnails require a phone-verified YouTube channel. Verify your channel at youtube.com/verify, and set this video\'s thumbnail manually in YouTube Studio.',
+          "Your video was uploaded to YouTube successfully, but we could not set the thumbnail: custom thumbnails require a phone-verified YouTube channel. Verify your channel at youtube.com/verify, and set this video's thumbnail manually in YouTube Studio.",
       };
     }
 
@@ -901,7 +901,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method, leaving room for one more full upload batch: failing here
@@ -951,9 +951,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       // days ago, so the previous period never shares a day with this one
       const endDay = dayjs().subtract(offset, 'day');
       const endDate = endDay.format('YYYY-MM-DD');
-      const startDate = endDay
-        .subtract(date - 1, 'day')
-        .format('YYYY-MM-DD');
+      const startDate = endDay.subtract(date - 1, 'day').format('YYYY-MM-DD');
 
       const { client, youtubeAnalytics } = clientAndYoutube();
       client.setCredentials({ access_token: accessToken });

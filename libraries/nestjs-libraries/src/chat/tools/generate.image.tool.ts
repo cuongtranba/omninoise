@@ -48,7 +48,9 @@ export class GenerateImageTool implements AgentToolInterface {
       }),
       execute: async (inputData, context) => {
         checkAuth(inputData, context);
-        const org = JSON.parse((context?.requestContext as any)?.get('organization') as string);
+        const org = JSON.parse(
+          (context?.requestContext as any)?.get('organization') as string
+        );
         try {
           // Same credit gate as the dashboard's /media/generate-image routes
           const media = await this._mediaService.generateAndSaveImage(

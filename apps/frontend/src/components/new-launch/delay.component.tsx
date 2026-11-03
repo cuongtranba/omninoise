@@ -1,7 +1,10 @@
 'use client';
 
 import React, { FC, useCallback, useEffect, useState } from 'react';
-import { DelayIcon, DropdownArrowIcon } from '@gitroom/frontend/components/ui/icons';
+import {
+  DelayIcon,
+  DropdownArrowIcon,
+} from '@gitroom/frontend/components/ui/icons';
 import clsx from 'clsx';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -26,8 +29,9 @@ export const DelayComponent: FC<{
   const t = useT();
   const [isOpen, setIsOpen] = useState(false);
   const [customValue, setCustomValue] = useState('');
-  
-  const isCustomDelay = currentDelay > 0 && !delayOptions.some((opt) => opt.value === currentDelay);
+
+  const isCustomDelay =
+    currentDelay > 0 && !delayOptions.some((opt) => opt.value === currentDelay);
 
   useEffect(() => {
     if (isOpen && isCustomDelay) {
@@ -103,7 +107,8 @@ export const DelayComponent: FC<{
                 key={option.value}
                 className={clsx(
                   'h-[32px] flex items-center justify-center rounded-[4px] cursor-pointer hover:bg-newBgColor text-[13px]',
-                  currentDelay === option.value && 'bg-brand text-white hover:bg-brand'
+                  currentDelay === option.value &&
+                    'bg-brand text-white hover:bg-brand'
                 )}
               >
                 {option.label}

@@ -112,8 +112,9 @@ export const OAuthSelfHosted: FC<{
           spellCheck={false}
         />
         <div className="text-[12px] text-gray-400">
-          You can also paste the MCP URL from Settings &gt; Agents (Developers or
-          Public API on older versions) in the Instance URL, it includes the key.
+          You can also paste the MCP URL from Settings &gt; Agents (Developers
+          or Public API on older versions) in the Instance URL, it includes the
+          key.
         </div>
       </div>
 

@@ -108,7 +108,7 @@ export class NoAuthIntegrationsController {
       picture,
       username,
       additionalSettings,
-      // eslint-disable-next-line no-async-promise-executor
+      // oxlint-disable-next-line no-async-promise-executor
     } = await new Promise<AuthTokenDetails>(async (res) => {
       try {
         const auth = await integrationProvider.authenticate(
@@ -260,14 +260,14 @@ export class NoAuthIntegrationsController {
         details
           ? AuthService.fixedEncryption(details)
           : integrationProvider.customFields
-          ? AuthService.fixedEncryption(
-              Buffer.from(body.code, 'base64').toString()
-            )
-          : integrationProvider.isChromeExtension
-          ? AuthService.fixedEncryption(
-              Buffer.from(body.code, 'base64').toString()
-            )
-          : undefined
+            ? AuthService.fixedEncryption(
+                Buffer.from(body.code, 'base64').toString()
+              )
+            : integrationProvider.isChromeExtension
+              ? AuthService.fixedEncryption(
+                  Buffer.from(body.code, 'base64').toString()
+                )
+              : undefined
       );
 
     this._refreshIntegrationService
@@ -281,16 +281,10 @@ export class NoAuthIntegrationsController {
     if (integrationProvider.isBetweenSteps && !refresh) {
       try {
         // Check which method the provider uses (pages or companies)
-        const fetchMethod =
-          'pages' in integrationProvider
-            ? 'pages'
-            : 'companies' in integrationProvider
-            ? 'companies'
-            : null;
-
-        if (fetchMethod) {
-          // @ts-ignore - dynamic method call
-          pages = await integrationProvider[fetchMethod](accessToken);
+        if (integrationProvider.pages) {
+          pages = await integrationProvider.pages(accessToken);
+        } else if (integrationProvider.companies) {
+          pages = await integrationProvider.companies(accessToken);
         }
       } catch (err) {
         console.log('Failed to fetch pages:', err);
@@ -308,7 +302,6 @@ export class NoAuthIntegrationsController {
               apiKey: org.apiKey,
             }),
           }),
-          // @ts-ignore — undici option, not in lib.dom fetch types
           dispatcher: getSsrfSafeDispatcher(),
         });
       } catch (err) {}

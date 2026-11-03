@@ -15,7 +15,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// oxlint-disable-next-line typescript/no-require-imports -- file-type is ESM-only
 const { fileTypeFromBuffer } = require('file-type');
 
 const ALLOWED_EXT_TO_MIME: Record<string, string> = {
@@ -95,7 +95,10 @@ export async function simpleUpload(
   _contentType: string
 ) {
   const detected = await fileTypeFromBuffer(data);
-  if (!detected || !Object.values(ALLOWED_EXT_TO_MIME).includes(detected.mime)) {
+  if (
+    !detected ||
+    !Object.values(ALLOWED_EXT_TO_MIME).includes(detected.mime)
+  ) {
     throw new Error('Unsupported file type.');
   }
   const fileExtension = `.${detected.ext}`;
@@ -151,7 +154,7 @@ export async function prepareUploadParts(req: Request, res: Response) {
 
   const parts = partData.parts;
 
-  const response = {
+  const response: { presignedUrls: Record<number, string> } = {
     presignedUrls: {},
   };
 
@@ -166,7 +169,6 @@ export async function prepareUploadParts(req: Request, res: Response) {
       const command = new UploadPartCommand({ ...params });
       const url = await getSignedUrl(R2, command, { expiresIn: 3600 });
 
-      // @ts-ignore
       response.presignedUrls[part.number] = url;
     } catch (err) {
       console.log('Error', err);
@@ -225,7 +227,6 @@ export async function completeMultipartUpload(req: Request, res: Response) {
       })
     );
     const chunks: Buffer[] = [];
-    // @ts-ignore
     for await (const chunk of head.Body as AsyncIterable<Buffer>) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }

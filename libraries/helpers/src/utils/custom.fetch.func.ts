@@ -1,19 +1,25 @@
 export interface Params {
   baseUrl: string;
-  beforeRequest?: (url: string, options: RequestInit) => Promise<RequestInit>;
+  beforeRequest?: (
+    url: string,
+    options: RequestInit
+  ) => Promise<RequestInit | undefined>;
   afterRequest?: (
     url: string,
     options: RequestInit,
     response: Response
   ) => Promise<boolean>;
 }
+// `next` is the Next.js fetch option, a request that sets it keeps its own cache mode
+export type FetchOptions = RequestInit & { next?: unknown };
+
 export const customFetch = (
   params: Params,
   auth?: string,
   showorg?: string,
   secured: boolean = true
 ) => {
-  return async function newFetch(url: string, options: RequestInit = {}) {
+  return async function newFetch(url: string, options: FetchOptions = {}) {
     const loggedAuth =
       typeof window === 'undefined'
         ? undefined
@@ -50,8 +56,8 @@ export const customFetch = (
         ...(showorg
           ? { showorg }
           : authNonSecuredOrg
-          ? { showorg: authNonSecuredOrg }
-          : {}),
+            ? { showorg: authNonSecuredOrg }
+            : {}),
         ...(options.body instanceof FormData
           ? {}
           : { 'Content-Type': 'application/json' }),
@@ -61,13 +67,12 @@ export const customFetch = (
         ...(auth
           ? { auth }
           : authNonSecuredCookie
-          ? { auth: authNonSecuredCookie }
-          : {}),
+            ? { auth: authNonSecuredCookie }
+            : {}),
         ...(authNonSecuredImpersonate
           ? { impersonate: authNonSecuredImpersonate }
           : {}),
       },
-      // @ts-ignore
       ...(!options.next && options.cache !== 'force-cache'
         ? { cache: options.cache || 'no-store' }
         : {}),
@@ -80,8 +85,7 @@ export const customFetch = (
       return fetchRequest;
     }
 
-    // @ts-ignore
-    return new Promise((res) => {}) as Response;
+    return new Promise<Response>(() => {});
   };
 };
 

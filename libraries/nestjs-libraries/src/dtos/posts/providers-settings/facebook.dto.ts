@@ -95,7 +95,7 @@ export const FACEBOOK_PRESETS: FacebookPreset[] = [
 
 export class FacebookDto {
   @IsOptional()
-  @ValidateIf(p => p.url)
+  @ValidateIf((p) => p.url)
   @IsUrl()
   url?: string;
 

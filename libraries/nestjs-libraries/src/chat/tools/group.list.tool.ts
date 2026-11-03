@@ -40,12 +40,12 @@ export class GroupListTool implements AgentToolInterface {
         ).id;
 
         return {
-          output: (await this._integrationService.customers(organizationId)).map(
-            (p) => ({
-              id: p.id,
-              name: p.name,
-            })
-          ),
+          output: (
+            await this._integrationService.customers(organizationId)
+          ).map((p) => ({
+            id: p.id,
+            name: p.name,
+          })),
         };
       },
     });

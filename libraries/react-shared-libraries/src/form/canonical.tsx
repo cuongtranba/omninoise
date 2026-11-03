@@ -14,7 +14,12 @@ import { useShowPostSelector } from '../../../../apps/frontend/src/components/po
 import { TranslatedLabel } from '../translation/translated-label';
 
 export const Canonical: FC<
-  DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
+  Omit<
+    DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>,
+    'onChange'
+  > & {
+    // with disableForm the post selector reports the picked value like an event
+    onChange?: (event: { target: { value: string; name: string } }) => void;
     error?: any;
     date: dayjs.Dayjs;
     disableForm?: boolean;
@@ -44,9 +49,7 @@ export const Canonical: FC<
   const onPostSelector = useCallback(async () => {
     const id = await postSelector();
     if (disableForm) {
-      // @ts-ignore
-      return rest.onChange({
-        // @ts-ignore
+      return rest.onChange?.({
         target: {
           value: id,
           name: props.name,

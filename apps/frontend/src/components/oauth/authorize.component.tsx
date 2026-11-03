@@ -120,9 +120,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
           <div className="flex justify-center mb-[24px]">
             <Logo />
           </div>
-          <div className="text-[16px] text-gray-400">
-            Please wait...
-          </div>
+          <div className="text-[16px] text-gray-400">Please wait...</div>
           <div className="mt-[32px] flex justify-center">
             <div className="w-[48px] h-[48px] border-[3px] border-brand border-t-transparent rounded-full animate-spin" />
           </div>
@@ -158,9 +156,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
           <div className="text-[28px] font-semibold mb-[12px]">
             Authorization Error
           </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
-            {error}
-          </div>
+          <div className="text-[16px] text-gray-400 max-w-[400px]">{error}</div>
         </div>
       </div>
     );

@@ -12,12 +12,14 @@ import {
 // what the job and result look like.
 export class RunPodMediaProcessor<
   Job = MediaProcessorJob,
-  Result = MediaProcessorResult
-> implements IMediaProcessor<Job, Result>
-{
+  Result = MediaProcessorResult,
+> implements IMediaProcessor<Job, Result> {
   private _baseUrl: string;
 
-  constructor(private _apiKey: string, endpointId: string) {
+  constructor(
+    private _apiKey: string,
+    endpointId: string
+  ) {
     this._baseUrl = `https://api.runpod.ai/v2/${endpointId}`;
   }
 

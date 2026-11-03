@@ -49,12 +49,12 @@ export default class Postiz {
       extension === 'png'
         ? 'image/png'
         : extension === 'jpg'
-        ? 'image/jpeg'
-        : extension === 'gif'
-        ? 'image/gif'
-        : extension === 'jpeg'
-        ? 'image/jpeg'
-        : 'image/jpeg';
+          ? 'image/jpeg'
+          : extension === 'gif'
+            ? 'image/gif'
+            : extension === 'jpeg'
+              ? 'image/jpeg'
+              : 'image/jpeg';
 
     const blob = new Blob([file], { type });
     formData.append('file', blob, extension);
@@ -62,7 +62,6 @@ export default class Postiz {
     return (
       await fetch(`${this._path}/public/v1/upload`, {
         method: 'POST',
-        // @ts-ignore
         body: formData,
         headers: {
           Authorization: this._apiKey,

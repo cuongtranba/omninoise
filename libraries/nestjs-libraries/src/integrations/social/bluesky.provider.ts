@@ -18,6 +18,7 @@ import {
   BskyAgent,
   RichText,
   AppBskyEmbedVideo,
+  AppBskyFeedGetPostThread,
   AppBskyVideoDefs,
   AtpAgent,
   BlobRef,
@@ -72,6 +73,19 @@ async function reduceImageBySize(url: string, maxSizeKB = 976) {
   }
 }
 
+// getPostThread answers with a NotFoundPost or BlockedPost, which have no post,
+// when the post can't be read
+type Thread = AppBskyFeedGetPostThread.OutputSchema['thread'];
+
+const getThreadPost = (thread: Thread) =>
+  'post' in thread ? thread.post : undefined;
+
+// The reply reference of an app.bsky.feed.post record, PostView.record is an
+// open object that only carries it when the post is a reply
+interface ReplyingRecord {
+  reply?: { root?: { uri?: string; cid?: string } };
+}
+
 // Streams the video bytes to the Bluesky video service and returns the job
 // status - it does NOT wait for the processing. The blob only exists once the
 // job completes; a BlobRef can't survive JSON serialization through the
@@ -93,7 +107,6 @@ async function startVideoUpload(
     method: 'HEAD',
     // identity encoding so content-length matches the bytes the GET streams
     headers: { 'accept-encoding': 'identity' },
-    // @ts-ignore - undici-only option; blocks SSRF to internal IPs
     dispatcher: getSsrfSafeDispatcher(),
   });
   const videoSize = Number(headResponse.headers.get('content-length') || 0);
@@ -109,7 +122,6 @@ async function startVideoUpload(
   setHeartbeatDetails('bluesky: read video');
   const videoResponse = await fetch(videoPath, {
     headers: { 'accept-encoding': 'identity' },
-    // @ts-ignore - undici-only option; blocks SSRF to internal IPs
     dispatcher: getSsrfSafeDispatcher(),
   });
   if (!videoResponse.ok || !videoResponse.body) {
@@ -653,7 +665,6 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     let uri: string;
     try {
       setHeartbeatDetails('bluesky: create post');
-      // @ts-ignore
       const created = await agent.post({
         text: rt.text,
         facets: rt.facets,
@@ -714,7 +725,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method: failing here is safe (the post is only created once the
@@ -796,16 +807,14 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       depth: 0,
     });
 
-    // @ts-ignore
-    const parentCid = parentThread.data.thread.post?.cid;
-    // @ts-ignore
-    const rootUri = parentThread.data.thread.post?.record?.reply?.root?.uri || postId;
-    // @ts-ignore
-    const rootCid = parentThread.data.thread.post?.record?.reply?.root?.cid || parentCid;
+    const parentPost = getThreadPost(parentThread.data.thread);
+    const parentRecord: ReplyingRecord | undefined = parentPost?.record;
+    const parentCid = parentPost?.cid;
+    const rootUri = parentRecord?.reply?.root?.uri || postId;
+    const rootCid = parentRecord?.reply?.root?.cid || parentCid;
 
     setHeartbeatDetails('bluesky: create post');
-    // @ts-ignore
-    const { cid, uri, commit } = await agent.post({
+    const { cid, uri } = await agent.post({
       text: rt.text,
       facets: rt.facets,
       createdAt: new Date().toISOString(),
@@ -873,15 +882,10 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       depth: 0,
     });
 
-    // @ts-ignore
-    if (getThread.data.thread.post?.likeCount >= +fields.likesAmount) {
+    const threadPost = getThreadPost(getThread.data.thread);
+    if (threadPost?.likeCount >= +fields.likesAmount) {
       await timer(2000);
-      await agent.repost(
-        // @ts-ignore
-        getThread.data.thread.post?.uri,
-        // @ts-ignore
-        getThread.data.thread.post?.cid
-      );
+      await agent.repost(threadPost?.uri, threadPost?.cid);
       return true;
     }
 
@@ -934,8 +938,8 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       depth: 0,
     });
 
-    // @ts-ignore
-    if (getThread.data.thread.post?.likeCount >= +fields.likesAmount) {
+    const threadPost = getThreadPost(getThread.data.thread);
+    if (threadPost?.likeCount >= +fields.likesAmount) {
       await timer(2000);
       const rt = new RichText({
         text: stripHtmlValidation('normal', fields.post, true),
@@ -947,16 +951,12 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
         createdAt: new Date().toISOString(),
         reply: {
           root: {
-            // @ts-ignore
-            uri: getThread.data.thread.post?.uri,
-            // @ts-ignore
-            cid: getThread.data.thread.post?.cid,
+            uri: threadPost?.uri,
+            cid: threadPost?.cid,
           },
           parent: {
-            // @ts-ignore
-            uri: getThread.data.thread.post?.uri,
-            // @ts-ignore
-            cid: getThread.data.thread.post?.cid,
+            uri: threadPost?.uri,
+            cid: threadPost?.cid,
           },
         },
       });

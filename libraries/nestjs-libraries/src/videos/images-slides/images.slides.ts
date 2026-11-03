@@ -41,7 +41,8 @@ async function getAudioDuration(buffer: Buffer): Promise<number> {
 
 class ImagesSlidesParams {
   @JSONSchema({
-    description: 'Elevenlabs voice id, use a special tool to get it, this is a required filed',
+    description:
+      'Elevenlabs voice id, use a special tool to get it, this is a required filed',
   })
   @IsString()
   voice: string;
@@ -56,7 +57,8 @@ class ImagesSlidesParams {
 @Video({
   identifier: 'image-text-slides',
   title: 'Image Text Slides',
-  description: 'Generate videos slides from images and text, Don\'t break down the slides, provide only the first slide information',
+  description:
+    "Generate videos slides from images and text, Don't break down the slides, provide only the first slide information",
   placement: 'text-to-image',
   tools: [{ functionName: 'loadVoices', output: 'voice id' }],
   dto: ImagesSlidesParams,
@@ -162,17 +164,20 @@ export class ImagesSlides extends VideoAbstract<ImagesSlidesParams> {
 
     const srt = stringifySync(
       list
-        .reduce((all, current, index) => {
-          const start = all.length ? all[all.length - 1].end : 0;
-          const end = start + split[index][1].len * 1000 + 1000;
-          all.push({
-            start: start,
-            end: end,
-            text: current.voiceText,
-          });
+        .reduce(
+          (all, current, index) => {
+            const start = all.length ? all[all.length - 1].end : 0;
+            const end = start + split[index][1].len * 1000 + 1000;
+            all.push({
+              start: start,
+              end: end,
+              text: current.voiceText,
+            });
 
-          return all;
-        }, [] as { start: number; end: number; text: string }[])
+            return all;
+          },
+          [] as { start: number; end: number; text: string }[]
+        )
         .map((item) => ({
           type: 'cue',
           data: item,

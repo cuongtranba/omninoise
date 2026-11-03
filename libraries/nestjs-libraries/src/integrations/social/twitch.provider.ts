@@ -17,7 +17,11 @@ export class TwitchProvider extends SocialAbstract implements SocialProvider {
   name = 'Twitch';
   isBetweenSteps = false;
   editor = 'normal' as const;
-  scopes = ['user:write:chat', 'user:read:chat', 'moderator:manage:announcements'];
+  scopes = [
+    'user:write:chat',
+    'user:read:chat',
+    'moderator:manage:announcements',
+  ];
   dto = TwitchDto;
 
   maxLength() {
@@ -83,19 +87,22 @@ export class TwitchProvider extends SocialAbstract implements SocialProvider {
       params.refresh ? `?refresh=${params.refresh}` : ''
     }`;
 
-    const tokenResponse = await this.fetch('https://id.twitch.tv/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: process.env.TWITCH_CLIENT_ID!,
-        client_secret: process.env.TWITCH_CLIENT_SECRET!,
-        redirect_uri: redirectUri,
-        code: params.code,
-      }),
-    });
+    const tokenResponse = await this.fetch(
+      'https://id.twitch.tv/oauth2/token',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: process.env.TWITCH_CLIENT_ID!,
+          client_secret: process.env.TWITCH_CLIENT_SECRET!,
+          redirect_uri: redirectUri,
+          code: params.code,
+        }),
+      }
+    );
 
     const { access_token, refresh_token, expires_in } =
       await tokenResponse.json();
@@ -208,7 +215,8 @@ export class TwitchProvider extends SocialAbstract implements SocialProvider {
     await timer(2000);
     const [firstPost] = postDetails;
     const messageType = firstPost.settings?.messageType || 'message';
-    const announcementColor = firstPost.settings?.announcementColor || 'primary';
+    const announcementColor =
+      firstPost.settings?.announcementColor || 'primary';
 
     if (messageType === 'announcement') {
       const result = await this.sendAnnouncement(
@@ -229,7 +237,11 @@ export class TwitchProvider extends SocialAbstract implements SocialProvider {
     }
 
     // Regular chat message
-    const result = await this.sendChatMessage(id, accessToken, firstPost.message);
+    const result = await this.sendChatMessage(
+      id,
+      accessToken,
+      firstPost.message
+    );
 
     return [
       {
@@ -252,7 +264,8 @@ export class TwitchProvider extends SocialAbstract implements SocialProvider {
     await timer(2000);
     const [commentPost] = postDetails;
     const messageType = commentPost.settings?.messageType || 'message';
-    const announcementColor = commentPost.settings?.announcementColor || 'primary';
+    const announcementColor =
+      commentPost.settings?.announcementColor || 'primary';
 
     if (messageType === 'announcement') {
       const result = await this.sendAnnouncement(

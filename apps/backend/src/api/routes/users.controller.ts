@@ -345,16 +345,7 @@ export class UsersController {
   ) {
     const { uniqueId, fbc, fbp } = applyTrackCookies(req, res, body.fbclid);
     this._trackService
-      .track(
-        uniqueId,
-        ip,
-        userAgent,
-        body.tt,
-        body.additional,
-        fbc,
-        user,
-        fbp
-      )
+      .track(uniqueId, ip, userAgent, body.tt, body.additional, fbc, user, fbp)
       .catch((err) => {});
 
     res.status(200).json({

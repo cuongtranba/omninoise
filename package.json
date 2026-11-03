@@ -16,7 +16,7 @@
     "publish-sdk": "pnpm run --filter ./apps/sdk publish",
     "publish-cli": "pnpm run --filter ./apps/cli publish",
     "dev:stripe": "pnpm dlx concurrently \"stripe listen --forward-to localhost:3000/stripe\" \"pnpm run dev\"",
-    "build": "pnpm -r --workspace-concurrency=1 --filter ./apps/frontend --filter ./apps/backend --filter ./apps/orchestrator run build",
+    "build": "vp run --concurrency-limit 1 --filter ./apps/frontend --filter ./apps/backend --filter ./apps/orchestrator build",
     "build:backend": "rm -rf apps/backend/dist && pnpm --filter ./apps/backend run build",
     "build:frontend": "rm -rf apps/frontend/dist && pnpm --filter ./apps/frontend run build",
     "build:orchestrator": "rm -rf apps/orchestrator/dist && pnpm --filter ./apps/orchestrator run build",
@@ -30,8 +30,10 @@
     "prisma-db-pull": "pnpm dlx prisma@6.5.0 db pull --schema ./libraries/nestjs-libraries/src/database/prisma/schema.prisma",
     "prisma-reset": "cd ./libraries/nestjs-libraries/src/database/prisma && pnpm dlx prisma@6.5.0 db push --force-reset && pnpx prisma@6.5.0 db push",
     "postinstall": "pnpm run prisma-generate",
-    "test:pg": "vitest run",
-    "test": "jest --coverage --detectOpenHandles --reporters=default --reporters=jest-junit"
+    "test": "vp test",
+    "lint": "vp lint",
+    "fmt": "vp fmt",
+    "check": "vp check"
   },
   "dependencies": {
     "@ag-ui/mastra": "^1.1.4",
@@ -245,68 +247,41 @@
     "@crxjs/vite-plugin": "^2.7.1",
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "11.2.7",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
-    "@svgr/webpack": "^8.0.1",
     "@swc-node/register": "1.9.2",
     "@swc/cli": "0.8.1",
     "@swc/core": "1.5.7",
     "@tailwindcss/vite": "^4.0.17",
-    "@testing-library/react": "16.3.0",
     "@types/chrome": "^0.0.319",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.6",
     "@types/express": "^5.0.6",
-    "@types/jest": "29.5.12",
+    "@types/jsdom": "20.0.1",
     "@types/node": "18.16.9",
     "@types/node-telegram-bot-api": "^0.64.7",
     "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.5",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
+    "@types/twitter-text": "3.1.10",
     "@types/uuid": "^9.0.8",
     "@types/webextension-polyfill": "^0.12.3",
     "@types/yargs": "^17.0.32",
-    "@typescript-eslint/eslint-plugin": "7.18.0",
-    "@typescript-eslint/parser": "7.18.0",
     "@vitejs/plugin-react": "^6.0.5",
-    "@vitest/coverage-v8": "4.1.12",
-    "@vitest/ui": "4.1.12",
     "autoprefixer": "^10.4.17",
-    "babel-jest": "29.7.0",
     "cross-env": "^10.0.0",
-    "eslint": "8.57.0",
-    "eslint-config-next": "16.4.2",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-import": "2.27.5",
-    "eslint-plugin-jsx-a11y": "6.7.1",
-    "eslint-plugin-react": "7.32.2",
-    "eslint-plugin-react-hooks": "4.6.0",
     "fs-extra": "^11.3.0",
-    "jest": "29.7.0",
-    "jest-environment-jsdom": "29.7.0",
-    "jest-environment-node": "^29.4.1",
-    "jest-junit": "^16.0.0",
-    "jest-mock-extended": "^4.0.0-beta1",
     "jsdom": "~22.1.0",
     "nodemon": "^3.1.9",
     "postcss": "8.5.26",
-    "prettier": "^2.6.2",
     "prisma": "6.5.0",
     "react-refresh": "^0.10.0",
-    "ts-jest": "^29.1.0",
     "ts-node": "10.9.2",
     "tsup": "^8.5.0",
     "typescript": "5.5.4",
-    "vite": "^8.3.5",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "4.1.12"
-  },
-  "volta": {
-    "node": "20.17.0"
-  },
-  "jest-junit": {
-    "outputDirectory": "./reports",
-    "outputName": "junit.xml"
+    "vitest": "catalog:"
   },
   "pnpm": {
     "overrides": {
@@ -325,10 +300,22 @@
       "@walletconnect/universal-provider>lodash": "^4.18.1",
       "engine.io-client>ws": "^8.22.0",
       "request>form-data": "^2.5.6",
-      "viem>ws": "^8.22.0"
+      "viem>ws": "^8.22.0",
+      "vite@*": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+      "vitest@*": "5.0.5"
     },
     "onlyBuiltDependencies": [
       "bcrypt"
-    ]
+    ],
+    "peerDependencyRules": {
+      "allowAny": [
+        "vite",
+        "vitest"
+      ],
+      "allowedVersions": {
+        "vite": "*",
+        "vitest": "*"
+      }
+    }
   }
 }

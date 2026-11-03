@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { resolve } from 'path';
-import type { PluginOption } from 'vite';
+import type { PluginOption } from 'vite-plus';
 
 // plugin to remove dev icons from prod build
 export function stripDevIcons(isDev: boolean) {

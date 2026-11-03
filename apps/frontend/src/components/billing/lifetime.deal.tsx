@@ -141,10 +141,10 @@ export const LifetimeDeal = () => {
           {user?.tier?.current === 'PRO'
             ? 'EXTRA'
             : !user?.tier?.current
-            ? 'FREE'
-            : user?.tier?.current === 'STANDARD'
-            ? 'PRO'
-            : 'STANDARD'}
+              ? 'FREE'
+              : user?.tier?.current === 'STANDARD'
+                ? 'PRO'
+                : 'STANDARD'}
         </div>
 
         <div className="flex flex-col gap-[10px] justify-center text-[16px] text-customColor18">

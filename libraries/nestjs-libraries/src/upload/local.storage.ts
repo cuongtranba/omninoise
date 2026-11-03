@@ -6,7 +6,7 @@ import { pipeline } from 'stream/promises';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { parseDataUrl } from '@gitroom/nestjs-libraries/upload/data.url';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// oxlint-disable-next-line typescript/no-require-imports -- file-type is ESM-only
 const { fileTypeFromBuffer } = require('file-type');
 
 const LOCAL_STORAGE_ALLOWED_MIME = new Set<string>([
@@ -61,7 +61,6 @@ export class LocalStorage implements IUploadProvider {
         throw new Error('Unsafe URL');
       }
       const loadImage = await fetch(path, {
-        // @ts-ignore — undici option, not in lib.dom fetch types
         dispatcher: ssrfSafeDispatcher,
       });
       body = Buffer.from(await loadImage.arrayBuffer());

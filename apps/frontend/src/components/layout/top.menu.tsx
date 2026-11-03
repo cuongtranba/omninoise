@@ -169,41 +169,36 @@ export const useMenuItem = () => {
 export const TopMenu: FC = () => {
   const user = useUser();
   const { firstMenu, secondMenu } = useMenuItem();
-  const { isGeneral, billingEnabled } = useVariables();
+  const { billingEnabled } = useVariables();
   return (
     <>
       <div className="flex flex-1 flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
-        {
-          // @ts-ignore
-          user?.orgId &&
-            // @ts-ignore
-            (user.tier !== 'FREE' || !isGeneral || !billingEnabled) &&
-            firstMenu
-              .filter((f) => {
-                if (f.hide) {
-                  return false;
-                }
-                if (f.requireBilling && !billingEnabled) {
-                  return false;
-                }
-                if (f.name === 'Billing' && user?.isLifetime) {
-                  return false;
-                }
-                if (f.role) {
-                  return f.role.includes(user?.role!);
-                }
-                return true;
-              })
-              .map((item, index) => (
-                <MenuItem
-                  path={item.path}
-                  label={item.name}
-                  icon={item.icon}
-                  key={item.name}
-                  onClick={item.onClick}
-                />
-              ))
-        }
+        {user?.orgId &&
+          firstMenu
+            .filter((f) => {
+              if (f.hide) {
+                return false;
+              }
+              if (f.requireBilling && !billingEnabled) {
+                return false;
+              }
+              if (f.name === 'Billing' && user?.isLifetime) {
+                return false;
+              }
+              if (f.role) {
+                return f.role.includes(user?.role!);
+              }
+              return true;
+            })
+            .map((item, index) => (
+              <MenuItem
+                path={item.path}
+                label={item.name}
+                icon={item.icon}
+                key={item.name}
+                onClick={item.onClick}
+              />
+            ))}
       </div>
       <div className="flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
         {secondMenu

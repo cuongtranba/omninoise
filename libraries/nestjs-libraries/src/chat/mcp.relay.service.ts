@@ -35,7 +35,6 @@ const instanceFetch = async (url: string | URL, init?: RequestInit) => {
   const response = await fetch(url, {
     ...init,
     redirect: 'error',
-    // @ts-ignore - undici option, not in lib.dom fetch types
     dispatcher: ssrfSafeDispatcher,
   });
 
@@ -246,7 +245,8 @@ export class McpRelayService {
             }
 
             // an instance on another Postiz version can answer in another shape
-            const check = await tool.outputSchema['~standard']?.validate(output);
+            const check =
+              await tool.outputSchema['~standard']?.validate(output);
             if (check?.issues) {
               return this.failure(
                 tool,
@@ -279,7 +279,11 @@ export class McpRelayService {
     } catch (err) {
       // The key was rotated (or the instance reset): the connection can never
       // work again, so it goes away and the client asks to connect again
-      if (err instanceof StreamableHTTPError && err.code === 401 && instance.id) {
+      if (
+        err instanceof StreamableHTTPError &&
+        err.code === 401 &&
+        instance.id
+      ) {
         await this._oauthService.deleteSelfHostedAuthorization(instance.id);
       }
       throw new Error(this.describeError(instance, name, err));

@@ -10,7 +10,6 @@ import {
   BadBody,
   SocialAbstract,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-//@ts-ignore
 import mime from 'mime';
 import TelegramBot from 'node-telegram-bot-api';
 import { Integration } from '@prisma/client';
@@ -135,10 +134,10 @@ export class TelegramProvider extends SocialAbstract implements SocialProvider {
     return chatId
       ? { chatId }
       : res.length > 0
-      ? {
-          lastChatId: res[res.length - 1].update_id + 1,
-        }
-      : {};
+        ? {
+            lastChatId: res[res.length - 1].update_id + 1,
+          }
+        : {};
   }
 
   private processMedia(mediaFiles: PostDetails['media']) {
@@ -249,18 +248,18 @@ export class TelegramProvider extends SocialAbstract implements SocialProvider {
               media.fileOptions
             )
           : media.type === 'photo'
-          ? await telegramBot.sendPhoto(
-              accessToken,
-              media.media,
-              options,
-              media.fileOptions
-            )
-          : await telegramBot.sendDocument(
-              accessToken,
-              media.media,
-              options,
-              media.fileOptions
-            );
+            ? await telegramBot.sendPhoto(
+                accessToken,
+                media.media,
+                options,
+                media.fileOptions
+              )
+            : await telegramBot.sendDocument(
+                accessToken,
+                media.media,
+                options,
+                media.fileOptions
+              );
       messageId = response.message_id;
     }
     // if there are multiple media, bot sends them as a media group - max 10 media per group - with the text as a caption (if there are more than 1 group, the caption will only be sent with the first group)
@@ -330,7 +329,11 @@ export class TelegramProvider extends SocialAbstract implements SocialProvider {
     const [commentPost] = postDetails;
     const replyToId = Number(lastCommentId || postId);
 
-    const messageId = await this.sendMessage(accessToken, commentPost, replyToId);
+    const messageId = await this.sendMessage(
+      accessToken,
+      commentPost,
+      replyToId
+    );
 
     if (messageId) {
       return [

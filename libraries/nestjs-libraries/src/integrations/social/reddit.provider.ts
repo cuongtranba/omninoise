@@ -447,7 +447,10 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     // finds the armed marker and asks Reddit instead of resubmitting blindly.
     const value = data.subreddits[data.cursor].value;
     data.armed = {
-      sr: value.subreddit.replace(/^\/?r\//, '').replace(/^\/+|\/+$/g, '').toLowerCase(),
+      sr: value.subreddit
+        .replace(/^\/?r\//, '')
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase(),
       title: value.title || '',
       armedAt: Date.now(),
       media: value.type === 'media',
@@ -506,7 +509,10 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
           }
         : {}),
       text: data.message,
-      sr: value.subreddit.replace(/^\/?r\//, '').replace(/^\/+|\/+$/g, '').toLowerCase(),
+      sr: value.subreddit
+        .replace(/^\/?r\//, '')
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase(),
     };
 
     const all = await (
@@ -582,7 +588,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       const check = await this.checkPostStatus(
         accessToken,
@@ -966,7 +972,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
       )
     ).json();
 
-    // eslint-disable-next-line no-async-promise-executor
+    // oxlint-disable-next-line no-async-promise-executor
     const newData = await new Promise<{ id: string; name: string }[]>(
       async (res) => {
         try {

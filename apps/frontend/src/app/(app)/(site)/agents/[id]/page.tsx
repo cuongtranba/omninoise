@@ -6,7 +6,5 @@ export const metadata: Metadata = {
   description: '',
 };
 export default async function Page() {
-  return (
-    <AgentChat />
-  );
+  return <AgentChat />;
 }

@@ -219,17 +219,15 @@ export class ClippingJobs {
         });
         return {
           next: [
-            ...clipIds.map(
-              (clipId): FollowUp => ({
-                kind: 'clipping.clip',
-                payload: { clipId, step: 'fetch' } satisfies ClipPayload,
-                opts: {
-                  dedupeKey: clipKey(clipId),
-                  organizationId: job.organizationId ?? undefined,
-                  ...SUBMIT,
-                },
-              })
-            ),
+            ...clipIds.map((clipId): FollowUp => ({
+              kind: 'clipping.clip',
+              payload: { clipId, step: 'fetch' } satisfies ClipPayload,
+              opts: {
+                dedupeKey: clipKey(clipId),
+                organizationId: job.organizationId ?? undefined,
+                ...SUBMIT,
+              },
+            })),
             next({ clippingId, step: 'wait', clipIds }, FAST_INTERVAL),
           ],
         };

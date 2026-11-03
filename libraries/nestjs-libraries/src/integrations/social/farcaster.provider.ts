@@ -22,6 +22,15 @@ const client = new NeynarAPIClient({
   apiKey: process.env.NEYNAR_SECRET_KEY || '00000000-000-0000-000-000000000000',
 });
 
+// The Neynar typings only declare `fid` on the author of a published cast,
+// the API also returns the username
+type PublishedCastAuthor = Awaited<
+  ReturnType<NeynarAPIClient['publishCast']>
+>['cast']['author'];
+
+const castAuthorUsername = (author: PublishedCastAuthor) =>
+  'username' in author ? author.username : undefined;
+
 const SIGNED_KEY_REQUEST_VALIDATOR_EIP_712_DOMAIN = {
   name: 'Farcaster SignedKeyRequestValidator',
   version: '1',
@@ -35,9 +44,7 @@ const SIGNED_KEY_REQUEST_TYPE = [
   { name: 'deadline', type: 'uint256' },
 ] as const;
 
-@Rules(
-  'Farcaster/Warpcast can only accept pictures'
-)
+@Rules('Farcaster/Warpcast can only accept pictures')
 export class FarcasterProvider
   extends SocialAbstract
   implements SocialProvider
@@ -201,8 +208,7 @@ export class FarcasterProvider
       });
 
       ids.push({
-        // @ts-ignore
-        releaseURL: `https://warpcast.com/${data.cast.author.username}/${data.cast.hash}`,
+        releaseURL: `https://warpcast.com/${castAuthorUsername(data.cast.author)}/${data.cast.hash}`,
         postId: data.cast.hash,
       });
     }
@@ -243,8 +249,7 @@ export class FarcasterProvider
       });
 
       ids.push({
-        // @ts-ignore
-        releaseURL: `https://warpcast.com/${data.cast.author.username}/${data.cast.hash}`,
+        releaseURL: `https://warpcast.com/${castAuthorUsername(data.cast.author)}/${data.cast.hash}`,
         postId: data.cast.hash,
       });
     }

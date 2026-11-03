@@ -420,8 +420,9 @@ export class InstagramProvider
     if (body.indexOf('too little or too many attachments') > -1) {
       return {
         type: 'bad-body' as const,
-        value: 'Instagram carousel should have between 2 and 10 media attachments',
-      }
+        value:
+          'Instagram carousel should have between 2 and 10 media attachments',
+      };
     }
 
     if (body.indexOf('2207027') > -1) {
@@ -435,7 +436,7 @@ export class InstagramProvider
       return {
         type: 'bad-body' as const,
         value:
-          "One of the collaborators could not be tagged, please check the username is correct, the account is public, and that it allows collaborator invites",
+          'One of the collaborators could not be tagged, please check the username is correct, the account is public, and that it allows collaborator invites',
       };
     }
 
@@ -576,9 +577,8 @@ export class InstagramProvider
     // Also fetch pages via Business Manager API to discover pages
     // not selected during the OAuth page selection step
     try {
-      let bizUrl:
-        | string
-        | undefined = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/businesses?access_token=${accessToken}`;
+      let bizUrl: string | undefined =
+        `https://graph.facebook.com/${META_GRAPH_API_VERSION}/me/businesses?access_token=${accessToken}`;
 
       while (bizUrl) {
         const bizResponse = await (await fetch(bizUrl)).json();
@@ -759,20 +759,20 @@ export class InstagramProvider
             ? isStory
               ? `video_url=${m.path}&media_type=STORIES`
               : m?.thumbnail
-              ? `video_url=${m.path}&media_type=REELS&cover_url=${encodeURIComponent(
-                  m.thumbnail
-                )}`
-              : `video_url=${m.path}&media_type=REELS&thumb_offset=${
+                ? `video_url=${m.path}&media_type=REELS&cover_url=${encodeURIComponent(
+                    m.thumbnail
+                  )}`
+                : `video_url=${m.path}&media_type=REELS&thumb_offset=${
+                    m?.thumbnailTimestamp || 0
+                  }`
+            : isStory
+              ? `video_url=${m.path}&media_type=STORIES`
+              : `video_url=${m.path}&media_type=VIDEO&thumb_offset=${
                   m?.thumbnailTimestamp || 0
                 }`
-            : isStory
-            ? `video_url=${m.path}&media_type=STORIES`
-            : `video_url=${m.path}&media_type=VIDEO&thumb_offset=${
-                m?.thumbnailTimestamp || 0
-              }`
           : isStory
-          ? `image_url=${m.path}&media_type=STORIES`
-          : `image_url=${m.path}`;
+            ? `image_url=${m.path}&media_type=STORIES`
+            : `image_url=${m.path}`;
 
         const trialParams = isTrialReel
           ? `&trial_params=${encodeURIComponent(
@@ -839,8 +839,8 @@ export class InstagramProvider
             isStory && medias.length > 1
               ? 'stories'
               : medias.length === 1
-              ? 'single'
-              : 'carousel',
+                ? 'single'
+                : 'carousel',
           containers: medias,
           message: firstPost?.message || '',
           ...(collaborators
@@ -1053,7 +1053,7 @@ export class InstagramProvider
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method: failing here (non-retryable) is safe, timing the
@@ -1449,7 +1449,7 @@ export class InstagramProvider
         `${base}?fields=media_product_type&access_token=${accessToken}`
       )
         .then((res) => res.json())
-        .catch(() => ({} as { media_product_type?: string }));
+        .catch(() => ({}) as { media_product_type?: string });
 
       const [more, reels] = await Promise.all([
         this.optionalInsights(

@@ -51,9 +51,8 @@ If something fails, the result contains output.errors.
         ).id;
 
         try {
-          const organization = await this._organizationService.updateApiKey(
-            organizationId
-          );
+          const organization =
+            await this._organizationService.updateApiKey(organizationId);
           // the route of the web app answers with the whole organization, only the key is needed
           return { output: { apiKey: organization.apiKey as string } };
         } catch (err: any) {

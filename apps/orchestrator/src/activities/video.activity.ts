@@ -12,9 +12,10 @@ export class VideoActivity {
 
   async generateVideo(organizationId: string, body: VideoDto) {
     // credits are checked against the subscription, so it has to be loaded with the org
-    const org = await this._organizationService.getOrgByIdWithSubscription(
-      organizationId
-    );
+    const org =
+      await this._organizationService.getOrgByIdWithSubscription(
+        organizationId
+      );
     if (!org) {
       throw new Error('Organization not found');
     }

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { getPgPool } from '@gitroom/nestjs-libraries/pg/pg.pool';
 

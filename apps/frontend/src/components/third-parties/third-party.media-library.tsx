@@ -24,13 +24,10 @@ const ThirdPartyMediaLibraryBrowser: FC<{
 
   const loadMedia = useCallback(async () => {
     return (
-      await fetch(
-        `/third-party/function/${integration.id}/listMedia`,
-        {
-          body: JSON.stringify({ page: page + 1 }),
-          method: 'POST',
-        }
-      )
+      await fetch(`/third-party/function/${integration.id}/listMedia`, {
+        body: JSON.stringify({ page: page + 1 }),
+        method: 'POST',
+      })
     ).json();
   }, [integration.id, page]);
 
@@ -118,9 +115,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
                     <div
                       className={clsx(
                         'w-full h-full border-[4px] rounded-[6px]',
-                        isSelected
-                          ? 'border-brand'
-                          : 'border-transparent'
+                        isSelected ? 'border-brand' : 'border-transparent'
                       )}
                     >
                       {item.type === 'video' ? (
@@ -151,11 +146,7 @@ const ThirdPartyMediaLibraryBrowser: FC<{
         </div>
       </div>
       {(data?.pages || 0) > 1 && (
-        <Pagination
-          current={page}
-          totalPages={data?.pages}
-          setPage={setPage}
-        />
+        <Pagination current={page} totalPages={data?.pages} setPage={setPage} />
       )}
       <div className="flex justify-end gap-[8px]">
         <button

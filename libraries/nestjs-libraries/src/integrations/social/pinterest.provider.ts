@@ -137,10 +137,7 @@ export class PinterestProvider
           'Pinterest was unable to reach the URL provided. Please check the link and try again.',
       };
     }
-    if (
-      body.indexOf("does not match '^") > -1 &&
-      body.indexOf("d+$'") > -1
-    ) {
+    if (body.indexOf("does not match '^") > -1 && body.indexOf("d+$'") > -1) {
       return {
         type: 'bad-body' as const,
         value:
@@ -475,16 +472,16 @@ export class PinterestProvider
                 cover_image_url: pendingData.coverPath,
               }
             : mapImages?.length === 1
-            ? {
-                source_type: 'image_url',
-                url: mapImages?.[0]?.path,
-              }
-            : {
-                source_type: 'multiple_image_urls',
-                items: mapImages.map((m) => ({
-                  url: m.path,
-                })),
-              },
+              ? {
+                  source_type: 'image_url',
+                  url: mapImages?.[0]?.path,
+                }
+              : {
+                  source_type: 'multiple_image_urls',
+                  items: mapImages.map((m) => ({
+                    url: m.path,
+                  })),
+                },
         }),
       })
     ).json();
@@ -510,7 +507,7 @@ export class PinterestProvider
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method: failing here is safe (the pin is only created once the

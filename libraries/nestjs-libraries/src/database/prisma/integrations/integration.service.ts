@@ -301,8 +301,13 @@ export class IntegrationService {
     let refreshed = false;
     while (true) {
       try {
-        // @ts-ignore
-        const load = await provider[methodName](
+        const providerFunction: unknown = Reflect.get(provider, methodName);
+        if (typeof providerFunction !== 'function') {
+          throw new TypeError(`${methodName} is not a function`);
+        }
+
+        const load = await providerFunction.call(
+          provider,
           current.token,
           data,
           current.internalId,
@@ -577,10 +582,11 @@ export class IntegrationService {
     newProvider: string,
     auth: { id: string; username: string }
   ) {
-    const existing = await this._integrationRepository.getIntegrationByInternalId(
-      org,
-      oldInternalId
-    );
+    const existing =
+      await this._integrationRepository.getIntegrationByInternalId(
+        org,
+        oldInternalId
+      );
 
     if (
       !existing ||
@@ -860,9 +866,8 @@ export class IntegrationService {
       dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
       forceRefresh
     ) {
-      const data = await this._refreshIntegrationService.refresh(
-        getIntegration
-      );
+      const data =
+        await this._refreshIntegrationService.refresh(getIntegration);
       if (!data) {
         return [];
       }
@@ -935,9 +940,7 @@ export class IntegrationService {
       cacheKey,
       JSON.stringify(loadAnalytics),
       'EX',
-      !process.env.NODE_ENV || process.env.NODE_ENV === 'development'
-        ? 1
-        : 3600
+      !process.env.NODE_ENV || process.env.NODE_ENV === 'development' ? 1 : 3600
     );
     return loadAnalytics;
   }
@@ -1152,13 +1155,18 @@ export class IntegrationService {
       getIntegration.providerIdentifier
     );
 
-    // @ts-ignore
-    await getSocialIntegration?.[getAllInternalPlugs.methodName]?.(
-      getIntegration,
-      originalIntegration,
-      data.post,
-      data.information
-    );
+    const plugMethod: unknown =
+      getSocialIntegration &&
+      Reflect.get(getSocialIntegration, getAllInternalPlugs.methodName);
+    if (typeof plugMethod === 'function') {
+      await plugMethod.call(
+        getSocialIntegration,
+        getIntegration,
+        originalIntegration,
+        data.post,
+        data.information
+      );
+    }
 
     return;
   }
@@ -1179,8 +1187,16 @@ export class IntegrationService {
       getPlugById.integration.providerIdentifier
     );
 
-    // @ts-ignore
-    const process = await integration[getPlugById.plugFunction](
+    const plugFunction: unknown = Reflect.get(
+      integration,
+      getPlugById.plugFunction
+    );
+    if (typeof plugFunction !== 'function') {
+      throw new TypeError(`${getPlugById.plugFunction} is not a function`);
+    }
+
+    const process = await plugFunction.call(
+      integration,
       getPlugById.integration,
       data.postId,
       JSON.parse(getPlugById.data).reduce((all: any, current: any) => {

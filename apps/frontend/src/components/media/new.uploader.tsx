@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-// @ts-ignore
-import Uppy, { BasePlugin, UploadResult, UppyFile } from '@uppy/core';
-// @ts-ignore
+import Uppy, { BasePlugin, Meta, UppyFile } from '@uppy/core';
+import type { AssemblyResponse } from '@uppy/transloadit';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import {
   getUppyUploadPlugin,
@@ -38,9 +37,20 @@ export class CompressionWrapper<M = any, B = any> extends Compressor<any, any> {
   }
 }
 
+export type UploadedMedia = { id: string; path: string };
+
+// what the upload endpoints answer with: the local storage returns the saved
+// media itself, the multipart completion returns it under `saved` with the
+// uploaded location
+type UploadResponseBody =
+  | UploadedMedia
+  | { saved: UploadedMedia; Location: string };
+
+const savedMedia = (body: UploadResponseBody): UploadedMedia =>
+  'saved' in body ? body.saved : body;
+
 export function useUppyUploader(props: {
-  // @ts-ignore
-  onUploadSuccess: (result: UploadResult) => void;
+  onUploadSuccess: (result: UploadedMedia[]) => void;
   onStart: () => void;
   onEnd: () => void;
   allowedFileTypes: string;
@@ -61,7 +71,7 @@ export function useUppyUploader(props: {
     // Track file order to maintain original sequence after upload
     let fileOrderIndex = 0;
 
-    const uppy2 = new Uppy({
+    const uppy2 = new Uppy<Meta, UploadResponseBody>({
       autoProceed: true,
       restrictions: {
         // maxNumberOfFiles: 5,
@@ -261,20 +271,28 @@ export function useUppyUploader(props: {
       if (storageProvider === 'local') {
         setLocked(false);
         fileOrderIndex = 0;
-        onUploadSuccess(sortedSuccessful.map((p) => p.response.body));
+        onUploadSuccess(
+          sortedSuccessful.map((p) => savedMedia(p.response.body))
+        );
         return;
       }
 
       if (useTransloadit) {
-        // @ts-ignore
-        const allRes = result.transloadit[0].results;
-        const toSave = uniqBy<{ name: string; originalName: string; order: number }>(
-          // @ts-ignore
-          Object.values(allRes).flatMap((p: any[]) => {
+        // the transloadit plugin reports one assembly per upload in the result
+        const assemblies: AssemblyResponse[] = Array.isArray(result.transloadit)
+          ? result.transloadit
+          : [];
+        const allRes = assemblies[0]?.results ?? {};
+        const toSave = uniqBy<{
+          name: string;
+          originalName: string;
+          order: number;
+        }>(
+          Object.values(allRes).flatMap((p) => {
             return p.flatMap((item) => ({
-              name: item.url.split('/').pop(),
+              name: item.url.split('/').pop() ?? '',
               originalName: item.name || '',
-              order: +item.user_meta.addedOrder,
+              order: +item.user_meta?.addedOrder,
             }));
           }),
           (item) => item.name
@@ -309,19 +327,17 @@ export function useUppyUploader(props: {
 
       setLocked(false);
       fileOrderIndex = 0;
-      onUploadSuccess(sortedSuccessful.map((p) => p.response.body.saved));
+      onUploadSuccess(sortedSuccessful.map((p) => savedMedia(p.response.body)));
     });
     uppy2.on('upload-success', (file, response) => {
       const current = uppy2.getState().files[file.id];
       if (!current) {
         return;
       }
-      // @ts-ignore
       uppy2.setFileState(file.id, {
-        // @ts-ignore
         progress: current.progress,
-        // @ts-ignore
-        uploadURL: response.body.Location,
+        uploadURL:
+          'Location' in response.body ? response.body.Location : undefined,
         response: response,
         isPaused: false,
       });

@@ -1,13 +1,13 @@
 'use client';
 
-import { FC, FormEvent, useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useMemo, useState } from 'react';
 import { useCustomProviderFunction } from '@gitroom/frontend/components/launches/helpers/use.custom.provider.function';
 import { Input } from '@gitroom/react/form/input';
 import { useDebouncedCallback } from 'use-debounce';
 import { Button } from '@gitroom/react/form/button';
 import clsx from 'clsx';
 import { MultiMediaComponent } from '@gitroom/frontend/components/media/media.component';
-import { useWatch } from 'react-hook-form';
+import { FieldError, get, useWatch } from 'react-hook-form';
 import { Select } from '@gitroom/react/form/select';
 import { useSettings } from '@gitroom/frontend/components/launches/helpers/use.values';
 import { Canonical } from '@gitroom/react/form/canonical';
@@ -21,21 +21,23 @@ export const RenderOptions: FC<{
 }> = (props) => {
   const { options, onClick, value } = props;
   const mapValues = useMemo(() => {
-    return options?.map((p) => ({
-      children: (
-        <>
-          {p === 'self'
-            ? 'Post'
-            : p === 'link'
-            ? 'Link'
-            : p === 'media'
-            ? 'Media'
-            : ''}
-        </>
-      ),
-      id: p,
-      onClick: () => onClick(p),
-    })) || [];
+    return (
+      options?.map((p) => ({
+        children: (
+          <>
+            {p === 'self'
+              ? 'Post'
+              : p === 'link'
+                ? 'Link'
+                : p === 'media'
+                  ? 'Media'
+                  : ''}
+          </>
+        ),
+        id: p,
+        onClick: () => onClick(p),
+      })) || []
+    );
   }, [options]);
   return (
     <div className="flex">
@@ -49,6 +51,8 @@ export const RenderOptions: FC<{
     </div>
   );
 };
+type SubredditErrors = FieldError &
+  Partial<Record<'subreddit' | 'title' | 'flair' | 'url', FieldError>>;
 export const Subreddit: FC<{
   onChange: (event: {
     target: {
@@ -69,8 +73,10 @@ export const Subreddit: FC<{
   const dummy = useLaunchStore((state) => state.dummy);
   const split = name.split('.');
   const [loading, setLoading] = useState(false);
-  // @ts-ignore
-  const errors = state?.formState?.errors?.[split?.[0]]?.[split?.[1]]?.value;
+  const errors: SubredditErrors | undefined = get(
+    state?.formState?.errors,
+    `${split?.[0]}.${split?.[1]}.value`
+  );
   const [results, setResults] = useState([]);
   const func = useCustomProviderFunction();
   const value = useWatch({
@@ -167,16 +173,12 @@ export const Subreddit: FC<{
     [value]
   );
   const search = useDebouncedCallback(
-    useCallback(async (e: FormEvent<HTMLInputElement>) => {
-      // @ts-ignore
+    useCallback(async (input: HTMLInputElement) => {
       setResults([]);
-      // @ts-ignore
-      if (!e.target.value) {
+      if (!input.value) {
         return;
       }
-      // @ts-ignore
-      const results = await func.get('subreddits', { word: e.target.value });
-      // @ts-ignore
+      const results = await func.get('subreddits', { word: input.value });
       setResults(results);
     }, []),
     500
@@ -246,9 +248,8 @@ export const Subreddit: FC<{
             error={errors?.message}
             disableForm={true}
             onInput={async (e) => {
-              // @ts-ignore
-              setSearchValue(e.target.value);
-              await search(e);
+              setSearchValue(e.currentTarget.value);
+              await search(e.currentTarget);
             }}
           />
           {!!results.length && !loading && (

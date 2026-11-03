@@ -111,9 +111,8 @@ If something fails, the result contains output.errors.
           }
 
           if (inputData.action === 'getDefault') {
-            const signature = await this._signatureService.getDefaultSignature(
-              organizationId
-            );
+            const signature =
+              await this._signatureService.getDefaultSignature(organizationId);
             return {
               output: { signature: signature ? toSignature(signature) : null },
             };

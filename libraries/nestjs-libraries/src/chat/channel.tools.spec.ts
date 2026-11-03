@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
@@ -198,9 +198,8 @@ test('deleting a channel deletes its posts too', async () => {
   await expect
     .poll(
       async () =>
-        (
-          await prisma.post.findUniqueOrThrow({ where: { id: post.id } })
-        ).deletedAt
+        (await prisma.post.findUniqueOrThrow({ where: { id: post.id } }))
+          .deletedAt
     )
     .not.toBeNull();
   expect(

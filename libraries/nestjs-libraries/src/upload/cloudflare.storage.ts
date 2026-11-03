@@ -10,14 +10,13 @@ import { Readable } from 'stream';
 import 'multer';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import mime from 'mime-types';
-// @ts-ignore
 import { getExtension } from 'mime';
 import { IUploadProvider, UploadedStream } from './upload.interface';
 import axios from 'axios';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { parseDataUrl } from '@gitroom/nestjs-libraries/upload/data.url';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// oxlint-disable-next-line typescript/no-require-imports -- file-type is ESM-only
 const { fileTypeFromBuffer } = require('file-type');
 
 const ALLOWED_MIME_TYPES = new Set<string>([
@@ -70,7 +69,6 @@ class CloudflareStorage implements IUploadProvider {
           request.headers = headers;
 
           Object.entries(request.headers).forEach(
-            // @ts-ignore
             ([key, value]: [string, string]): void => {
               if (!request.headers) {
                 request.headers = {};
@@ -96,7 +94,6 @@ class CloudflareStorage implements IUploadProvider {
         throw new Error('Unsafe URL');
       }
       const loadImage = await fetch(path, {
-        // @ts-ignore — undici option, not in lib.dom fetch types
         dispatcher: ssrfSafeDispatcher,
       });
       body = Buffer.from(await loadImage.arrayBuffer());

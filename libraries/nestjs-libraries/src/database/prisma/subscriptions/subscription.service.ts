@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { SubscriptionRepository } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.repository';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
-import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
-import { Organization } from '@prisma/client';
+import {
+  OrganizationService,
+  RequestOrganization,
+} from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { Organization, Subscription } from '@prisma/client';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
@@ -59,9 +62,8 @@ export class SubscriptionService {
 
   // Store-managed subscriptions (RevenueCat etc.) have no Stripe customer, they are keyed by org
   async deleteSubscriptionByOrgId(organizationId: string, provider: string) {
-    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
-      organizationId
-    );
+    const current =
+      await this._subscriptionRepository.getSubscriptionByOrgId(organizationId);
     if (!current || current.provider !== provider || current.isLifetime) {
       return false;
     }
@@ -115,9 +117,8 @@ export class SubscriptionService {
     const from = pricing[getCurrentSubscription?.subscriptionTier || 'FREE'];
     const to = pricing[billing];
 
-    const allChannels = await this._integrationService.getIntegrationsList(
-      organizationId
-    );
+    const allChannels =
+      await this._integrationService.getIntegrationsList(organizationId);
     const currentTotalChannels = allChannels.filter((f) => !f.disabled);
 
     if (currentTotalChannels.length > totalChannels) {
@@ -306,9 +307,8 @@ export class SubscriptionService {
     period: 'MONTHLY' | 'YEARLY',
     cancelAt: number | null
   ) {
-    const current = await this._subscriptionRepository.getSubscriptionByOrgId(
-      organizationId
-    );
+    const current =
+      await this._subscriptionRepository.getSubscriptionByOrgId(organizationId);
     if (current && (current.isLifetime || current.provider !== provider)) {
       return {};
     }
@@ -380,9 +380,8 @@ export class SubscriptionService {
   }
 
   async resetCredits(organizationId: string, type: string) {
-    const subscription = await this._subscriptionRepository.getSubscription(
-      organizationId
-    );
+    const subscription =
+      await this._subscriptionRepository.getSubscription(organizationId);
 
     if (!subscription) {
       return null;
@@ -397,8 +396,10 @@ export class SubscriptionService {
     return { deleted: count };
   }
 
-  async checkCredits(organization: Organization, checkType = 'ai_images') {
-    // @ts-ignore
+  async checkCredits(
+    organization: RequestOrganization,
+    checkType = 'ai_images'
+  ) {
     const type = organization?.subscription?.subscriptionTier || 'FREE';
 
     if (type === 'FREE') {
@@ -406,15 +407,14 @@ export class SubscriptionService {
     }
 
     const checkFromMonth = this.currentPeriodStart(
-      // @ts-ignore
       organization.subscription.createdAt
     );
     const imageGenerationCount =
       checkType === 'ai_images'
         ? pricing[type].image_generation_count
         : checkType === 'clipping_minutes'
-        ? pricing[type].clipping_minutes
-        : pricing[type].generate_videos;
+          ? pricing[type].clipping_minutes
+          : pricing[type].generate_videos;
 
     const totalUse = await this._subscriptionRepository.getCreditsFrom(
       organization.id,

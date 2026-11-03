@@ -84,12 +84,10 @@ export class IntegrationTriggerTool implements AgentToolInterface {
 
         const tools = this._integrationManager.getAllTools();
         if (
-          // @ts-ignore
           !tools[integrationProvider.identifier].some(
             (p) => p.methodName === inputData.methodName
           ) ||
-          // @ts-ignore
-          !integrationProvider[inputData.methodName]
+          !Reflect.get(integrationProvider, inputData.methodName)
         ) {
           throw new Error(
             `Method "${inputData.methodName}" not found for this integration, use integrationSchema to get the callable tools`

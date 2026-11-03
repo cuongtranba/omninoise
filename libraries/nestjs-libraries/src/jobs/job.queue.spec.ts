@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, expect, test, vi } from 'vitest';
+import { afterAll, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { JobWorker } from '@gitroom/nestjs-libraries/jobs/job.worker';
 import { markStarted } from '@gitroom/nestjs-libraries/jobs/job.context';

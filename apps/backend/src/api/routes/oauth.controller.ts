@@ -56,10 +56,7 @@ export class OAuthController {
       }
     );
 
-    const selfHosted = this._oauthService.allowsSelfHosted(
-      app,
-      query.resource
-    );
+    const selfHosted = this._oauthService.allowsSelfHosted(app, query.resource);
 
     return {
       app: {

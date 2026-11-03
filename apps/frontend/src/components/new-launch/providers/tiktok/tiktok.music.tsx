@@ -26,10 +26,7 @@ interface SelectedMusic {
 
 const formatDuration = (ms: number) => {
   const seconds = Math.floor(ms / 1000);
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(
-    2,
-    '0'
-  )}`;
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
 export const TikTokMusicSelector: FC<{
@@ -302,7 +299,10 @@ export const TikTokMusicSelector: FC<{
                   <div className="flex-1 flex flex-col">
                     <div className="text-[14px]">{track.title}</div>
                     <div className="text-[12px] opacity-70">
-                      {[track.artist, track.duration ? formatDuration(track.duration) : '']
+                      {[
+                        track.artist,
+                        track.duration ? formatDuration(track.duration) : '',
+                      ]
                         .filter((f) => f)
                         .join(' · ')}
                     </div>

@@ -208,7 +208,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body',
         value: 'You are not allowed to create a post with duplicate content',
-      }
+      };
     }
 
     if (body.includes('usage-capped')) {
@@ -235,8 +235,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     if (body.includes('Your account is not permitted to access this feature')) {
       return {
         type: 'bad-body',
-        value:
-          'X blocked your request',
+        value: 'X blocked your request',
       };
     }
     if (body.includes('The Tweet contains an invalid URL.')) {
@@ -304,7 +303,8 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     if (body.includes('"title":"Unauthorized"')) {
       return {
         type: 'refresh-token',
-        value: 'X rejected the connected account, please reconnect your account',
+        value:
+          'X rejected the connected account, please reconnect your account',
       };
     }
     return undefined;
@@ -333,8 +333,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     id: string,
     fields: { likesAmount: string }
   ) {
-    // @ts-ignore
-    // eslint-disable-next-line prefer-rest-params
+    // oxlint-disable-next-line prefer-rest-params
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
     const client = new TwitterApi({
       appKey: process.env.X_API_KEY!,
@@ -417,8 +416,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     id: string,
     fields: { likesAmount: string; post: string }
   ) {
-    // @ts-ignore
-    // eslint-disable-next-line prefer-rest-params
+    // oxlint-disable-next-line prefer-rest-params
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
     const client = new TwitterApi({
       appKey: process.env.X_API_KEY!,
@@ -489,9 +487,8 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       accessSecret: oauth_token_secret,
     });
 
-    const { accessToken, client, accessSecret } = await startingClient.login(
-      code
-    );
+    const { accessToken, client, accessSecret } =
+      await startingClient.login(code);
 
     const {
       data: { username, verified, profile_image_url, name, id },
@@ -874,7 +871,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     const { media: inlineMedia } = await this.uploadMediaEntries(
       client,
       inlineImages.map(
-        (path, index) => ({ id: String(index), media: [{ path }] } as any)
+        (path, index) => ({ id: String(index), media: [{ path }] }) as any
       ),
       true
     );
@@ -941,7 +938,11 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     const stillProcessing: string[] = [];
     for (const mediaId of pendingData.processingIds || []) {
       let processing:
-        | { state: string; check_after_secs?: number; error?: { message?: string } }
+        | {
+            state: string;
+            check_after_secs?: number;
+            error?: { message?: string };
+          }
         | undefined;
       try {
         processing = await this.mediaProcessingStatus(client, mediaId);
@@ -1400,7 +1401,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method: failing here is safe (the tweet is only created once the

@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { CompleteMultipartUploadCommandOutput } from '@aws-sdk/client-s3';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
@@ -164,15 +165,16 @@ export class MediaController {
       return upload;
     }
 
-    // @ts-ignore
-    const name = upload.Location.split('/').pop();
+    // only the completed multipart upload reaches this point, the other
+    // endpoints and the failed completion returned above
+    const { Location } = upload as CompleteMultipartUploadCommandOutput;
+    const name = Location.split('/').pop();
     const originalName = req.body?.file?.name;
 
     const saveFile = await this._mediaService.saveUploadedFile(
       org.id,
       name,
-      // @ts-ignore
-      upload.Location,
+      Location,
       originalName || undefined
     );
 
@@ -202,10 +204,12 @@ export class MediaController {
   }
 
   @Post('/video/function')
-  videoFunction(
-    @Body() body: VideoFunctionDto
-  ) {
-    return this._mediaService.videoFunction(body.identifier, body.functionName, body.params);
+  videoFunction(@Body() body: VideoFunctionDto) {
+    return this._mediaService.videoFunction(
+      body.identifier,
+      body.functionName,
+      body.params
+    );
   }
 
   @Get('/generate-video/:type/allowed')

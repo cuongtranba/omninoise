@@ -16,12 +16,19 @@ export class RefreshIntegrationService {
     private _integrationService: IntegrationService,
     private _jobQueue: JobQueueService
   ) {}
-  async refresh(integration: Integration, cause = ''): Promise<false | AuthTokenDetails> {
+  async refresh(
+    integration: Integration,
+    cause = ''
+  ): Promise<false | AuthTokenDetails> {
     const socialProvider = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
 
-    const refresh = await this.refreshProcess(integration, socialProvider, cause);
+    const refresh = await this.refreshProcess(
+      integration,
+      socialProvider,
+      cause
+    );
 
     if (!refresh) {
       return false as const;
@@ -53,7 +60,11 @@ export class RefreshIntegrationService {
     );
   }
 
-  public async startRefreshWorkflow(orgId: string, id: string, integration: SocialProvider) {
+  public async startRefreshWorkflow(
+    orgId: string,
+    id: string,
+    integration: SocialProvider
+  ) {
     if (!integration.refreshCron) {
       return false;
     }

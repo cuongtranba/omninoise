@@ -150,22 +150,20 @@ If the post cannot be found, the result contains output.errors.
   private mapEditor(editor: Awaited<ReturnType<PostsService['getPost']>>) {
     return {
       group: editor.group,
-      posts: editor.posts.map(
-        (p: any): EditorPost => ({
-          id: p.id,
-          content: p.content,
-          publishDate: dayjs(p.publishDate).utc().format('YYYY-MM-DDTHH:mm:ss'),
-          state: p.state,
-          delay: p.delay,
-          intervalInDays: p.intervalInDays ?? null,
-          creationMethod: p.creationMethod,
-          image: p.image,
-          tags: p.tags?.map(({ tag }: any) => ({
-            tag: { id: tag.id, name: tag.name, color: tag.color },
-          })),
-          integration: p.integration,
-        })
-      ),
+      posts: editor.posts.map((p: any): EditorPost => ({
+        id: p.id,
+        content: p.content,
+        publishDate: dayjs(p.publishDate).utc().format('YYYY-MM-DDTHH:mm:ss'),
+        state: p.state,
+        delay: p.delay,
+        intervalInDays: p.intervalInDays ?? null,
+        creationMethod: p.creationMethod,
+        image: p.image,
+        tags: p.tags?.map(({ tag }: any) => ({
+          tag: { id: tag.id, name: tag.name, color: tag.color },
+        })),
+        integration: p.integration,
+      })),
       integration: editor.integration,
       integrationPicture: editor.integrationPicture,
       settings: editor.settings,

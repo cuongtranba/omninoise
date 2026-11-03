@@ -9,7 +9,10 @@ import { useClickOutside } from '@mantine/hooks';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
-import { UserIcon, DropdownArrowIcon } from '@gitroom/frontend/components/ui/icons';
+import {
+  UserIcon,
+  DropdownArrowIcon,
+} from '@gitroom/frontend/components/ui/icons';
 
 export const SelectCustomer: FC<{
   onChange: (value: string) => void;

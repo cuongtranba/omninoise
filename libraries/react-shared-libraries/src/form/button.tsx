@@ -9,7 +9,16 @@ import {
   useState,
 } from 'react';
 import { clsx } from 'clsx';
-const ReactLoading = ({ color = '#fff', width = 20, height = 20 }: { type?: string; color?: string; width?: number; height?: number }) => {
+const ReactLoading = ({
+  color = '#fff',
+  width = 20,
+  height = 20,
+}: {
+  type?: string;
+  color?: string;
+  width?: number;
+  height?: number;
+}) => {
   const size = Math.min(width, height);
   const borderWidth = Math.max(2, Math.round(size / 8));
   return (

@@ -19,16 +19,14 @@ import { createHash } from 'crypto';
 import { OAuthApp } from '@prisma/client';
 import type { SelfHostedInstance } from '@gitroom/nestjs-libraries/chat/mcp.relay.service';
 
-const openAiOAuthClientId = () =>
-  process.env.OPENAI_OAUTH_CLIENT_ID?.trim();
+const openAiOAuthClientId = () => process.env.OPENAI_OAUTH_CLIENT_ID?.trim();
 
 const enableOidcEmailClaims = () => Boolean(openAiOAuthClientId());
 
 // The static app HubSpot agents connect with (created under Settings >
 // Developers). HubSpot's MCP connector sends no client secret and requires a
 // refresh token, see isPublicClient and refreshFields
-const hubspotOAuthClientId = () =>
-  process.env.HUBSPOT_OAUTH_CLIENT_ID?.trim();
+const hubspotOAuthClientId = () => process.env.HUBSPOT_OAUTH_CLIENT_ID?.trim();
 
 // Postiz access tokens never expire, but HubSpot wants an expires_in: ten
 // years (a hundred would not fit in a 32-bit integer)
@@ -179,7 +177,10 @@ export class OAuthService {
         parsed = new URL(uri);
       } catch {
         throw new HttpException(
-          { error: 'invalid_redirect_uri', error_description: `Invalid redirect_uri: ${uri}` },
+          {
+            error: 'invalid_redirect_uri',
+            error_description: `Invalid redirect_uri: ${uri}`,
+          },
           HttpStatus.BAD_REQUEST
         );
       }
@@ -188,7 +189,10 @@ export class OAuthService {
       // browser would execute in our origin can never be a callback
       if (browserSchemes.includes(parsed.protocol)) {
         throw new HttpException(
-          { error: 'invalid_redirect_uri', error_description: `redirect_uri scheme "${parsed.protocol}" is not allowed` },
+          {
+            error: 'invalid_redirect_uri',
+            error_description: `redirect_uri scheme "${parsed.protocol}" is not allowed`,
+          },
           HttpStatus.BAD_REQUEST
         );
       }
@@ -201,7 +205,11 @@ export class OAuthService {
       const isPrivateScheme = !['http:', 'https:'].includes(parsed.protocol);
       if (parsed.protocol === 'http:' && !isLoopback) {
         throw new HttpException(
-          { error: 'invalid_redirect_uri', error_description: 'redirect_uris must use https or a private-use scheme (http is allowed for loopback only)' },
+          {
+            error: 'invalid_redirect_uri',
+            error_description:
+              'redirect_uris must use https or a private-use scheme (http is allowed for loopback only)',
+          },
           HttpStatus.BAD_REQUEST
         );
       }
@@ -225,9 +233,16 @@ export class OAuthService {
       }
     }
 
-    if (dto.grant_types?.length && !dto.grant_types.includes('authorization_code')) {
+    if (
+      dto.grant_types?.length &&
+      !dto.grant_types.includes('authorization_code')
+    ) {
       throw new HttpException(
-        { error: 'invalid_client_metadata', error_description: 'Only the authorization_code grant type is supported' },
+        {
+          error: 'invalid_client_metadata',
+          error_description:
+            'Only the authorization_code grant type is supported',
+        },
         HttpStatus.BAD_REQUEST
       );
     }
@@ -244,8 +259,8 @@ export class OAuthService {
     const tokenEndpointAuthMethod = isPublicClient
       ? 'none'
       : dto.token_endpoint_auth_method === 'client_secret_basic'
-      ? 'client_secret_basic'
-      : 'client_secret_post';
+        ? 'client_secret_basic'
+        : 'client_secret_post';
     const clientId = 'pcd_' + makeSecureId(32);
     const clientSecret = isPublicClient ? undefined : 'pcs_' + makeSecureId(48);
 
@@ -260,7 +275,9 @@ export class OAuthService {
 
     return {
       client_id: clientId,
-      ...(clientSecret ? { client_secret: clientSecret, client_secret_expires_at: 0 } : {}),
+      ...(clientSecret
+        ? { client_secret: clientSecret, client_secret_expires_at: 0 }
+        : {}),
       client_id_issued_at: Math.floor(app.createdAt.getTime() / 1000),
       client_name: app.name,
       redirect_uris: redirectUris,
@@ -599,14 +616,22 @@ export class OAuthService {
     if (auth.codeChallenge) {
       if (!codeVerifier) {
         throw new HttpException(
-          { error: 'invalid_grant', error_description: 'code_verifier is required' },
+          {
+            error: 'invalid_grant',
+            error_description: 'code_verifier is required',
+          },
           HttpStatus.BAD_REQUEST
         );
       }
-      const hashed = createHash('sha256').update(codeVerifier).digest('base64url');
+      const hashed = createHash('sha256')
+        .update(codeVerifier)
+        .digest('base64url');
       if (hashed !== auth.codeChallenge) {
         throw new HttpException(
-          { error: 'invalid_grant', error_description: 'Invalid code_verifier' },
+          {
+            error: 'invalid_grant',
+            error_description: 'Invalid code_verifier',
+          },
           HttpStatus.BAD_REQUEST
         );
       }
@@ -614,7 +639,11 @@ export class OAuthService {
 
     if (auth.redirectUri && redirectUri !== auth.redirectUri) {
       throw new HttpException(
-        { error: 'invalid_grant', error_description: 'redirect_uri does not match the authorization request' },
+        {
+          error: 'invalid_grant',
+          error_description:
+            'redirect_uri does not match the authorization request',
+        },
         HttpStatus.BAD_REQUEST
       );
     }
@@ -689,7 +718,10 @@ export class OAuthService {
 
     if (!refreshToken) {
       throw new HttpException(
-        { error: 'invalid_request', error_description: 'refresh_token is required' },
+        {
+          error: 'invalid_request',
+          error_description: 'refresh_token is required',
+        },
         HttpStatus.BAD_REQUEST
       );
     }
@@ -698,7 +730,9 @@ export class OAuthService {
     const encryptedToken = AuthService.fixedEncryption(refreshToken);
     const authorization = refreshToken.startsWith('psh_')
       ? selfHostedRelayEnabled()
-        ? await this._oauthRepository.findSelfHostedByAccessToken(encryptedToken)
+        ? await this._oauthRepository.findSelfHostedByAccessToken(
+            encryptedToken
+          )
         : null
       : await this._oauthRepository.findByAccessToken(encryptedToken);
     if (!authorization || authorization.oauthAppId !== app.id) {
@@ -791,9 +825,8 @@ export class OAuthService {
   // member of it. role is the user's role in that organization.
   async resolveAccessToken(token: string) {
     const encrypted = AuthService.fixedEncryption(token);
-    const authorization = await this._oauthRepository.findByAccessToken(
-      encrypted
-    );
+    const authorization =
+      await this._oauthRepository.findByAccessToken(encrypted);
     if (!authorization) {
       return null;
     }
@@ -835,7 +868,10 @@ export class OAuthService {
     const authorizationRecord = await this.resolveAccessToken(token);
     if (!authorizationRecord) {
       throw new HttpException(
-        { error: 'invalid_token', error_description: 'Token is invalid or revoked' },
+        {
+          error: 'invalid_token',
+          error_description: 'Token is invalid or revoked',
+        },
         HttpStatus.UNAUTHORIZED
       );
     }
@@ -869,7 +905,10 @@ export class OAuthService {
       : null;
     if (!selfHosted) {
       throw new HttpException(
-        { error: 'invalid_token', error_description: 'Token is invalid or revoked' },
+        {
+          error: 'invalid_token',
+          error_description: 'Token is invalid or revoked',
+        },
         HttpStatus.UNAUTHORIZED
       );
     }

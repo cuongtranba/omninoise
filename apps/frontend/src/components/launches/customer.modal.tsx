@@ -2,18 +2,13 @@
 
 import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
-import { Integration } from '@prisma/client';
+import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Button } from '@gitroom/react/form/button';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const CustomerModal: FC<{
-  integration: Integration & {
-    customer?: {
-      id: string;
-      name: string;
-    };
-  };
+  integration: Pick<Integrations, 'id' | 'customer'>;
   onClose: () => void;
 }> = (props) => {
   const t = useT();

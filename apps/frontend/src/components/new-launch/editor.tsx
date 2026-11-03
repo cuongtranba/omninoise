@@ -122,10 +122,7 @@ const EditorImage = Node.create({
   },
 });
 
-const insertImages = (
-  editor: any,
-  media: { path: string; alt?: string }[]
-) => {
+const insertImages = (editor: any, media: { path: string; alt?: string }[]) => {
   if (!media.length) {
     return;
   }
@@ -728,19 +725,17 @@ export const Editor: FC<{
   );
 
   const paste = useCallback(
-    (event: ClipboardEvent | File[], slice?: Slice) => {
+    (event: ClipboardEvent, slice?: Slice) => {
       if (num > 0 && comments === 'no-media') {
         return false;
       }
-      // @ts-ignore
       const clipboardItems = event.clipboardData?.items;
       if (!clipboardItems) {
         return false;
       }
 
       const clipboardFiles: File[] = [];
-      // @ts-ignore
-      for (const item of clipboardItems) {
+      for (const item of Array.from(clipboardItems)) {
         if (item.kind === 'file') {
           const file = item.getAsFile();
           if (file) {
@@ -751,7 +746,6 @@ export const Editor: FC<{
 
       // a copied picture also comes as html linking to the site it was copied
       // from, so the file wins unless the html has text of its own
-      // @ts-ignore
       const html = event.clipboardData.getData('text/html');
       const uploadInline =
         !!clipboardFiles.length &&
@@ -1117,13 +1111,17 @@ export const Editor: FC<{
                           ? clsx(
                               'post-toolbar mobile:fixed mobile:bottom-0 mobile:inset-x-0 mobile:items-center mobile:px-[16px] mobile:py-[12px] mobile:bg-newBgColorInner',
                               // the picker opens from the bar and has to cover the top bar
-                              emojiPickerOpen ? 'mobile:z-[500]' : 'mobile:z-[440]'
+                              emojiPickerOpen
+                                ? 'mobile:z-[500]'
+                                : 'mobile:z-[440]'
                             )
                           : 'mobile:hidden'
                         : undefined
                     }
                     toolsStyle={
-                      flat && active && keyboard ? { bottom: keyboard } : undefined
+                      flat && active && keyboard
+                        ? { bottom: keyboard }
+                        : undefined
                     }
                     toolBarEnd={
                       flat && active ? (
@@ -1154,7 +1152,7 @@ export const OnlyEditor = forwardRef<
     inlineImages?: boolean;
     value: string;
     onChange: (value: string) => void;
-    paste?: (event: ClipboardEvent | File[], slice?: Slice) => boolean;
+    paste?: (event: ClipboardEvent, slice?: Slice) => boolean;
     autoFocus?: boolean;
   }
 >(({ editorType, inlineImages, value, onChange, paste, autoFocus }, ref) => {

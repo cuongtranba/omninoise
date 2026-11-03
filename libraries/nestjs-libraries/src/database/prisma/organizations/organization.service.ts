@@ -8,8 +8,29 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
-import { Organization, ShortLinkPreference, User } from '@prisma/client';
+import {
+  Organization,
+  Role,
+  ShortLinkPreference,
+  Subscription,
+  User,
+} from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
+
+// The organization the auth middlewares attach to the request: the full
+// organization for a signed-in user or an API key, only its id for the widget
+// tickets. subscription and users are there when it is loaded with them,
+// users[0].role is the role of the caller in that organization.
+export type RequestOrganization = Pick<Organization, 'id'> &
+  Partial<Organization> & {
+    subscription?: Partial<
+      Pick<
+        Subscription,
+        'subscriptionTier' | 'totalChannels' | 'isLifetime' | 'createdAt'
+      >
+    > | null;
+    users?: { role: Role; disabled?: boolean }[];
+  };
 
 @Injectable()
 export class OrganizationService {
@@ -34,8 +55,18 @@ export class OrganizationService {
     return this._organizationRepository.getCount();
   }
 
-  async createMaxUser(id: string, name: string, saasName: string, email: string) {
-    return this._organizationRepository.createMaxUser(id, name, saasName, email);
+  async createMaxUser(
+    id: string,
+    name: string,
+    saasName: string,
+    email: string
+  ) {
+    return this._organizationRepository.createMaxUser(
+      id,
+      name,
+      saasName,
+      email
+    );
   }
 
   addUserToOrg(
@@ -194,9 +225,7 @@ export class OrganizationService {
           400
         );
       }
-      const inviter = user.name
-        ? `${user.name} (${user.email})`
-        : user.email;
+      const inviter = user.name ? `${user.name} (${user.email})` : user.email;
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,
@@ -209,7 +238,7 @@ export class OrganizationService {
   // Only the super admin of the instance can add an existing account to an
   // organization by its email
   async addTeamMemberByEmail(
-    org: Organization,
+    org: RequestOrganization,
     requester: Pick<User, 'isSuperAdmin'>,
     body: AdminAddTeamMemberDto
   ) {
@@ -218,7 +247,6 @@ export class OrganizationService {
     }
 
     const tier =
-      // @ts-ignore
       org?.subscription?.subscriptionTier ||
       (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE');
 
@@ -272,14 +300,13 @@ export class OrganizationService {
     return { added: true };
   }
 
-  async deleteTeamMember(org: Organization, userId: string) {
+  async deleteTeamMember(org: RequestOrganization, userId: string) {
     const userOrgs = await this._organizationRepository.getOrgsByUserId(userId);
     const findOrgToDelete = userOrgs.find((orgUser) => orgUser.id === org.id);
     if (!findOrgToDelete) {
       throw new Error('User is not part of this organization');
     }
 
-    // @ts-ignore
     const myRole = org.users[0].role;
     const userRole = findOrgToDelete.users[0].role;
     const myLevel = myRole === 'USER' ? 0 : myRole === 'ADMIN' ? 1 : 2;

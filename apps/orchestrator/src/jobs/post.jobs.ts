@@ -177,7 +177,10 @@ const itemOf = (flow: Flow, i: number) =>
 
 @Injectable()
 export class PostJobs {
-  constructor(private _act: PostActivity, private _queue: JobQueueService) {}
+  constructor(
+    private _act: PostActivity,
+    private _queue: JobQueueService
+  ) {}
 
   register(worker: JobWorker) {
     // A job that ends failed for good leaves the post in a known state:
@@ -253,8 +256,8 @@ export class PostJobs {
           firstPost.state === 'PUBLISHED'
             ? `This post was edited while it was being published; the earlier version was published. Check it and reschedule if needed.`
             : firstPost.state === 'ERROR'
-            ? `This post was edited while it was being published, but that publish failed; your edit was not applied. Check the account and reschedule if needed.`
-            : `This post was edited while it was being published and is no longer scheduled; your edit was not applied. Check it and reschedule if needed.`,
+              ? `This post was edited while it was being published, but that publish failed; your edit was not applied. Check the account and reschedule if needed.`
+              : `This post was edited while it was being published and is no longer scheduled; your edit was not applied. Check it and reschedule if needed.`,
           true,
           false,
           'info'

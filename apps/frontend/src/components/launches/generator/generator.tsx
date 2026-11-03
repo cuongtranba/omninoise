@@ -49,7 +49,7 @@ const FirstStep: FC = (props) => {
     async (reader: ReadableStreamDefaultReader) => {
       const decoder = new TextDecoder('utf-8');
       let lastResponse = {} as any;
-      // eslint-disable-next-line no-constant-condition
+      // oxlint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) return lastResponse.data.output;
@@ -73,7 +73,10 @@ const FirstStep: FC = (props) => {
           if (data?.error) {
             throw new Error(
               data.message ||
-                t('generation_failed', 'Failed to generate posts, please try again.')
+                t(
+                  'generation_failed',
+                  'Failed to generate posts, please try again.'
+                )
             );
           }
 
@@ -143,14 +146,20 @@ const FirstStep: FC = (props) => {
         });
         if (!response.body) {
           throw new Error(
-            t('generation_failed', 'Failed to generate posts, please try again.')
+            t(
+              'generation_failed',
+              'Failed to generate posts, please try again.'
+            )
           );
         }
         const reader = response.body.getReader();
         const load = await generateStep(reader);
         if (!load?.content) {
           throw new Error(
-            t('generation_failed', 'Failed to generate posts, please try again.')
+            t(
+              'generation_failed',
+              'Failed to generate posts, please try again.'
+            )
           );
         }
         const messages = load.content.map((p: any, index: number) => {
@@ -204,7 +213,10 @@ const FirstStep: FC = (props) => {
       } catch (e: any) {
         toaster.show(
           e?.message ||
-            t('generation_failed', 'Failed to generate posts, please try again.'),
+            t(
+              'generation_failed',
+              'Failed to generate posts, please try again.'
+            ),
           'warning'
         );
       } finally {

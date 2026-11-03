@@ -10,7 +10,7 @@ import { createServer, IncomingHttpHeaders, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vite-plus/test';
 import { stringify } from 'yaml';
 import { run } from './cli';
 import { Context } from './context';

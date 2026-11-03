@@ -6,9 +6,9 @@
     "omninoise": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "vp pack",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "publish": "tsup && pnpm publish --access public"
+    "publish": "vp pack && pnpm publish --access public"
   },
   "files": [
     "dist",

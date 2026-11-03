@@ -126,8 +126,8 @@ export const Webhooks: FC = () => {
                           { schedule: scheduleLabels[p.schedule] || p.schedule }
                         )
                       : p.type === 'post.failed'
-                      ? t('webhook_type_post_failed', 'Post failed')
-                      : t('webhook_type_post_published', 'Post published')}
+                        ? t('webhook_type_post_failed', 'Post failed')
+                        : t('webhook_type_post_published', 'Post published')}
                   </div>
                   <div className="flex flex-col justify-center">
                     <div>

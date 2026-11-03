@@ -82,7 +82,7 @@ export const ButtonCaster: FC<{
       new TrustWalletAdapter(),
       new XDEFIWalletAdapter(),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
     [network]
   );
   return (
@@ -142,7 +142,6 @@ const InnerWallet = () => {
       const signed = await wallet?.signMessage?.(encoded)!;
       const info = Buffer.from(
         JSON.stringify({
-          // @ts-ignore
           signature: Buffer.from(signed).toString('hex'),
           challenge,
           publicKey: wallet?.publicKey?.toString(),

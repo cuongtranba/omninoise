@@ -11,7 +11,7 @@ import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 export const Chart: FC<{
   list: StarsList[] | ForksList[];
 }> = (props) => {
-  const { list } = props;
+  const list: Partial<StarsList & ForksList>[] = props.list;
   const ref = useRef<any>(null);
   const chart = useRef<null | DrawChart>(null);
   useEffect(() => {
@@ -53,11 +53,9 @@ export const Chart: FC<{
         datasets: [
           {
             borderColor: '#fff',
-            // @ts-ignore
             label: list?.[0]?.totalForks ? 'Forks by date' : 'Stars by date',
             backgroundColor: gradient,
             fill: true,
-            // @ts-ignore
             data: list.map((row) => row.totalForks || row.totalStars),
           },
         ],

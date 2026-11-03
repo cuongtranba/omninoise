@@ -26,8 +26,7 @@ export const SelectChannels: FC<{
   });
 
   const channels = useMemo(
-    () =>
-      integrations.filter((i) => !customer || i.customer?.id === customer),
+    () => integrations.filter((i) => !customer || i.customer?.id === customer),
     [integrations, customer]
   );
 

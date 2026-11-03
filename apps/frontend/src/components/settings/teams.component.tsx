@@ -55,7 +55,7 @@ export const AddMember = () => {
         body: JSON.stringify(values),
       });
       if (!response.ok) {
-        const { message } = await response.json().catch(() => ({} as any));
+        const { message } = await response.json().catch(() => ({}) as any);
         toast.show(
           (Array.isArray(message) ? message[0] : message) ||
             t('could_not_send_invitation', 'Could not send the invitation'),
@@ -106,7 +106,9 @@ export const AddMember = () => {
             </div>
           </div>
           <Button type="submit" className="mt-[18px]">
-            {sendEmail ? t('send_invitation_link', 'Send Invitation Link') : t('copy_link', 'Copy Link')}
+            {sendEmail
+              ? t('send_invitation_link', 'Send Invitation Link')
+              : t('copy_link', 'Copy Link')}
           </Button>
         </div>
       </form>
@@ -151,14 +153,17 @@ export const TeamsComponent = () => {
   });
   const remove = useCallback(
     (toRemove: {
-        user: {
-          id: string;
-        };
-      }) =>
+      user: {
+        id: string;
+      };
+    }) =>
       async () => {
         if (
           !(await deleteDialog(
-            t('are_you_sure_remove_team_member', 'Are you sure you want to remove this team member?')
+            t(
+              'are_you_sure_remove_team_member',
+              'Are you sure you want to remove this team member?'
+            )
           ))
         ) {
           return;
@@ -191,8 +196,8 @@ export const TeamsComponent = () => {
                 {p.role === 'USER'
                   ? t('user', 'User')
                   : p.role === 'ADMIN'
-                  ? t('admin', 'Admin')
-                  : t('super_admin', 'Super Admin')}
+                    ? t('admin', 'Admin')
+                    : t('super_admin', 'Super Admin')}
               </div>
               {+myLevel > +getLevel(p.role) ? (
                 <div className="flex-1 flex justify-end">

@@ -154,7 +154,6 @@ export class AutopostService {
             'application/rss+xml, application/rdf+xml;q=0.8, application/atom+xml;q=0.6, application/xml;q=0.4, text/xml;q=0.4',
         },
         signal: AbortSignal.timeout(60000),
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
       if (!response.ok) {
@@ -213,7 +212,6 @@ export class AutopostService {
       const loadDom = new JSDOM(
         await (
           await fetch(url, {
-            // @ts-ignore - undici-only option; blocks SSRF to internal IPs
             dispatcher: getSsrfSafeDispatcher(),
           })
         ).text()
@@ -300,43 +298,47 @@ export class AutopostService {
       state.integrations[0].organizationId
     );
 
-    await this._postsService.createPost(state.integrations[0].organizationId, {
-      date: nextTime + 'Z',
-      order: makeId(10),
-      shortLink: false,
-      type: 'draft',
-      tags: [],
-      posts: state.integrations.map((i) => ({
-        settings: {
-          __type: i.providerIdentifier as any,
-          title: '',
-          tags: [],
-          subreddit: [],
-        },
-        group: makeId(10),
-        integration: { id: i.id },
-        value: [
-          {
-            id: makeId(10),
-            delay: 0,
-            content:
-              state.description.replace(/\n/g, '\n\n') +
-              '\n\n' +
-              state.load.url,
-            image: !state.image
-              ? []
-              : [
-                  {
-                    id: makeId(10),
-                    name: makeId(10),
-                    path: state.image,
-                    organizationId: state.integrations[0].organizationId,
-                  },
-                ],
+    await this._postsService.createPost(
+      state.integrations[0].organizationId,
+      {
+        date: nextTime + 'Z',
+        order: makeId(10),
+        shortLink: false,
+        type: 'draft',
+        tags: [],
+        posts: state.integrations.map((i) => ({
+          settings: {
+            __type: i.providerIdentifier as any,
+            title: '',
+            tags: [],
+            subreddit: [],
           },
-        ],
-      })),
-    }, 'AUTOPOST');
+          group: makeId(10),
+          integration: { id: i.id },
+          value: [
+            {
+              id: makeId(10),
+              delay: 0,
+              content:
+                state.description.replace(/\n/g, '\n\n') +
+                '\n\n' +
+                state.load.url,
+              image: !state.image
+                ? []
+                : [
+                    {
+                      id: makeId(10),
+                      name: makeId(10),
+                      path: state.image,
+                      organizationId: state.integrations[0].organizationId,
+                    },
+                  ],
+            },
+          ],
+        })),
+      },
+      'AUTOPOST'
+    );
   }
 
   async updateUrl(state: WorkflowChannelsState) {

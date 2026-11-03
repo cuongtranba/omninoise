@@ -7,7 +7,7 @@ import { useReturnUrl } from '@gitroom/frontend/app/(app)/auth/return.url.compon
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 export default function LayoutContext(params: { children: ReactNode }) {
   if (params?.children) {
-    // eslint-disable-next-line react/no-children-prop
+    // oxlint-disable-next-line react/no-children-prop
     return <LayoutContextInner children={params.children} />;
   }
   return <></>;
@@ -93,8 +93,7 @@ function LayoutContextInner(params: { children: ReactNode }) {
           await deleteDialog(
             "This feature is not available during the trial. You can end the trial now: your plan's first payment is charged today instead of at the end of the trial.",
             'End trial and pay now',
-            'Trial',
-
+            'Trial'
           )
         ) {
           window.open('/billing?finishTrial=true', '_blank');

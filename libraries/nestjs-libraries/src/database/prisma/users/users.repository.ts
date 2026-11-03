@@ -270,10 +270,10 @@ export class UsersRepository {
               },
             }
           : body.picture === null
-          ? {
-              disconnect: true,
-            }
-          : undefined,
+            ? {
+                disconnect: true,
+              }
+            : undefined,
       },
     });
   }

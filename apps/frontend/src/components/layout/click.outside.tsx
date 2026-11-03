@@ -14,13 +14,11 @@ export const useClickOutside = (callback: () => Promise<void>) => {
   };
   useEffect(() => {
     document
-      .querySelector('.mantine-Modal-root')
-      // @ts-ignore
+      .querySelector<HTMLElement>('.mantine-Modal-root')
       ?.addEventListener('click', handleClick);
     return () => {
       document
-        .querySelector('.mantine-Modal-root')
-        // @ts-ignore
+        .querySelector<HTMLElement>('.mantine-Modal-root')
         ?.removeEventListener('click', handleClick);
     };
   });

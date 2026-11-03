@@ -7,7 +7,10 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { ManageModal } from '@gitroom/frontend/components/new-launch/manage.modal';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import { useShallow } from 'zustand/react/shallow';
-import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
+import {
+  ExistingPost,
+  useExistingData,
+} from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import {
   fromUtc,
   newDayjs,
@@ -15,7 +18,6 @@ import {
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { Post } from '@prisma/client';
 
 export interface AddEditModalProps {
   dummy?: boolean;
@@ -147,7 +149,7 @@ export const AddEditModalInner: FC<AddEditModalProps> = (props) => {
 };
 
 // an existing post, as the values of the editor
-const postValues = (posts: Post[]) =>
+const postValues = (posts: ExistingPost[]) =>
   posts.map((post) => ({
     delay: post.delay,
     content: /<p[\s>]/i.test(post.content)
@@ -157,8 +159,7 @@ const postValues = (posts: Post[]) =>
           .map((line: string) => `<p>${line}</p>`)
           .join(''),
     id: post.id,
-    // @ts-ignore
-    media: post.image as any[],
+    media: post.image,
   }));
 
 export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
@@ -197,7 +198,6 @@ export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
         setRepeater(existingData.posts[0].intervalInDays);
       }
       setTags(
-        // @ts-ignore
         existingData?.posts?.[0]?.tags?.map((p: any) => ({
           label: p.tag.name,
           value: p.tag.name,
@@ -238,36 +238,33 @@ export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
       0,
       props.onlyValues?.length
         ? props.onlyValues.map((p) => ({
-            content:
-              /<p[\s>]/i.test(p.content)
-                ? p.content
-                : p.content
-                    .split('\n')
-                    .map((line: string) => `<p>${line}</p>`)
-                    .join(''),
+            content: /<p[\s>]/i.test(p.content)
+              ? p.content
+              : p.content
+                  .split('\n')
+                  .map((line: string) => `<p>${line}</p>`)
+                  .join(''),
             id: makeId(10),
             media: p.image || [],
           }))
         : props.set?.posts?.length
-        ? props.set.posts[0].value.map((p: any) => ({
-            id: makeId(10),
-            content:
-              /<p[\s>]/i.test(p.content)
+          ? props.set.posts[0].value.map((p: any) => ({
+              id: makeId(10),
+              content: /<p[\s>]/i.test(p.content)
                 ? p.content
                 : p.content
                     .split('\n')
                     .map((line: string) => `<p>${line}</p>`)
                     .join(''),
-            // @ts-ignore
-            media: p.media,
-          }))
-        : [
-            {
-              content: '',
-              id: makeId(10),
-              media: [],
-            },
-          ]
+              media: p.media,
+            }))
+          : [
+              {
+                content: '',
+                id: makeId(10),
+                media: [],
+              },
+            ]
     );
 
     return () => {
@@ -281,9 +278,7 @@ export const AddEditModalInnerInner: FC<AddEditModalProps> = (props) => {
 
   return (
     <>
-      <style>
-        {`#support-discord {display: none !important;}`}
-      </style>
+      <style>{`#support-discord {display: none !important;}`}</style>
       <ManageModal {...props} />
     </>
   );

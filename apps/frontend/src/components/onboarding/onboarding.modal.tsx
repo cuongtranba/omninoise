@@ -317,21 +317,21 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
           label: t('add_to_claude', 'Add to Claude'),
         }
       : agent === 'ChatGPT' && officialConnectors
-      ? {
-          href: mcpConnectorUrls.ChatGPT,
-          label: t('add_to_chatgpt', 'Add to ChatGPT'),
-        }
-      : agent === 'Cursor' && officialConnectors
-      ? {
-          href: mcpConnectorUrls.Cursor,
-          label: t('add_to_cursor', 'Add to Cursor'),
-        }
-      : agent === 'Grok Bot' && officialConnectors
-      ? {
-          href: mcpConnectorUrls['Grok Bot'],
-          label: t('add_to_grok_bot', 'Add to Grok Bot'),
-        }
-      : null;
+        ? {
+            href: mcpConnectorUrls.ChatGPT,
+            label: t('add_to_chatgpt', 'Add to ChatGPT'),
+          }
+        : agent === 'Cursor' && officialConnectors
+          ? {
+              href: mcpConnectorUrls.Cursor,
+              label: t('add_to_cursor', 'Add to Cursor'),
+            }
+          : agent === 'Grok Bot' && officialConnectors
+            ? {
+                href: mcpConnectorUrls['Grok Bot'],
+                label: t('add_to_grok_bot', 'Add to Grok Bot'),
+              }
+            : null;
 
   const maskedApiKey = revealed ? apiKey : '*'.repeat(apiKey.length);
 
@@ -491,7 +491,10 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
                 onClick={() => setAuth(m)}
               >
                 {m === 'oauth'
-                  ? t('sign_in_no_api_key', 'Sign in with Omninoise (no API key)')
+                  ? t(
+                      'sign_in_no_api_key',
+                      'Sign in with Omninoise (no API key)'
+                    )
                   : t('api_key', 'API Key')}
               </button>
             ))}
@@ -577,8 +580,8 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
                   tab === item
                     ? 'bg-brand text-white'
                     : item === apiTab
-                    ? 'bg-btnSimple text-[#a78bfa] hover:bg-boxHover hover:text-[#c4b5fd]'
-                    : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
+                      ? 'bg-btnSimple text-[#a78bfa] hover:bg-boxHover hover:text-[#c4b5fd]'
+                      : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
                 )}
                 onClick={() => setTab(item)}
               >

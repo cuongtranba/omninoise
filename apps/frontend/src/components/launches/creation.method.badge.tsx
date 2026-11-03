@@ -25,8 +25,8 @@ export const CreationMethodBadge: FC<Props> = ({
     size === 'xs'
       ? 'h-[12px] px-[4px] text-[7px]'
       : size === 'md'
-      ? 'h-[22px] px-[10px] text-[12px]'
-      : 'h-[18px] px-[8px] text-[10px]';
+        ? 'h-[22px] px-[10px] text-[12px]'
+        : 'h-[18px] px-[8px] text-[10px]';
 
   return (
     <div

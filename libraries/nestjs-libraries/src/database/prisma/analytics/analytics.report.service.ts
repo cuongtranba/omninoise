@@ -182,9 +182,7 @@ export class AnalyticsReportService {
         ?.analyticsDays ?? [days]),
     ].sort((a, b) => a - b);
 
-    return (
-      supported.filter((p) => p <= days).pop() ?? supported[0] ?? days
-    );
+    return supported.filter((p) => p <= days).pop() ?? supported[0] ?? days;
   }
 
   private reportMetric(item: AnalyticsData): ReportMetric {

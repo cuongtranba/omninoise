@@ -1,10 +1,29 @@
-import { Agent, buildConnector } from 'undici';
+import { Agent, buildConnector, Dispatcher } from 'undici';
 import axios, { AxiosInstance } from 'axios';
 import dns from 'node:dns';
 import net from 'node:net';
 import http from 'node:http';
 import https from 'node:https';
+import { Duplex } from 'node:stream';
 import { isBlockedIp } from './webhook.url.validator';
+
+declare global {
+  // Node's fetch is undici, which accepts a `dispatcher`; lib.dom's
+  // RequestInit does not know about it.
+  interface RequestInit {
+    dispatcher?: Dispatcher;
+  }
+}
+
+declare module 'http' {
+  // createConnection is missing from the @types/node typings of http.Agent.
+  interface Agent {
+    createConnection(
+      options: http.ClientRequestArgs,
+      callback?: (err: Error | null, stream: Duplex) => void
+    ): Duplex;
+  }
+}
 
 // Pins DNS resolution: every resolved IP is checked with `isBlockedIp` and
 // the caller connects to that same set. Closes the TOCTOU window
@@ -69,7 +88,6 @@ class SsrfSafeHttpAgent extends http.Agent {
       callback?.(new Error('Blocked IP'));
       return undefined as any;
     }
-    // @ts-ignore - createConnection is missing from the @types/node typings
     return super.createConnection(options, callback);
   }
 }
@@ -80,7 +98,6 @@ class SsrfSafeHttpsAgent extends https.Agent {
       callback?.(new Error('Blocked IP'));
       return undefined as any;
     }
-    // @ts-ignore - createConnection is missing from the @types/node typings
     return super.createConnection(options, callback);
   }
 }

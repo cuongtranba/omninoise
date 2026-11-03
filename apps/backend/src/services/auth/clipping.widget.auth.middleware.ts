@@ -25,9 +25,7 @@ export class ClippingWidgetAuthMiddleware implements NestMiddleware {
       return;
     }
 
-    // @ts-ignore
     req.org = { id: ticket.org };
-    // @ts-ignore
     req.clippingId = ticket.id;
     next();
   }

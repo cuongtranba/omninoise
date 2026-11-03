@@ -34,7 +34,7 @@ export interface IAuthenticator {
     integrationId: string,
     accessToken: string,
     postId: string,
-    fromDate: number,
+    fromDate: number
   ): Promise<AnalyticsData[]>;
   resolveReleaseId?(
     accessToken: string,
@@ -80,7 +80,6 @@ export interface AnalyticsData {
   average?: boolean; // Legacy way to say aggregate average
   previousTotal?: number;
 }
-
 
 export type GenerateAuthUrlResponse = {
   url: string;
@@ -185,8 +184,7 @@ export type FetchPageInformationResult = {
 };
 
 export interface SocialProvider
-  extends IAuthenticator,
-    ISocialMediaIntegration {
+  extends IAuthenticator, ISocialMediaIntegration {
   identifier: string;
   analyticsDays?: number[]; // Date windows analytics can serve
   analyticsPreviousPeriod?: boolean; // analytics honours the offset
@@ -253,4 +251,8 @@ export interface SocialProvider
     accessToken: string,
     data: any
   ): Promise<FetchPageInformationResult>;
+  // Providers that connect in two steps list the accounts to pick from, as
+  // pages or as companies
+  pages?(accessToken: string): Promise<any[]>;
+  companies?(accessToken: string, params?: any, id?: string): Promise<any[]>;
 }

@@ -1,9 +1,6 @@
 import { getAuth } from '@gitroom/nestjs-libraries/chat/async.storage';
 
-export const checkAuth = (
-  inputData: any,
-  context: any
-) => {
+export const checkAuth = (inputData: any, context: any) => {
   const auth = getAuth();
   const authInfo = context?.mcp?.extra?.authInfo || auth;
   if (authInfo && context?.requestContext) {
@@ -26,5 +23,5 @@ export const toolErrorMessage = (
   err?.code === 'P2025'
     ? notFoundMessage
     : err?.clientVersion
-    ? fallbackMessage
-    : err?.message || fallbackMessage;
+      ? fallbackMessage
+      : err?.message || fallbackMessage;

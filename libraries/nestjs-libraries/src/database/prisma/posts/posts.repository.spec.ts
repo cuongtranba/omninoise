@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import {
   PrismaRepository,

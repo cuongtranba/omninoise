@@ -143,7 +143,10 @@ export class ThirdPartyManager {
       id
     );
 
-    const functionToCall = thirdPartyInstance.instance[functionName];
+    const functionToCall: unknown = Reflect.get(
+      thirdPartyInstance.instance,
+      functionName
+    );
     if (
       typeof functionToCall !== 'function' ||
       this.checkAvailableThirdPartyFunction(functionToCall)
@@ -164,7 +167,7 @@ export class ThirdPartyManager {
       id
     );
 
-    const downloadUrls = await thirdPartyInstance?.instance?.['importMedia']?.(
+    const downloadUrls = await thirdPartyInstance?.instance?.importMedia?.(
       AuthService.fixedDecryption(thirdParty.apiKey),
       items
     );

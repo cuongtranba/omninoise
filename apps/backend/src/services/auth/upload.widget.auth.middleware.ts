@@ -25,9 +25,7 @@ export class UploadWidgetAuthMiddleware implements NestMiddleware {
       return;
     }
 
-    // @ts-ignore
     req.org = { id: ticket.org };
-    // @ts-ignore
     req.uploadSession = ticket.sessionId;
     next();
   }
