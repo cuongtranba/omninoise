@@ -18,10 +18,13 @@ afterAll(() => {
   server.close();
 });
 
+// The runtime's fetch rejects a dispatcher from another undici major
+// (UND_ERR_INVALID_ARG) before connecting, which broke every provider call when
+// the image moved to Node 26: the refusal must come from the guard itself.
 test('fetch with the SSRF dispatcher refuses a loopback IP literal', async () => {
   await expect(
     fetch(url, { dispatcher: ssrfSafeDispatcher } as any)
-  ).rejects.toThrow();
+  ).rejects.toMatchObject({ cause: { message: 'Blocked IP' } });
 });
 
 test('SSRF-safe axios refuses a loopback IP literal', async () => {
