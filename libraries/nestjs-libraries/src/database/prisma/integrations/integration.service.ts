@@ -301,10 +301,17 @@ export class IntegrationService {
     let refreshed = false;
     while (true) {
       try {
-        const load = await Reflect.apply(
-          Reflect.get(provider, methodName),
+        const providerFunction: unknown = Reflect.get(provider, methodName);
+        if (typeof providerFunction !== 'function') {
+          throw new TypeError(`${methodName} is not a function`);
+        }
+
+        const load = await providerFunction.call(
           provider,
-          [current.token, data, current.internalId, current]
+          current.token,
+          data,
+          current.internalId,
+          current
         );
 
         return { status: 'ok', data: load };
@@ -1180,17 +1187,22 @@ export class IntegrationService {
       getPlugById.integration.providerIdentifier
     );
 
-    const process = await Reflect.apply(
-      Reflect.get(integration, getPlugById.plugFunction),
+    const plugFunction: unknown = Reflect.get(
       integration,
-      [
-        getPlugById.integration,
-        data.postId,
-        JSON.parse(getPlugById.data).reduce((all: any, current: any) => {
-          all[current.name] = current.value;
-          return all;
-        }, {}),
-      ]
+      getPlugById.plugFunction
+    );
+    if (typeof plugFunction !== 'function') {
+      throw new TypeError(`${getPlugById.plugFunction} is not a function`);
+    }
+
+    const process = await plugFunction.call(
+      integration,
+      getPlugById.integration,
+      data.postId,
+      JSON.parse(getPlugById.data).reduce((all: any, current: any) => {
+        all[current.name] = current.value;
+        return all;
+      }, {})
     );
 
     if (process) {

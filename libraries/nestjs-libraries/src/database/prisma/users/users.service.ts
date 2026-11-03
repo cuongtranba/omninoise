@@ -17,20 +17,11 @@ import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import { TimezoneDto } from '@gitroom/nestjs-libraries/dtos/users/timezone.dto';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
+import { RequestOrganization } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
-
-// The organization of a request: with the subscription and the role of the
-// caller (users[0]) it is loaded with
-type RequestOrganization = Organization & {
-  subscription?: Pick<
-    Subscription,
-    'subscriptionTier' | 'totalChannels' | 'isLifetime'
-  > | null;
-  users?: { role: Role }[];
-};
 
 @Injectable()
 export class UsersService {

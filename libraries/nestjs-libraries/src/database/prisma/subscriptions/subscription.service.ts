@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { SubscriptionRepository } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.repository';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
-import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import {
+  OrganizationService,
+  RequestOrganization,
+} from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { Organization, Subscription } from '@prisma/client';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
@@ -394,12 +397,7 @@ export class SubscriptionService {
   }
 
   async checkCredits(
-    organization: Organization & {
-      subscription?: Pick<
-        Subscription,
-        'subscriptionTier' | 'createdAt'
-      > | null;
-    },
+    organization: RequestOrganization,
     checkType = 'ai_images'
   ) {
     const type = organization?.subscription?.subscriptionTier || 'FREE';

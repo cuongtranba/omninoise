@@ -17,6 +17,21 @@ import {
 } from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
+// The organization the auth middlewares attach to the request: the full
+// organization for a signed-in user or an API key, only its id for the widget
+// tickets. subscription and users are there when it is loaded with them,
+// users[0].role is the role of the caller in that organization.
+export type RequestOrganization = Pick<Organization, 'id'> &
+  Partial<Organization> & {
+    subscription?: Partial<
+      Pick<
+        Subscription,
+        'subscriptionTier' | 'totalChannels' | 'isLifetime' | 'createdAt'
+      >
+    > | null;
+    users?: { role: Role; disabled?: boolean }[];
+  };
+
 @Injectable()
 export class OrganizationService {
   constructor(
@@ -223,9 +238,7 @@ export class OrganizationService {
   // Only the super admin of the instance can add an existing account to an
   // organization by its email
   async addTeamMemberByEmail(
-    org: Organization & {
-      subscription?: Pick<Subscription, 'subscriptionTier'> | null;
-    },
+    org: RequestOrganization,
     requester: Pick<User, 'isSuperAdmin'>,
     body: AdminAddTeamMemberDto
   ) {
@@ -287,10 +300,7 @@ export class OrganizationService {
     return { added: true };
   }
 
-  async deleteTeamMember(
-    org: Organization & { users?: { role: Role }[] },
-    userId: string
-  ) {
+  async deleteTeamMember(org: RequestOrganization, userId: string) {
     const userOrgs = await this._organizationRepository.getOrgsByUserId(userId);
     const findOrgToDelete = userOrgs.find((orgUser) => orgUser.id === org.id);
     if (!findOrgToDelete) {

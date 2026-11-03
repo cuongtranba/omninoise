@@ -251,4 +251,8 @@ export interface SocialProvider
     accessToken: string,
     data: any
   ): Promise<FetchPageInformationResult>;
+  // Providers that connect in two steps list the accounts to pick from, as
+  // pages or as companies
+  pages?(accessToken: string): Promise<any[]>;
+  companies?(accessToken: string, params?: any, id?: string): Promise<any[]>;
 }

@@ -53,7 +53,9 @@ export class StripeService extends PaymentProviderAbstract {
     // Maybe it comes from another stripe webhook
     const object = event?.data?.object;
     const metadata =
-      object && 'metadata' in object ? object.metadata : undefined;
+      typeof object === 'object' && object !== null && 'metadata' in object
+        ? object.metadata
+        : undefined;
     if (
       metadata?.service !== 'gitroom' &&
       event.type !== 'invoice.payment_succeeded'

@@ -15,10 +15,7 @@ import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions
 import { ApiTags } from '@nestjs/swagger';
 import { NotEnoughScopesFilter } from '@gitroom/nestjs-libraries/integrations/integration.missing.scopes';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
-import {
-  AuthTokenDetails,
-  SocialProvider,
-} from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
+import { AuthTokenDetails } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { NotEnoughScopes } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import {
   AuthorizationActions,
@@ -284,22 +281,10 @@ export class NoAuthIntegrationsController {
     if (integrationProvider.isBetweenSteps && !refresh) {
       try {
         // Check which method the provider uses (pages or companies)
-        const fetchMethod =
-          'pages' in integrationProvider
-            ? 'pages'
-            : 'companies' in integrationProvider
-              ? 'companies'
-              : null;
-
-        if (fetchMethod) {
-          // the `in` checks above guarantee the provider implements fetchMethod
-          pages = await (
-            integrationProvider as SocialProvider &
-              Record<
-                typeof fetchMethod,
-                (accessToken: string) => Promise<any[]>
-              >
-          )[fetchMethod](accessToken);
+        if (integrationProvider.pages) {
+          pages = await integrationProvider.pages(accessToken);
+        } else if (integrationProvider.companies) {
+          pages = await integrationProvider.companies(accessToken);
         }
       } catch (err) {
         console.log('Failed to fetch pages:', err);

@@ -42,10 +42,12 @@ export type UploadedMedia = { id: string; path: string };
 // what the upload endpoints answer with: the local storage returns the saved
 // media itself, the multipart completion returns it under `saved` with the
 // uploaded location
-type UploadResponseBody = UploadedMedia & {
-  saved: UploadedMedia;
-  Location: string;
-};
+type UploadResponseBody =
+  | UploadedMedia
+  | { saved: UploadedMedia; Location: string };
+
+const savedMedia = (body: UploadResponseBody): UploadedMedia =>
+  'saved' in body ? body.saved : body;
 
 export function useUppyUploader(props: {
   onUploadSuccess: (result: UploadedMedia[]) => void;
@@ -269,14 +271,18 @@ export function useUppyUploader(props: {
       if (storageProvider === 'local') {
         setLocked(false);
         fileOrderIndex = 0;
-        onUploadSuccess(sortedSuccessful.map((p) => p.response.body));
+        onUploadSuccess(
+          sortedSuccessful.map((p) => savedMedia(p.response.body))
+        );
         return;
       }
 
       if (useTransloadit) {
         // the transloadit plugin reports one assembly per upload in the result
-        const [assembly] = result.transloadit as AssemblyResponse[];
-        const allRes = assembly.results;
+        const assemblies: AssemblyResponse[] = Array.isArray(result.transloadit)
+          ? result.transloadit
+          : [];
+        const allRes = assemblies[0]?.results ?? {};
         const toSave = uniqBy<{
           name: string;
           originalName: string;
@@ -321,7 +327,7 @@ export function useUppyUploader(props: {
 
       setLocked(false);
       fileOrderIndex = 0;
-      onUploadSuccess(sortedSuccessful.map((p) => p.response.body.saved));
+      onUploadSuccess(sortedSuccessful.map((p) => savedMedia(p.response.body)));
     });
     uppy2.on('upload-success', (file, response) => {
       const current = uppy2.getState().files[file.id];
@@ -330,7 +336,8 @@ export function useUppyUploader(props: {
       }
       uppy2.setFileState(file.id, {
         progress: current.progress,
-        uploadURL: response.body.Location,
+        uploadURL:
+          'Location' in response.body ? response.body.Location : undefined,
         response: response,
         isPaused: false,
       });

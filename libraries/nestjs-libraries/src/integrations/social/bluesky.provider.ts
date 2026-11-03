@@ -18,9 +18,7 @@ import {
   BskyAgent,
   RichText,
   AppBskyEmbedVideo,
-  AppBskyFeedDefs,
   AppBskyFeedGetPostThread,
-  AppBskyFeedPost,
   AppBskyVideoDefs,
   AtpAgent,
   BlobRef,
@@ -75,16 +73,23 @@ async function reduceImageBySize(url: string, maxSizeKB = 976) {
   }
 }
 
+// getPostThread answers with a NotFoundPost or BlockedPost, which have no post,
+// when the post can't be read
+type Thread = AppBskyFeedGetPostThread.OutputSchema['thread'];
+
+const getThreadPost = (thread: Thread) =>
+  'post' in thread ? thread.post : undefined;
+
+// The reply reference of an app.bsky.feed.post record, PostView.record is an
+// open object that only carries it when the post is a reply
+interface ReplyingRecord {
+  reply?: { root?: { uri?: string; cid?: string } };
+}
+
 // Streams the video bytes to the Bluesky video service and returns the job
 // status - it does NOT wait for the processing. The blob only exists once the
 // job completes; a BlobRef can't survive JSON serialization through the
 // workflow history, so callers re-read it from getVideoJobStatus when needed.
-// getPostThread answers with a NotFoundPost or BlockedPost, which have no post,
-// when the post can't be read
-const getThreadPost = (
-  thread: AppBskyFeedGetPostThread.OutputSchema['thread']
-) => (AppBskyFeedDefs.isThreadViewPost(thread) ? thread.post : undefined);
-
 async function startVideoUpload(
   agent: AtpAgent,
   videoPath: string
@@ -803,11 +808,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     });
 
     const parentPost = getThreadPost(parentThread.data.thread);
-    // PostView.record is an open object, an app.bsky.feed.post one always
-    // carries a ReplyRef when it is a reply
-    const parentRecord = AppBskyFeedPost.isRecord(parentPost?.record)
-      ? (parentPost.record as AppBskyFeedPost.Record)
-      : undefined;
+    const parentRecord: ReplyingRecord | undefined = parentPost?.record;
     const parentCid = parentPost?.cid;
     const rootUri = parentRecord?.reply?.root?.uri || postId;
     const rootCid = parentRecord?.reply?.root?.cid || parentCid;

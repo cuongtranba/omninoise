@@ -178,6 +178,13 @@ export default defineConfig({
           'typescript/no-require-imports': 'off',
         },
       },
+      {
+        // Declares vite-plus/test in terms of the Vitest types it re-exports.
+        files: ['libraries/helpers/src/types/untyped.modules.d.ts'],
+        rules: {
+          'vite-plus/prefer-vite-plus-imports': 'off',
+        },
+      },
     ],
     // No type-aware lint: tsgolint runs TypeScript 7, which rejects the
     // `moduleResolution: node` (node10) the Nest apps compile with.
