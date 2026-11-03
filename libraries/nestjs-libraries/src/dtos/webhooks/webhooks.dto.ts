@@ -42,8 +42,8 @@ export class WebhooksDto {
   integrations: WebhooksIntegrationDto[];
 
   @IsOptional()
-  @IsIn(['post.published', 'analytics.report'])
-  type?: 'post.published' | 'analytics.report';
+  @IsIn(['post.published', 'post.failed', 'analytics.report'])
+  type?: 'post.published' | 'post.failed' | 'analytics.report';
 
   @ValidateIf((o) => o.type === 'analytics.report')
   @IsIn(['daily', 'weekly', 'monthly'])
@@ -104,8 +104,8 @@ export class UpdateDto {
   integrations: WebhooksIntegrationDto[];
 
   @IsOptional()
-  @IsIn(['post.published', 'analytics.report'])
-  type?: 'post.published' | 'analytics.report';
+  @IsIn(['post.published', 'post.failed', 'analytics.report'])
+  type?: 'post.published' | 'post.failed' | 'analytics.report';
 
   @ValidateIf((o) => o.type === 'analytics.report')
   @IsIn(['daily', 'weekly', 'monthly'])

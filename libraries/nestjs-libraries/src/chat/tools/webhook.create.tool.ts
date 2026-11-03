@@ -39,7 +39,7 @@ export class WebhookCreateTool implements AgentToolInterface {
         },
       },
       description: `
-Use this to create a webhook: from now on Postiz sends every post that is published on its channels to the public https address "url" (an empty list of channels means all of them). The posts of the organization go to that address, so show the user the address and the channels and get their confirmation first. The plan limits how many webhooks the organization has. Try an address out with webhooksTool (action "send") and manage the webhooks that exist with webhooksTool.
+Use this to create a webhook: from now on Postiz sends every post that is published on its channels (a webhook of type post.published, the one this tool creates) to the public https address "url" (an empty list of channels means all of them). The posts of the organization go to that address, so show the user the address and the channels and get their confirmation first. The plan limits how many webhooks the organization has. Try an address out with webhooksTool (action "send") and manage the webhooks that exist with webhooksTool.
 If something fails, the result contains output.errors.
 `,
       inputSchema: z.object(webhookFields),

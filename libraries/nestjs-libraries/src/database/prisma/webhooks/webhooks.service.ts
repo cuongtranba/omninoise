@@ -178,6 +178,55 @@ export class WebhooksService {
     });
   }
 
+  // Posts the body of a post event to every webhook of that type listening to
+  // the channel (no channels = all of them). Best-effort: the post already
+  // ended, so a failed delivery must not fail the job.
+  async sendPostWebhooks(
+    orgId: string,
+    integrationId: string,
+    type: 'post.published' | 'post.failed',
+    body: () => Promise<unknown>
+  ) {
+    try {
+      const webhooks = (await this.getWebhooks(orgId)).filter(
+        (w) =>
+          w.type === type &&
+          (w.integrations.length === 0 ||
+            w.integrations.some((i) => i.integration.id === integrationId))
+      );
+
+      if (webhooks.length === 0) {
+        return;
+      }
+
+      const payload = JSON.stringify(await body());
+      await Promise.all(
+        webhooks.map(async (webhook) => {
+          try {
+            // webhook.url is validated at save time, but DNS can change
+            // between then and now - pin resolution like every other
+            // user-influenced outbound request.
+            await fetch(webhook.url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Webhook-Event': type,
+              },
+              body: payload,
+              signal: AbortSignal.timeout(30000),
+              // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+              dispatcher: getSsrfSafeDispatcher(),
+            });
+          } catch (e) {
+            /**empty**/
+          }
+        })
+      );
+    } catch (err) {
+      /**empty**/
+    }
+  }
+
   async sendWebhook(url: string, body: any) {
     try {
       await fetch(url, {
