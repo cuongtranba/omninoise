@@ -112,9 +112,57 @@ Computed by the inventory script; "static" means a call site in source code whos
 
 See [section 7 in the coupling map](nest-coupling-map.md#flow-traces) for the step-by-step read and write traces; the wire results they end in are the ones measured above.
 
-## 8. Unknowns
+## 8. Follow-up checks (requested after the first Phase 0 report)
+
+Checked 2026-11-03 by reading the source and by probing two local builds of the backend against a disposable Postgres: one self-hosted (billing off), one with a fake `STRIPE_PUBLISHABLE_KEY` so the plan checks run (the permission check reads only the database; no Stripe call is made). No code was changed.
+
+### 8.1 BigInt in JSON responses — none found
+
+- The only `BigInt` columns in `schema.prisma` belong to Mastra's own tables: `mastra_traces.startTime/endTime`, `mastra_schedule_triggers.scheduled_fire_at/actual_fire_at`, `mastra_schedules.next_fire_at/last_fire_at/created_at/updated_at`. No application code reads these models through Prisma (`grep -rn "mastra_traces\|mastra_schedule"` over `apps/` and `libraries/` finds nothing); Mastra reads them with its own storage client and none of them is returned by a route.
+- No `$queryRaw`, `$queryRawUnsafe` or `$executeRaw` exists, so no raw `COUNT(*)` can come back as a `bigint`. There are no `Decimal` or `Bytes` columns, and every `Json` column is a Mastra one.
+- `pgonly.jobs.id` is `bigserial`, read with `pg`, which returns `int8` as a string (no `setTypeParser` anywhere); `job.queue.ts` converts it with `Number(row.id)`, and no HTTP route returns a job row: the only reader outside the worker is `MediaService.getGenerateVideoStatus`, called by the MCP `videoStatusTool`, which returns the job's status, media id and path, not the job id.
+- The one `BigInt(...)` in application code (`farcaster.provider.ts:119-121`) is input to an EIP-712 signature; the route returns `{ signerUuid, approvalUrl, qrCode }`.
+- Measured: `GET /copilot/list` (Mastra thread storage) answers `{"threads":[]}` for a new organization; `mastra_messages` has only string and timestamp columns.
+
+So today `JSON.stringify` cannot hit a `BigInt` on any route. A future change that selects one of the Mastra tables through Prisma, or adds a raw aggregate, would break that; a typed contract should map `bigint` to `string` explicitly.
+
+### 8.2 Which exception filter answers an error
+
+Rule, from `@nestjs/core` 11.2.7: the filters of a route are `[...global, ...controller, ...method]`, reversed (`router/router-exception-filters.js`), and the **first** whose `@Catch` types match (`instanceof`), or that has no `@Catch` types at all, handles the error (`@nestjs/common/utils/select-exception-filter-metadata.util.js`). Global filters added through `APP_FILTER` are applied while `NestFactory.create` runs (`nest-factory.js:114`, `scanner.js` `applyApplicationProviders`), before `main.ts` calls `useGlobalFilters`. Errors thrown in middleware (the auth middlewares) go through the same global filters.
+
+Effective order for every route:
+
+| Order | Filter | Catches | Response (measured where noted) |
+| --- | --- | --- | --- |
+| 1 | `@UseFilters(NotEnoughScopesFilter)` — only on `POST /integrations/social-connect/:integration` | `NotEnoughScopes` | `409 {"msg": "<message>"}` (static) |
+| 2 | `HttpExceptionFilter` (`main.ts`, registered last) | `HttpForbiddenException` | `401`, empty body, `logout: true`, cleared `auth` cookie — measured |
+| 3 | `PostValidationExceptionFilter` | `PostValidationException` (thrown by `PostsService.assertPostsValid`) | `400 {"statusCode":400,"provider","name","message"}` (static; needs a connected channel to trigger) |
+| 4 | `SubscriptionExceptionFilter` | `SubscriptionException` (thrown by `PoliciesGuard`) | measured with billing on: `402 {"statusCode":402,"message":"You have reached the maximum number of webhooks for your subscription. …","url":"<FRONTEND_URL>/billing"}` |
+| 5 | `SentryGlobalFilter` (`APP_FILTER` in `app.module.ts`, `@Catch()` with no types) | everything else | reports to Sentry unless it is an `HttpException`, then Nest's default handler: `HttpException` → its status and body (`404 {"message":"The signature was not found","error":"Not Found","statusCode":404}`, the 400 validation list); body-parser errors keep their status (`413`) but are reported to Sentry as errors; anything else → `500 {"statusCode":500,"message":"Internal server error"}` — all measured |
+
+The four `@Catch` types do not overlap, so their relative order does not change any answer today, and the catch-all Sentry filter is last, so it never takes an error a specific filter wants. Two orderings are load-bearing for a migration: the guard runs before validation (with billing on, `POST /webhooks` with an empty body answers `402`, not `400`), and moving the Sentry filter to `useGlobalFilters` after the others would make it answer first and turn the `401`/`402` responses into Nest defaults.
+
+### 8.3 OAuth client registration and the OAuth flow
+
+| Step | Auth | Measured |
+| --- | --- | --- |
+| `POST /oauth/register` (RFC 7591 DCR, `OAuthService.registerDynamicClient`) | **none, by design** (open dynamic registration for MCP clients) | `201` with `client_id` (`pcd_…`), a `client_secret` (`pcs_…`) unless `token_endpoint_auth_method` is `none`, `scope: "mcp:read mcp:write"`. Refuses `http` except loopback and `javascript:`/`data:`/`blob:` schemes with `400 {"error":"invalid_redirect_uri",…}`; a body missing `redirect_uris` gets the Nest validation list instead |
+| `GET /oauth/authorize` | none | `200` with the app's public fields (`name`, `description`, `picture`, `clientId`, `redirectUrl`) for any registered `client_id`; it only renders the consent screen |
+| `POST /oauth/authorize` (consent) | `AuthMiddleware` (`OAuthAuthorizedController`) | without a session: `401`, `logout: true`. Only a signed-in user can approve, and the code is bound to that user's organization and PKCE |
+| `POST /oauth/token` | client secret (body or Basic) or PKCE | `400 {"error":"unsupported_grant_type"}`, `401 {"error":"invalid_client"}`, `400 {"error":"invalid_grant"}`; a body missing `code` gets the Nest validation list, not an RFC 6749 error |
+
+Findings, recorded and not fixed:
+
+- **Registration is unauthenticated and unthrottled.** The global throttler counts only `POST /public/v1/posts` and public comments, and `/oauth/register` has no `@Throttle`; five registrations in a row all answered `201` and each created an `OAuthApp` row. Clients nobody authorized are pruned only when a later registration runs, after 30 days (`deleteStaleDynamicApps`). A registration grants nothing by itself — a user still has to sign in and consent — but anyone can grow the table and put any name on a consent screen.
+- **`DCR_VERIFIED_DOMAINS` is not set in `deploy/compose.yaml`,** so any `https` callback host is accepted (the verified-domain check is skipped when the list is empty).
+- `/oauth/token` and `/oauth/register` mix two error shapes: RFC-style `{ "error", "error_description" }` from the service and Nest's `{ "message": [...] }` from `ValidationPipe`. A migration must keep both, or decide to change them on purpose, because OAuth clients parse the RFC shape.
+- `POST /oauth/userinfo` answers `404 {"error":"not_found","error_description":"OIDC email claims are not enabled"}` unless `OPENAI_OAUTH_CLIENT_ID` is set.
+- Unrelated but seen while checking health routes: `GET /monitor/queue/:name` is unauthenticated and always answers `{"status":"success","message":"Queue <name> is healthy."}`, echoing the path parameter; it checks no queue.
+
+## 9. Unknowns
 
 - Traefik/Dokploy routing in front of nginx (affects the MCP discovery finding).
 - Response shapes per role/plan for routes other than the signature routes and the auth/validation paths probed here.
 - Runtime behavior of the 22 SPA call sites with computed paths.
+- Runtime trigger of `PostValidationExceptionFilter` and `NotEnoughScopesFilter` (both need a connected channel); their order is known from the Nest rule above.
 - Behavior of external-provider paths that were deliberately not exercised: channel OAuth callbacks, uploads to object storage, Stripe/RevenueCat webhooks, the CopilotKit stream, the MCP stream and SSE transports, `GET /public/stream` with HTTP Range. Section "How to test before migrating" in the ADR lists what each needs.

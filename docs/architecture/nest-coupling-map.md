@@ -38,7 +38,7 @@ Steps 3, 5 and 6 and the 401 path are pinned by `apps/backend/src/main.spec.ts`.
 | --- | --- | --- |
 | Raw body, CORS, cookies, compression, 50 MB JSON for `/posts` and `/copilot/*` | `apps/backend/src/main.ts` | Express-level; a sub-app mounted on the same Express instance inherits them only if mounted after them |
 | Global `ValidationPipe({ transform: true })` | `main.ts` | class-transformer coercion (`@Type(() => Number)`), the 400 message-array shape |
-| Filters: `SubscriptionExceptionFilter`, `PostValidationExceptionFilter`, `HttpExceptionFilter` | `main.ts` | the last turns `HttpForbiddenException` into `401` + cleared cookie + `logout: true` |
+| Filters: `SubscriptionExceptionFilter`, `PostValidationExceptionFilter`, `HttpExceptionFilter` | `main.ts` | the last turns `HttpForbiddenException` into `401` + cleared cookie + `logout: true`; the order they answer in, with the `APP_FILTER` Sentry catch-all last, is in [the inventory §8.2](api-route-inventory.md#82-which-exception-filter-answers-an-error) |
 | Global guards: `ThrottlerBehindProxyGuard` (Postgres storage), `PoliciesGuard` (CASL abilities via `PermissionsService`) | `app.module.ts` `APP_GUARD` | policies read `org.users[0].role` set by the middleware |
 | Auth middleware per controller | `api.module.ts`, `public.api.module.ts` `configure()` | bound to controller classes, not paths |
 | Param decorators `@GetOrgFromRequest`, `@GetUserFromRequest` | `libraries/nestjs-libraries/src/user/*.from.request.ts` | read `req.org` / `req.user` |
