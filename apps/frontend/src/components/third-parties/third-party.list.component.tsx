@@ -4,7 +4,6 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import React, { FC, useCallback, useState } from 'react';
 import { Button } from '@gitroom/react/form/button';
-import { useRouter } from 'next/navigation';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { FieldValues, FormProvider, useForm } from 'react-hook-form';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -19,7 +18,6 @@ export const ApiModal: FC<{
 }> = (props) => {
   const { title, identifier, update } = props;
   const fetch = useFetch();
-  const router = useRouter();
   const modal = useModals();
   const toaster = useToaster();
   const [loading, setLoading] = useState(false);
@@ -55,7 +53,6 @@ export const ApiModal: FC<{
         } else {
           modal.closeAll();
         }
-        router.refresh();
         if (update) update();
         return;
       }

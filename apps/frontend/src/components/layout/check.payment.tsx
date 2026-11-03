@@ -1,5 +1,5 @@
 import { FC, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router';
 import Loading from '@gitroom/frontend/components/layout/loading';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { timer } from '@gitroom/helpers/utils/timer';
@@ -87,7 +87,8 @@ export const CheckPaymentInner: FC<{
 export const ChannelsAfterPayment: FC<{
   integrations: { disabled: boolean }[];
 }> = ({ integrations }) => {
-  const check = useSearchParams().get('check');
+  const [searchParams] = useSearchParams();
+  const check = searchParams.get('check');
   const fetch = useFetch();
   const modal = useDecisionModal();
   const t = useT();

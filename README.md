@@ -19,7 +19,7 @@ the private repository
 flowchart LR
   user["Browser / public API / MCP"] --> nginx["nginx :5000"]
   subgraph app["omninoise container (pm2)"]
-    nginx -->|"/"| frontend["frontend :4200 (Next.js)"]
+    nginx -->|"/"| frontend["frontend (static Vite SPA)"]
     nginx -->|"/api"| backend["backend :3000 (NestJS)"]
     orchestrator["orchestrator :3002 (job worker)"]
   end
@@ -31,7 +31,7 @@ flowchart LR
 | Part | Path | Role |
 | --- | --- | --- |
 | Backend | `apps/backend` | NestJS API. Writes data with Prisma and enqueues jobs; it never runs them. |
-| Frontend | `apps/frontend` | Next.js (React) UI, served behind nginx. |
+| Frontend | `apps/frontend` | Vite + React single-page app; nginx serves the build and `runtime-config.js`. |
 | Orchestrator | `apps/orchestrator` | Job worker. Publishes posts at their scheduled time, refreshes tokens, sends emails and digests, runs autopost. Handlers are in `apps/orchestrator/src/jobs`. |
 | Shared code | `libraries/` | Services, Prisma schema, providers and React components shared by the apps. |
 
@@ -80,7 +80,7 @@ option, including the per-platform app keys.
 | `JWT_SECRET` | yes | Signs session tokens. |
 | `FRONTEND_URL` | yes | Public URL of the UI. |
 | `NEXT_PUBLIC_BACKEND_URL` | yes | Public URL of the API. |
-| `BACKEND_INTERNAL_URL` | yes | API URL as seen from the frontend server. |
+| `BACKEND_INTERNAL_URL` | yes | Checked at backend start. The frontend no longer reads it (it was for the Next.js server). |
 | `STORAGE_PROVIDER` | optional | `local` (default, with `UPLOAD_DIRECTORY`) or `cloudflare` (with the `CLOUDFLARE_*` keys). |
 | `RUN_CRON` | production | `true` enables the hourly sweep that catches missed posts. |
 | `DISABLE_REGISTRATION` | optional | `true` closes sign-up. |

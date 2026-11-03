@@ -1,16 +1,17 @@
 'use client';
 
 import { FC, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useDecisionModal } from '@gitroom/frontend/components/layout/new-modal';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 // /oauth/hubspot/callback sends people here after they install the Postiz
 // app in HubSpot, and the calendar alone doesn't say what just happened
 export const HubspotInstalled: FC = () => {
-  const installed = useSearchParams().get('hubspot') === 'installed';
+  const [searchParams] = useSearchParams();
+  const installed = searchParams.get('hubspot') === 'installed';
   const modal = useDecisionModal();
-  const router = useRouter();
+  const navigate = useNavigate();
   const t = useT();
   const shown = useRef(false);
 
@@ -31,7 +32,7 @@ export const HubspotInstalled: FC = () => {
       });
       // like Onboarding, drop the param once closed so a calendar reload
       // doesn't show it again
-      router.replace('/launches');
+      navigate('/launches', { replace: true });
     })();
   }, [installed]);
 

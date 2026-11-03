@@ -9,7 +9,7 @@ import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { PlugsContext } from '@gitroom/frontend/components/plugs/plugs.context';
 import { Plug } from '@gitroom/frontend/components/plugs/plug';
@@ -17,7 +17,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 export const Plugs = () => {
   const fetch = useFetch();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const [refresh, setRefresh] = useState(false);
   const toaster = useToaster();
@@ -106,7 +106,7 @@ export const Plugs = () => {
               'You have to add: X, LinkedIn Page, Threads or Bluesky'
             )}
           </div>
-          <Button onClick={() => router.push('/launches')}>
+          <Button onClick={() => navigate('/launches')}>
             {t(
               'go_to_the_calendar_to_add_channels',
               'Go to the calendar to add channels'

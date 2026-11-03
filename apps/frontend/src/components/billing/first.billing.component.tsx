@@ -1,6 +1,14 @@
 'use client';
 
-import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  FC,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -9,7 +17,6 @@ import { OrganizationSelector } from '@gitroom/frontend/components/layout/organi
 import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
-import dynamic from 'next/dynamic';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { capitalize } from 'lodash';
@@ -30,21 +37,14 @@ import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.comp
 import { DeveloperIconComponent } from '@gitroom/frontend/components/developer/developer.icon.component';
 import { InvoicesComponent } from '@gitroom/frontend/components/layout/invoices.component';
 
-const ModeComponent = dynamic(
-  () => import('@gitroom/frontend/components/layout/mode.component'),
-  {
-    ssr: false,
-  }
+const ModeComponent = lazy(
+  () => import('@gitroom/frontend/components/layout/mode.component')
 );
 
-const EmbeddedBilling = dynamic(
-  () =>
-    import('@gitroom/frontend/components/billing/embedded.billing').then(
-      (mod) => mod.EmbeddedBilling
-    ),
-  {
-    ssr: false,
-  }
+const EmbeddedBilling = lazy(() =>
+  import('@gitroom/frontend/components/billing/embedded.billing').then(
+    (mod) => ({ default: mod.EmbeddedBilling })
+  )
 );
 
 export const FirstBillingComponent = () => {
@@ -200,7 +200,9 @@ export const FirstBillingComponent = () => {
             <OrganizationSelector />
             <InvoicesComponent />
             <div className="hover:text-newTextColor">
-              <ModeComponent />
+              <Suspense fallback={null}>
+                <ModeComponent />
+              </Suspense>
             </div>
             <div className="w-[1px] h-[20px] bg-blockSeparator" />
             <LanguageComponent />
@@ -236,12 +238,14 @@ export const FirstBillingComponent = () => {
               )}
             </div>
           ) : !isLoading && data && stripe ? (
-            <EmbeddedBilling
-              stripe={stripe}
-              secret={data.client_secret}
-              showCoupon={period === 'MONTHLY'}
-              autoApplyCoupon={data.auto_apply_coupon}
-            />
+            <Suspense fallback={null}>
+              <EmbeddedBilling
+                stripe={stripe}
+                secret={data.client_secret}
+                showCoupon={period === 'MONTHLY'}
+                autoApplyCoupon={data.auto_apply_coupon}
+              />
+            </Suspense>
           ) : (
             <LoadingComponent />
           )}

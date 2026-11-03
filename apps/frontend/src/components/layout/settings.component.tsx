@@ -20,10 +20,9 @@ import clsx from 'clsx';
 import { TeamsComponent } from '@gitroom/frontend/components/settings/teams.component';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
-import { useSearchParams } from 'next/navigation';
+import { Link, useSearchParams } from 'react-router';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { PublicComponent } from '@gitroom/frontend/components/public-api/public.component';
-import Link from 'next/link';
 import { Webhooks } from '@gitroom/frontend/components/webhooks/webhooks';
 import { Sets } from '@gitroom/frontend/components/sets/sets';
 import { SignaturesComponent } from '@gitroom/frontend/components/settings/signatures.component';
@@ -54,7 +53,7 @@ export const SettingsPopup: FC<{
   const close = useCallback(() => {
     return modal.closeAll();
   }, []);
-  const url = useSearchParams();
+  const [url] = useSearchParams();
   const showLogout = !url.get('onboarding') || user?.tier?.current === 'FREE';
   const loadProfile = useCallback(async () => {
     const personal = await (await fetch('/user/personal')).json();
@@ -271,7 +270,7 @@ export const SettingsComponent = () => {
     });
   }, [user]);
   return (
-    <Link href="/settings" onClick={openModal}>
+    <Link to="/settings" onClick={openModal}>
       <svg
         width="40"
         height="40"

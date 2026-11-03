@@ -1,17 +1,14 @@
-export const dynamic = 'force-dynamic';
 import { AdminErrorsComponent } from '@gitroom/frontend/components/admin/admin-errors.component';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
 
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Admin Errors`,
-  description: '',
-};
-
-export default async function Page() {
+export default function Page() {
+  const { isGeneral } = useVariables();
   return (
-    <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
-      <AdminErrorsComponent />
-    </div>
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Admin Errors`}</title>
+      <div className="bg-newBgColorInner flex-1 flex-col flex p-[20px] gap-[12px]">
+        <AdminErrorsComponent />
+      </div>
+    </>
   );
 }

@@ -7,7 +7,7 @@ node_modules
 docker-data/*
 dist
 .nx
-/apps/frontend/.next
+/apps/frontend/dist
 /apps/backend/dist
 **/.git
 **/*.md

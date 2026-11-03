@@ -1,24 +1,27 @@
-'use client';
-import * as Sentry from '@sentry/nextjs';
-import NextError from 'next/error';
+import * as Sentry from '@sentry/react';
 import { useEffect } from 'react';
+import { useRouteError } from 'react-router';
 
-export default function GlobalError({
-  error,
-}: {
-  error: Error & { digest?: string };
-}) {
+// Router errorElement: it replaces a root layout, so the variables context is
+// not mounted here and the report can't be gated on its DSN. Without a Sentry
+// client captureException is a no-op, and beforeSend already opens the report
+// dialog for captured exceptions.
+export default function GlobalError() {
+  const error = useRouteError();
   useEffect(() => {
-    // The variables context is not mounted here (this replaces the root
-    // layout), so don't gate on its DSN. Without a client this is a no-op, and
-    // beforeSend already opens the report dialog for captured exceptions
     Sentry.captureException(error);
   }, [error]);
   return (
-    <html>
-      <body>
-        <NextError statusCode={0} />
-      </body>
-    </html>
+    <div className="bg-[#0E0E0E] text-white min-h-screen w-screen flex flex-col gap-[12px] items-center justify-center">
+      <h2 className="text-[20px]">
+        Application error: a client-side exception has occurred
+      </h2>
+      <button
+        className="underline hover:font-bold"
+        onClick={() => window.location.reload()}
+      >
+        Refresh the page
+      </button>
+    </div>
   );
 }

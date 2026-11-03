@@ -239,7 +239,7 @@ export const CreateThumbnail: FC<{
               step="0.1"
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-2 bg-fifth rounded-lg appearance-none cursor-pointer slider"
+              className="w-full h-2 bg-fifth rounded-lg appearance-none cursor-pointer media-frame-slider"
               style={{
                 background: `linear-gradient(to right, #4f46e5 0%, #4f46e5 ${
                   (currentTime / duration) * 100
@@ -264,8 +264,8 @@ export const CreateThumbnail: FC<{
         </>
       )}
 
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
+      <style>{`
+        .media-frame-slider::-webkit-slider-thumb {
           appearance: none;
           width: 20px;
           height: 20px;
@@ -276,7 +276,7 @@ export const CreateThumbnail: FC<{
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .slider::-moz-range-thumb {
+        .media-frame-slider::-moz-range-thumb {
           width: 20px;
           height: 20px;
           border-radius: 50%;

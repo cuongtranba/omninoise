@@ -8,8 +8,7 @@ import {
   useMemo,
 } from 'react';
 import { clsx } from 'clsx';
-import { useFormContext } from 'react-hook-form';
-import { RegisterOptions } from 'react-hook-form/dist/types/validator';
+import { RegisterOptions, useFormContext } from 'react-hook-form';
 import { TranslatedLabel } from '../translation/translated-label';
 
 export const Select: FC<

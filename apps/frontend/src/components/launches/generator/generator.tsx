@@ -2,7 +2,7 @@
 
 import React, { FC, useCallback, useMemo, useState } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
@@ -334,7 +334,7 @@ export const GeneratorPopup = () => {
 export const GeneratorComponent = () => {
   const t = useT();
   const user = useUser();
-  const router = useRouter();
+  const navigate = useNavigate();
   const modal = useModals();
   const all = useCalendar();
   const generate = useCallback(async () => {
@@ -346,7 +346,7 @@ export const GeneratorComponent = () => {
           t('payment_required', 'Payment Required')
         )
       ) {
-        router.push('/billing');
+        navigate('/billing');
       }
       return;
     }

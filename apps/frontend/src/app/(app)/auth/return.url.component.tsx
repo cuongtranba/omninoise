@@ -1,6 +1,4 @@
-'use client';
-
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router';
 import { FC, useCallback, useEffect } from 'react';
 
 // Only an address on this app, so signing in can never send someone to
@@ -21,7 +19,7 @@ const sameOriginUrl = (url: string | null) => {
 };
 
 const ReturnUrlComponent: FC = () => {
-  const params = useSearchParams();
+  const [params] = useSearchParams();
   const url = params.get('returnUrl');
   useEffect(() => {
     const returnUrl = sameOriginUrl(url);

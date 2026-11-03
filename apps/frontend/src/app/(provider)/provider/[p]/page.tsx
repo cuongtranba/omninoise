@@ -52,16 +52,13 @@
  * returns { isValid: false, errors: ['not-ready'] } and the values getter
  * returns {}.
  *
- * If a different channel is needed, adjust ./bridge.tsx — this page is only
- * a server wrapper that forwards the `:p` route param.
+ * If a different channel is needed, adjust ./bridge.tsx — this page only
+ * forwards the `:p` route param.
  */
-import { InBridge } from '@gitroom/frontend/app/(provider)/provider/[p]/in-bridge';
+import { useParams } from 'react-router';
+import ProviderPreviewBridge from '@gitroom/frontend/app/(provider)/provider/[p]/bridge';
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ p: string }>;
-}) {
-  const { p } = await params;
-  return <InBridge provider={p} />;
+export default function Page() {
+  const { p } = useParams();
+  return <ProviderPreviewBridge provider={p!} />;
 }

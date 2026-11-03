@@ -1,16 +1,16 @@
 'use client';
 
 import { FC, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 export const Redirect: FC<{
   url: string;
   delay: number;
 }> = (props) => {
   const { url, delay } = props;
-  const router = useRouter();
+  const navigate = useNavigate();
   useEffect(() => {
     setTimeout(() => {
-      router.push(url);
+      navigate(url);
     }, delay);
   }, []);
   return null;

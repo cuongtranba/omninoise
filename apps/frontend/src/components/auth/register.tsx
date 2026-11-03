@@ -2,14 +2,20 @@
 
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import Link from 'next/link';
 import { Button } from '@gitroom/react/form/button';
 import { Input } from '@gitroom/react/form/input';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { GithubProvider } from '@gitroom/frontend/components/auth/providers/github.provider';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { GoogleProvider } from '@gitroom/frontend/components/auth/providers/google.provider';
 import { AppleProvider } from '@gitroom/frontend/components/auth/providers/apple.provider';
@@ -19,16 +25,11 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useTrack } from '@gitroom/react/helpers/use.track';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
-import dynamic from 'next/dynamic';
 import { WalletUiProvider } from '@gitroom/frontend/components/auth/providers/placeholder/wallet.ui.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import useCookie from 'react-use-cookie';
-const WalletProvider = dynamic(
-  () => import('@gitroom/frontend/components/auth/providers/wallet.provider'),
-  {
-    ssr: false,
-    loading: () => <WalletUiProvider />,
-  }
+const WalletProvider = lazy(
+  () => import('@gitroom/frontend/components/auth/providers/wallet.provider')
 );
 type Inputs = {
   email: string;
@@ -38,7 +39,7 @@ type Inputs = {
   provider: string;
 };
 export function Register() {
-  const getQuery = useSearchParams();
+  const [getQuery] = useSearchParams();
   const fetch = useFetch();
   const [provider] = useState(getQuery?.get('provider')?.toUpperCase());
   const [code, setCode] = useState(getQuery?.get('code') || '');
@@ -99,7 +100,7 @@ export function RegisterAfter({
     billingEnabled,
   } = useVariables();
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
   const fireEvents = useFireEvents();
   const track = useTrack();
   const [datafast_visitor_id] = useCookie('datafast_visitor_id');
@@ -132,9 +133,9 @@ export function RegisterAfter({
           fireEvents('register');
           return track(TrackEnum.CompleteRegistration).then(() => {
             if (response.headers.get('activate') === 'true') {
-              router.push('/auth/activate');
+              navigate('/auth/activate');
             } else {
-              router.push('/auth/login');
+              navigate('/auth/login');
             }
           });
         } else {
@@ -177,7 +178,11 @@ export function RegisterAfter({
                   )}
                   {!!appleClientId && <AppleProvider />}
                   {!!neynarClientId && <FarcasterProvider />}
-                  {billingEnabled && <WalletProvider />}
+                  {billingEnabled && (
+                    <Suspense fallback={<WalletUiProvider />}>
+                      <WalletProvider />
+                    </Suspense>
+                  )}
                 </div>
               ))}
             {!isAfterProvider && (
@@ -233,10 +238,7 @@ export function RegisterAfter({
                 <p className="mt-4 text-sm">
                   {t('already_have_an_account', 'Already Have An Account?')}
                   &nbsp;
-                  <Link
-                    href="/auth/login"
-                    className="underline  cursor-pointer"
-                  >
+                  <Link to="/auth/login" className="underline  cursor-pointer">
                     {t('sign_in', 'Sign In')}
                   </Link>
                 </p>

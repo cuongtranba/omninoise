@@ -6,7 +6,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Button } from '@gitroom/react/form/button';
 import { Input } from '@gitroom/react/form/input';
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router';
 
 type ResendInputs = {
   email: string;
@@ -117,7 +117,7 @@ export function Activate() {
                 'Great news! Your account is already activated.'
               )}
             </div>
-            <Link href="/auth/login">
+            <Link to="/auth/login">
               <Button className="rounded-[10px] !h-[52px] w-full">
                 {t('go_to_login', 'Go to Login')}
               </Button>
@@ -152,7 +152,7 @@ export function Activate() {
         {status !== 'already_activated' && (
           <p className="mt-4 text-sm text-textColor">
             {t('already_activated', 'Already activated?')}&nbsp;
-            <Link href="/auth/login" className="underline cursor-pointer">
+            <Link to="/auth/login" className="underline cursor-pointer">
               {t('sign_in', 'Sign In')}
             </Link>
           </p>

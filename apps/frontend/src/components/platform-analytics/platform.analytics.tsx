@@ -11,7 +11,7 @@ import { RenderAnalytics } from '@gitroom/frontend/components/platform-analytics
 import { OverviewAnalytics } from '@gitroom/frontend/components/platform-analytics/overview.analytics';
 import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -45,7 +45,7 @@ const useAnalyticsIntegrations = () => {
 
 export const PlatformAnalytics = () => {
   const t = useT();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // -1 selects the Overview entry
   const [current, setCurrent] = useState(-1);
@@ -106,7 +106,7 @@ export const PlatformAnalytics = () => {
             'You have to add Social Media channels'
           )}
         </div>
-        <Button onClick={() => router.push('/launches')}>
+        <Button onClick={() => navigate('/launches')}>
           {t(
             'go_to_the_calendar_to_add_channels',
             'Go to the calendar to add channels'

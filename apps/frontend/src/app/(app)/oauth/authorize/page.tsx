@@ -1,10 +1,11 @@
 import { OAuthAuthorize } from '@gitroom/frontend/components/oauth/authorize.component';
-import { cookies } from 'next/headers';
-
-export const dynamic = 'force-dynamic';
+import { useLoggedIn } from '@gitroom/frontend/app/route.guard';
 
 // signed-out visitors get the page too (sign in, or use self-hosted)
-export default async function OAuthAuthorizePage() {
-  const get = (await cookies()).get('auth');
-  return <OAuthAuthorize logged={!!get?.name} />;
+export default function OAuthAuthorizePage() {
+  const logged = useLoggedIn();
+  if (logged === undefined) {
+    return null;
+  }
+  return <OAuthAuthorize logged={logged} />;
 }

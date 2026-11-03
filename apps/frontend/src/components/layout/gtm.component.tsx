@@ -1,6 +1,5 @@
 'use client';
 
-import Script from 'next/script';
 import { FC, useEffect } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -8,6 +7,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
   }
 }
 
@@ -39,21 +39,24 @@ export const TrialTracker: FC = () => {
 export const GoogleTagManagerComponent: FC<{ gtmId?: string }> = ({
   gtmId,
 }) => {
-  if (!gtmId) {
-    return null;
-  }
-  return (
-    <>
-      <Script src="/g.js" strategy="afterInteractive" />
+  useEffect(() => {
+    // like next/script, an id keeps the tag from loading twice
+    if (!gtmId || document.getElementById('google-ads-gtag')) {
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-ads-gtag';
+    script.src = '/g.js';
+    document.body.appendChild(script);
 
-      <Script id="google-ads-gtag" strategy="afterInteractive">
-        {`
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${gtmId}');
-  `}
-      </Script>
-    </>
-  );
+    window.gtag = function () {
+      // gtag.js only understands the arguments object, not an array
+      // oxlint-disable-next-line prefer-rest-params
+      window.dataLayer?.push(arguments);
+    };
+    window.gtag('js', new Date());
+    window.gtag('config', gtmId);
+  }, [gtmId]);
+  return null;
 };

@@ -1,5 +1,5 @@
 import React, { FC, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router';
 import { ModalWrapperComponent } from '@gitroom/frontend/components/new-launch/modal.wrapper.component';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Button } from '@gitroom/react/form/button';
@@ -33,7 +33,7 @@ export const PreConditionComponentModal: FC = () => {
 };
 export const PreConditionComponent: FC = () => {
   const modal = useModals();
-  const query = useSearchParams();
+  const [query] = useSearchParams();
   useEffect(() => {
     if (query.get('precondition')) {
       modal.openModal({

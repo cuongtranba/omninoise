@@ -2,12 +2,12 @@
 
 import { ReactNode, useMemo } from 'react';
 import { PreviewWrapper } from '@gitroom/frontend/components/preview/preview.wrapper';
-import { usePathname } from 'next/navigation';
+import { useLocation } from 'react-router';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 export const AppLayout = ({ children }: { children: ReactNode }) => {
-  const params = usePathname();
+  const params = useLocation().pathname;
   const style = useMemo(() => {
     const all = params.split('/');
     all.pop();

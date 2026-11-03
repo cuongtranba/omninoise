@@ -11,8 +11,7 @@ import {
 import { UtcToLocalDateRender } from '@gitroom/react/helpers/utc.date.render';
 import { Button } from '@gitroom/react/form/button';
 import { fromUtc } from '@gitroom/frontend/components/layout/set.timezone';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import useSWR from 'swr';
 import clsx from 'clsx';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -24,8 +23,8 @@ export const UpDown: FC<{
   param: string;
 }> = (props) => {
   const { name, param } = props;
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const state = useMemo(() => {
     const newName = searchParams.get('key');
     const newState = searchParams.get('state');
@@ -38,7 +37,7 @@ export const UpDown: FC<{
     (newState: string) => {
       const query =
         newState === 'none' ? `` : `?key=${param}&state=${newState}`;
-      router.replace(`/analytics${query}`);
+      navigate(`/analytics${query}`, { replace: true });
     },
     [state, param]
   );
@@ -90,8 +89,8 @@ export const UpDown: FC<{
 export const StarsTableComponent = () => {
   const t = useT();
   const fetch = useFetch();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const page = +(searchParams.get('page') || 1);
   const key = searchParams.get('key');
   const state = searchParams.get('state');
@@ -147,7 +146,7 @@ export const StarsTableComponent = () => {
     (type: 'increase' | 'decrease') => () => {
       const newPage = type === 'increase' ? page + 1 : page - 1;
       const keyAndState = key && state ? `&key=${key}&state=${state}` : '';
-      router.replace(`/analytics?page=${newPage}${keyAndState}`);
+      navigate(`/analytics?page=${newPage}${keyAndState}`, { replace: true });
     },
     [page, key, state]
   );
@@ -246,7 +245,7 @@ export const StarsTableComponent = () => {
                   <td>{p.stars}</td>
                   <td>{p.forks}</td>
                   <td>
-                    <Link href={renderMediaLink(p.date)}>
+                    <Link to={renderMediaLink(p.date)}>
                       <Button>{t('check_launch', 'Check Launch')}</Button>
                     </Link>
                   </td>

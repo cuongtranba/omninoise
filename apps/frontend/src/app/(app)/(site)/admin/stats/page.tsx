@@ -1,17 +1,14 @@
-export const dynamic = 'force-dynamic';
 import { AdminStatsComponent } from '@gitroom/frontend/components/admin/admin-stats.component';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
 
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Admin Stats`,
-  description: '',
-};
-
-export default async function Page() {
+export default function Page() {
+  const { isGeneral } = useVariables();
   return (
-    <div className="bg-newBgColorInner flex-1 min-w-0 flex-col flex p-[20px] gap-[12px]">
-      <AdminStatsComponent />
-    </div>
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Admin Stats`}</title>
+      <div className="bg-newBgColorInner flex-1 min-w-0 flex-col flex p-[20px] gap-[12px]">
+        <AdminStatsComponent />
+      </div>
+    </>
   );
 }

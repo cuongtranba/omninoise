@@ -16,7 +16,7 @@ import { useBillingFeatures } from '@gitroom/frontend/components/billing/first.b
 import { BillingHistory } from '@gitroom/frontend/components/billing/billing.history.component';
 import useSWR, { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Navigate, useSearchParams } from 'react-router';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Textarea } from '@gitroom/react/form/textarea';
@@ -469,11 +469,10 @@ export const MainBillingComponent: FC<{
   const [fbc] = useCookie('_fbc', '');
   const [fbp] = useCookie('_fbp', '');
   const modal = useModals();
-  const router = useRouter();
   const utm = useUtmUrl();
   const track = useTrack();
   const t = useT();
-  const queryParams = useSearchParams();
+  const [queryParams] = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
   );
@@ -780,8 +779,7 @@ export const MainBillingComponent: FC<{
     [monthlyOrYearly, subscription, user, utm, paymentAction]
   );
   if (user?.isLifetime) {
-    router.replace('/');
-    return null;
+    return <Navigate to="/" replace />;
   }
   if (subscription?.platform && subscription.platform !== 'web') {
     return (

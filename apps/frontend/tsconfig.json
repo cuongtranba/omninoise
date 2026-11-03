@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -11,26 +11,20 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "types": ["node"]
+    "moduleResolution": "bundler",
+    "types": ["node", "vite/client"]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "**/*.js",
     "**/*.jsx",
-    "../../apps/frontend/.next/types/**/*.ts",
-    "../../dist/apps/frontend/.next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
     "../../libraries/helpers/src/types/untyped.modules.d.ts"
   ],
   "exclude": [
     "node_modules",
+    "dist",
+    "vite.config.ts",
     "jest.config.ts",
     "src/**/*.spec.ts",
     "src/**/*.test.ts"

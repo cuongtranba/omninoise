@@ -14,7 +14,7 @@ import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import clsx from 'clsx';
 import { useUser } from '../layout/user.context';
 import { Menu } from '@gitroom/frontend/components/launches/menu/menu';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Integration } from '@prisma/client';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -461,8 +461,8 @@ export const LaunchesComponent = () => {
   const fetch = useFetch();
   const user = useUser();
   const { billingEnabled } = useVariables();
-  const router = useRouter();
-  const search = useSearchParams();
+  const navigate = useNavigate();
+  const [search] = useSearchParams();
   const toast = useToaster();
   const fireEvents = useFireEvents();
   const t = useT();
@@ -541,7 +541,7 @@ export const LaunchesComponent = () => {
   }, []);
   const continueIntegration = useCallback(
     (integration: any) => async () => {
-      router.push(
+      navigate(
         `/launches?added=${integration.identifier}&continue=${integration.id}`
       );
     },
@@ -568,7 +568,7 @@ export const LaunchesComponent = () => {
             children: (
               <CustomVariables
                 identifier={integration.identifier}
-                gotoUrl={(url: string) => router.push(url)}
+                gotoUrl={(url: string) => navigate(url)}
                 variables={integration.customFields || []}
               />
             ),
@@ -749,8 +749,8 @@ export const LaunchesComponent = () => {
                 <div>{capitalize(user?.tier?.current || '')} tier</div>
               )}
               <div>
-                {process.env.NEXT_PUBLIC_VERSION
-                  ? process.env.NEXT_PUBLIC_VERSION
+                {import.meta.env.NEXT_PUBLIC_VERSION
+                  ? import.meta.env.NEXT_PUBLIC_VERSION
                   : ''}
               </div>
             </div>

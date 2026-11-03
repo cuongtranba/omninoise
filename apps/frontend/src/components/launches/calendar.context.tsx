@@ -15,7 +15,7 @@ import dayjs from 'dayjs';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Post, Integration, Tags } from '@prisma/client';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { extend } from 'dayjs';
@@ -176,7 +176,7 @@ export const CalendarWeekProvider: FC<{
   const fetch = useFetch();
   const [internalData, setInternalData] = useState([] as any[]);
   const [trendings] = useState<string[]>([]);
-  const searchParams = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // A 7-column week doesn't fit a phone, so default small screens (tailwind `mobile`) to the day view
   const [displaySaved, setDisplaySaved] = useCookie(
     'calendar-display',
@@ -337,7 +337,7 @@ export const CalendarWeekProvider: FC<{
         `display=${newFilters.display}`,
         newFilters.customer ? `customer=${newFilters.customer}` : ``,
       ].filter((f) => f);
-      window.history.replaceState(null, '', `/launches?${path.join('&')}`);
+      setSearchParams(path.join('&'), { replace: true });
     },
     []
   );

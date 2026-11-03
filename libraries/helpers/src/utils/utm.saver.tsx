@@ -1,20 +1,19 @@
 'use client';
 
 import { FC, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router';
 import { useLocalStorage } from '@mantine/hooks';
 import { useFireEvents } from '@gitroom/helpers/utils/use.fire.events';
 
 const UtmSaver: FC = () => {
-  const query = useSearchParams();
+  const [query] = useSearchParams();
   const [value, setValue] = useLocalStorage({ key: 'utm', defaultValue: '' });
-  const searchParams = useSearchParams();
   const fireEvents = useFireEvents();
 
   // the Facebook pixel StartTrial is sent by the backend once Stripe confirms
   // the trial, firing it here as well would count it twice
   useEffect(() => {
-    if (searchParams.get('check')) {
+    if (query.get('check')) {
       fireEvents('purchase');
     }
   }, []);

@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation';
+import { Navigate } from 'react-router';
 
-export const dynamic = 'force-dynamic';
-
-export default async function Index() {
-  return redirect('/settings?tab=plugs');
+export default function Index() {
+  return <Navigate to="/settings?tab=plugs" replace />;
 }

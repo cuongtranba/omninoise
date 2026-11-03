@@ -1,17 +1,17 @@
 'use client';
 
-import dynamicLoad from 'next/dynamic';
+import { lazy, Suspense } from 'react';
 
-const ChangeDirComponent = dynamicLoad(
-  () =>
-    import('@gitroom/frontend/components/new-layout/change.dir').then(
-      (mod) => mod.ChangeDir
-    ),
-  {
-    ssr: false,
-  }
+const ChangeDirComponent = lazy(() =>
+  import('@gitroom/frontend/components/new-layout/change.dir').then((mod) => ({
+    default: mod.ChangeDir,
+  }))
 );
 
 export const ChangeDirClient = () => {
-  return <ChangeDirComponent />;
+  return (
+    <Suspense fallback={null}>
+      <ChangeDirComponent />
+    </Suspense>
+  );
 };

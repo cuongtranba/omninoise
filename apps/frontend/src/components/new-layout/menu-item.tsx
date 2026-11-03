@@ -1,8 +1,7 @@
 'use client';
 import { FC, ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from 'react-router';
 import clsx from 'clsx';
-import Link from 'next/link';
 
 export const MenuItem: FC<{
   label: string;
@@ -10,7 +9,7 @@ export const MenuItem: FC<{
   path: string;
   onClick?: () => void;
 }> = ({ label, icon, path, onClick }) => {
-  const currentPath = usePathname();
+  const currentPath = useLocation().pathname;
   const isActive = currentPath.indexOf(path) === 0;
 
   const className = clsx(
@@ -35,14 +34,16 @@ export const MenuItem: FC<{
     );
   }
 
+  if (path.indexOf('http') === 0) {
+    return (
+      <a href={path} title={label} target="_blank" className={className}>
+        {inner}
+      </a>
+    );
+  }
+
   return (
-    <Link
-      prefetch={true}
-      href={path}
-      title={label}
-      {...(path.indexOf('http') === 0 && { target: '_blank' })}
-      className={className}
-    >
+    <Link to={path} title={label} className={className}>
       {inner}
     </Link>
   );

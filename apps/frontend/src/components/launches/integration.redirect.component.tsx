@@ -1,16 +1,16 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { FC, useEffect } from 'react';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 export const IntegrationRedirectComponent: FC = () => {
   const offset = newDayjs().utcOffset();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const pathname = useLocation().pathname;
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const newUrl = `${pathname}/continue?${searchParams.toString()}&timezone=${offset}`;
   useEffect(() => {
-    router.push(newUrl);
+    navigate(newUrl);
   }, [newUrl]);
   return null;
 };

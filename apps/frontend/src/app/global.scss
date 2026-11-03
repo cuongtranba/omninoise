@@ -7,6 +7,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('../fonts/plus-jakarta-sans/PlusJakartaSans.woff2') format('woff2');
+  font-weight: 500 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('../fonts/plus-jakarta-sans/PlusJakartaSans-Italic.woff2')
+    format('woff2');
+  font-weight: 500 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+.font-jakarta {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

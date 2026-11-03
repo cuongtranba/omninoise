@@ -1,18 +1,10 @@
-import { Metadata } from 'next';
-import { ReactNode } from 'react';
+import { Outlet } from 'react-router';
 
-export const metadata: Metadata = {
-  title: 'Authorize Application',
-};
-
-export default async function OAuthLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function OAuthLayout() {
   return (
     <div className="bg-[#0B0A0A] flex flex-1 min-h-screen w-screen">
-      {children}
+      <title>Authorize Application</title>
+      <Outlet />
     </div>
   );
 }

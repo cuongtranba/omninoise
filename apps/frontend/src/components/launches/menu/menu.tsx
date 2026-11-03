@@ -24,7 +24,7 @@ import { CustomerModal } from '@gitroom/frontend/components/launches/customer.mo
 import { Integration } from '@prisma/client';
 import { SettingsModal } from '@gitroom/frontend/components/launches/settings.modal';
 import { CustomVariables } from '@gitroom/frontend/components/launches/add.provider.component';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
@@ -95,7 +95,7 @@ export const Menu: FC<{
   const t = useT();
 
   const fetch = useFetch();
-  const router = useRouter();
+  const navigate = useNavigate();
   const { extensionId } = useVariables();
   const { integrations, reloadCalendarView } = useCalendar();
   const toast = useToaster();
@@ -412,7 +412,7 @@ export const Menu: FC<{
       children: (
         <CustomVariables
           identifier={findIntegration.identifier}
-          gotoUrl={(url: string) => router.push(url)}
+          gotoUrl={(url: string) => navigate(url)}
           variables={findIntegration.customFields}
         />
       ),

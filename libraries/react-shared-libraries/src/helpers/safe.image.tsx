@@ -1,9 +1,8 @@
 'use client';
 
-import { FC } from 'react';
-import { ImageProps } from 'next/image';
+import { FC, ImgHTMLAttributes } from 'react';
 
-type SafeImageProps = Omit<ImageProps, 'src'> & {
+type SafeImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
 };
 
@@ -19,7 +18,7 @@ const SafeImage: FC<SafeImageProps> = ({
   return (
     <img
       src={src}
-      alt={alt?.toString() || ''}
+      alt={alt || ''}
       width={typeof width === 'number' ? width : undefined}
       height={typeof height === 'number' ? height : undefined}
       className={className}

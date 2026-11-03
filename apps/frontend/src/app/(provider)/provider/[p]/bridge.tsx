@@ -35,12 +35,8 @@ declare global {
 
 const ProviderPreviewBridge: FC<{ provider: string }> = ({ provider }) => {
   // Read __PROVIDER_INIT__ in an effect, not via a useState lazy
-  // initializer. The initializer would run on the server (where `window`
-  // is undefined → {}), and during hydration React reuses the server
-  // state — so the seeded payload would never reach the form. Setting
-  // state inside an effect guarantees the read happens client-side
-  // after mount; useForm's `values` prop then reactively resets the
-  // form to the seed AFTER any field-level `register('x', { value })`
+  // initializer: useForm's `values` prop then reactively resets the form
+  // to the seed AFTER any field-level `register('x', { value })`
   // defaults have been applied, so the seed wins.
   const [init, setInit] = useState<InitPayload>(null);
   useEffect(() => {
