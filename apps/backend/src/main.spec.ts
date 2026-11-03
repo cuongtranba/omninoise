@@ -11,6 +11,8 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 // public API clients and nginx (which strips /api/) rely on; a replacement
 // for any route must keep them.
 
+// the secured mode production runs in (cookie flags, CORS credentials)
+delete process.env.NOT_SECURED;
 process.env.JWT_SECRET ||= 'main-spec-secret';
 process.env.FRONTEND_URL ||= 'http://localhost:4200';
 process.env.NEXT_PUBLIC_BACKEND_URL ||= 'http://localhost:3000';
@@ -85,13 +87,17 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${port}`;
   // main.ts boots and listens on import, the way node runs it in production
   await import('@gitroom/backend/main');
-  // wait for the liveness route, polling instead of sleeping a fixed time
-  for (;;) {
-    const up = await fetch(base + '/').then(
+  // wait for the liveness route, polling instead of sleeping a fixed time;
+  // main.ts only logs a failed listen, so give up before the hook timeout
+  const deadline = Date.now() + 50_000;
+  while (
+    !(await fetch(base + '/').then(
       (r) => r.ok,
       () => false
-    );
-    if (up) break;
+    ))
+  ) {
+    if (Date.now() > deadline)
+      throw new Error(`backend did not start on ${base}`);
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 });
@@ -101,6 +107,8 @@ afterAll(async () => {
   await prisma.signatures.deleteMany({
     where: { organizationId: { in: orgs } },
   });
+  // the oversized /posts body is invalid, so this only guards a regression
+  await prisma.post.deleteMany({ where: { organizationId: { in: orgs } } });
   await prisma.userOrganization.deleteMany({
     where: { organizationId: { in: orgs } },
   });

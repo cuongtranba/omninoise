@@ -11,9 +11,10 @@
 //   node docs/architecture/evidence/api-inventory.mjs <openapi.json> <boot.log> <out-dir>
 //
 // Writes <out-dir>/api-inventory.json (summary + one row per route) and
-// <out-dir>/api-routes.md (the route table). Nothing else is read or written.
+// <out-dir>/api-routes.md (the route table). Besides the two inputs it reads
+// only source files: controllers, API modules, SPA/CLI/SDK call sites, MCP tools.
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import ts from 'typescript';
 
@@ -26,6 +27,7 @@ if (!openapiFile || !bootLog || !outDir) {
 }
 
 const root = process.cwd();
+mkdirSync(outDir, { recursive: true });
 const HTTP = ['Get', 'Post', 'Put', 'Delete', 'Patch', 'All'];
 const PARAM_DECORATORS = [
   'Body',
