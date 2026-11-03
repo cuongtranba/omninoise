@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
@@ -34,7 +34,7 @@ const connection = (id: string, userId?: string) => {
       id,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN', userId }],
-    })
+    }),
   );
   return { requestContext };
 };
@@ -49,7 +49,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule, ChatModule],
@@ -78,19 +78,19 @@ test('a tag of another organization cannot be renamed through the tags tool', as
 
   const created = await tools.postTagsTool.execute(
     { action: 'create', name: 'launch', color: '#FF5733' },
-    connection(owner)
+    connection(owner),
   );
   const tagId = created.output.tag.id;
 
   const renamed = await tools.postTagsTool.execute(
     { action: 'update', id: tagId, name: 'hijacked', color: '#000000' },
-    connection(stranger)
+    connection(stranger),
   );
   expect(renamed.output).toHaveProperty('errors');
 
   const listed = await tools.postTagsTool.execute(
     { action: 'list' },
-    connection(owner)
+    connection(owner),
   );
   expect(listed.output.tags).toEqual([
     { id: tagId, name: 'launch', color: '#FF5733' },
@@ -102,7 +102,7 @@ test('a review comment needs the user of an OAuth connection, an API key has non
 
   const result = await tools.postCommentsTool.execute(
     { action: 'add', id: 'any-post', content: 'Looks good' },
-    connection(owner)
+    connection(owner),
   );
 
   expect(result.output.errors).toMatch(/connect through OAuth/);
@@ -120,7 +120,7 @@ test('drafts for a week that is already over are refused', async () => {
       year: 2020,
       url: 'https://example.com/article',
     },
-    connection(owner)
+    connection(owner),
   );
 
   expect(result.output.errors).toMatch(/already over/);
@@ -160,7 +160,7 @@ test('a post of another organization cannot be commented through the comments to
 
   const result = await tools.postCommentsTool.execute(
     { action: 'add', id: post.id, content: 'Let me in' },
-    connection(stranger, user.id)
+    connection(stranger, user.id),
   );
 
   expect(result.output).toHaveProperty('errors');

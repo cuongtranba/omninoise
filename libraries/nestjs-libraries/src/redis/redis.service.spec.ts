@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { getPgPool } from '@gitroom/nestjs-libraries/pg/pg.pool';
 
@@ -13,7 +13,7 @@ test('set NX is refused while the key is live and succeeds once it has expired',
     async () => {
       expect(await ioRedis.set(key, '3', 'EX', 5, 'NX')).toBe('OK');
     },
-    { timeout: 5000, interval: 100 }
+    { timeout: 5000, interval: 100 },
   );
   expect(await ioRedis.get(key)).toBe('3');
 });
@@ -49,13 +49,13 @@ test('prisma db push, run at every boot, leaves the pgonly tables intact', async
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
 
   expect(await ioRedis.get(key)).toBe('kept');
   const { rows } = await getPgPool().query(
     `SELECT relpersistence FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-     WHERE n.nspname = 'pgonly' AND c.relname = 'kv_store'`
+     WHERE n.nspname = 'pgonly' AND c.relname = 'kv_store'`,
   );
   expect(rows).toEqual([{ relpersistence: 'u' }]);
 });

@@ -30,7 +30,7 @@ export class StripeService extends PaymentProviderAbstract {
     private _subscriptionService: SubscriptionService,
     private _organizationService: OrganizationService,
     private _userService: UsersService,
-    private _trackService: TrackService
+    private _trackService: TrackService,
   ) {
     super();
   }
@@ -40,19 +40,19 @@ export class StripeService extends PaymentProviderAbstract {
 
   validateWebhook(
     rawBody: Buffer,
-    headers: Record<string, string | string[] | undefined>
+    headers: Record<string, string | string[] | undefined>,
   ) {
     return this.validateRequest(
       rawBody,
       headers['stripe-signature'] as string,
-      process.env.STRIPE_SIGNING_KEY
+      process.env.STRIPE_SIGNING_KEY,
     );
   }
 
   async processWebhook(event: Stripe.Event) {
     // Maybe it comes from another stripe webhook
     if (
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       event?.data?.object?.metadata?.service !== 'gitroom' &&
       event.type !== 'invoice.payment_succeeded'
@@ -77,7 +77,7 @@ export class StripeService extends PaymentProviderAbstract {
   async checkValidCard(
     event:
       | Stripe.CustomerSubscriptionCreatedEvent
-      | Stripe.CustomerSubscriptionUpdatedEvent
+      | Stripe.CustomerSubscriptionUpdatedEvent,
   ) {
     if (event.data.object.status === 'incomplete') {
       return false;
@@ -85,7 +85,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const getOrgFromCustomer =
       await this._organizationService.getOrgByCustomerId(
-        event.data.object.customer as string
+        event.data.object.customer as string,
       );
 
     if (!getOrgFromCustomer?.allowTrial) {
@@ -106,7 +106,7 @@ export class StripeService extends PaymentProviderAbstract {
         }
         return prev;
       },
-      { created: -100 } as Stripe.PaymentMethod
+      { created: -100 } as Stripe.PaymentMethod,
     );
 
     if (!latestMethod.id) {
@@ -152,14 +152,14 @@ export class StripeService extends PaymentProviderAbstract {
     };
 
     const liveSubscriptions = await this.getLiveSubscriptions(
-      event.data.object.customer as string
+      event.data.object.customer as string,
     );
     const isDuplicate = liveSubscriptions.some(
       (f) =>
         f.id !== event.data.object.id &&
         (f.created < event.data.object.created ||
           (f.created === event.data.object.created &&
-            f.id < event.data.object.id))
+            f.id < event.data.object.id)),
     );
     if (isDuplicate) {
       if (liveSubscriptions.some((f) => f.id === event.data.object.id)) {
@@ -190,7 +190,7 @@ export class StripeService extends PaymentProviderAbstract {
       pricing[billing].channel!,
       billing,
       period,
-      event.data.object.cancel_at
+      event.data.object.cancel_at,
     );
 
     if (event.data.object.status === 'trialing') {
@@ -203,7 +203,7 @@ export class StripeService extends PaymentProviderAbstract {
             pricing[billing][
               period === 'YEARLY' ? 'year_price' : 'month_price'
             ],
-        }
+        },
       ).catch((err) => {});
     }
 
@@ -229,7 +229,7 @@ export class StripeService extends PaymentProviderAbstract {
       pricing[billing].channel!,
       billing,
       period,
-      event.data.object.cancel_at
+      event.data.object.cancel_at,
     );
   }
 
@@ -239,7 +239,7 @@ export class StripeService extends PaymentProviderAbstract {
     if (!survivor) {
       await this._subscriptionService.deleteSubscription(
         customer,
-        STRIPE_PROVIDER
+        STRIPE_PROVIDER,
       );
       return;
     }
@@ -268,7 +268,7 @@ export class StripeService extends PaymentProviderAbstract {
       pricing[billing].channel!,
       billing,
       period,
-      survivor.cancel_at
+      survivor.cancel_at,
     );
   }
 
@@ -277,7 +277,7 @@ export class StripeService extends PaymentProviderAbstract {
   // billing email, deduped per customer, and skipping admin-granted
   // subscriptions (their paymentId is a user id, not a `cus_...` customer).
   async syncCustomerEmailsAfterSwitch(
-    accounts: { id: string; email: string }[]
+    accounts: { id: string; email: string }[],
   ) {
     if (!process.env.STRIPE_PUBLISHABLE_KEY) {
       return;
@@ -285,7 +285,7 @@ export class StripeService extends PaymentProviderAbstract {
     const emailByCustomer = new Map<string, string>();
     for (const account of accounts) {
       const organizations = await this._organizationService.getOrgsByUserId(
-        account.id
+        account.id,
       );
       for (const org of organizations) {
         if (
@@ -303,8 +303,8 @@ export class StripeService extends PaymentProviderAbstract {
           .update(customerId, {
             email: email.indexOf('@') > -1 ? email : `${email}@postiz.com`,
           })
-          .catch(() => {})
-      )
+          .catch(() => {}),
+      ),
     );
   }
 
@@ -323,7 +323,7 @@ export class StripeService extends PaymentProviderAbstract {
     });
     await this._subscriptionService.updateCustomerId(
       organization.id,
-      customer.id
+      customer.id,
     );
     return customer.id;
   }
@@ -346,7 +346,7 @@ export class StripeService extends PaymentProviderAbstract {
         recurring: p?.recurring?.interval!,
         price: p?.tiers?.[0]?.unit_amount! / 100,
       })),
-      'recurring'
+      'recurring',
     );
 
     return { ...productsList };
@@ -363,7 +363,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const findProduct =
       allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
+        (product) => product.name.toUpperCase() === body.billing.toUpperCase(),
       ) ||
       (await stripe.products.create({
         active: true,
@@ -385,7 +385,7 @@ export class StripeService extends PaymentProviderAbstract {
             (body.period === 'MONTHLY'
               ? priceData.month_price
               : priceData.year_price) *
-              100
+              100,
       ) ||
       (await stripe.prices.create({
         active: true,
@@ -459,7 +459,7 @@ export class StripeService extends PaymentProviderAbstract {
       (f) =>
         f.status !== 'canceled' &&
         f.status !== 'incomplete' &&
-        f.status !== 'incomplete_expired'
+        f.status !== 'incomplete_expired',
     );
   }
 
@@ -507,7 +507,7 @@ export class StripeService extends PaymentProviderAbstract {
       }
       await this._subscriptionService.deleteSubscription(
         customer,
-        STRIPE_PROVIDER
+        STRIPE_PROVIDER,
       );
 
       return {
@@ -553,14 +553,14 @@ export class StripeService extends PaymentProviderAbstract {
     });
 
     for (const subscription of subscriptions.data.filter(
-      (f) => f.status !== 'canceled'
+      (f) => f.status !== 'canceled',
     )) {
       await stripe.subscriptions.cancel(subscription.id);
     }
 
     await this._subscriptionService.deleteSubscription(
       org.paymentId,
-      STRIPE_PROVIDER
+      STRIPE_PROVIDER,
     );
   }
 
@@ -600,7 +600,7 @@ export class StripeService extends PaymentProviderAbstract {
         const autoApply = Object.assign(
           {},
           promoCode.metadata,
-          coupon?.metadata
+          coupon?.metadata,
         )?.autoapply;
         if (autoApply !== 'true') continue;
 
@@ -635,7 +635,7 @@ export class StripeService extends PaymentProviderAbstract {
     body: BillingSubscribeDto,
     price: string,
     userId: string,
-    allowTrial: boolean
+    allowTrial: boolean,
   ) {
     const user = await this._userService.getUserById(userId);
 
@@ -711,7 +711,7 @@ export class StripeService extends PaymentProviderAbstract {
     body: BillingSubscribeDto,
     price: string,
     userId: string,
-    allowTrial: boolean
+    allowTrial: boolean,
   ) {
     const isUtm = body.utm ? `&utm_source=${body.utm}` : '';
 
@@ -797,17 +797,17 @@ export class StripeService extends PaymentProviderAbstract {
           created: invoice.created,
           periodEnd: Math.max(
             invoice.period_end,
-            ...invoice.lines.data.map((line) => line.period.end)
+            ...invoice.lines.data.map((line) => line.period.end),
           ),
           // an open invoice that was already attempted is a failed charge waiting for a retry
           status:
             invoice.status === 'paid'
               ? 'paid'
               : invoice.status === 'void'
-              ? 'void'
-              : invoice.status === 'uncollectible' || invoice.attempted
-              ? 'failed'
-              : 'pending',
+                ? 'void'
+                : invoice.status === 'uncollectible' || invoice.attempted
+                  ? 'failed'
+                  : 'pending',
           downloadUrl: invoice.invoice_pdf || null,
           viewUrl: invoice.hosted_invoice_url || null,
         };
@@ -952,23 +952,22 @@ export class StripeService extends PaymentProviderAbstract {
   async checkSubscription(organizationId: string, subscriptionId: string) {
     const orgValue = await this._subscriptionService.checkSubscription(
       organizationId,
-      subscriptionId
+      subscriptionId,
     );
 
     if (orgValue) {
       return 2;
     }
 
-    const getCustomerSubscriptions = await this.getCustomerSubscriptions(
-      organizationId
-    );
+    const getCustomerSubscriptions =
+      await this.getCustomerSubscriptions(organizationId);
     if (getCustomerSubscriptions.data.length === 0) {
       return 0;
     }
 
     if (
       getCustomerSubscriptions.data.find(
-        (p) => p.metadata.uniqueId === subscriptionId
+        (p) => p.metadata.uniqueId === subscriptionId,
       )?.canceled_at
     ) {
       return 1;
@@ -982,7 +981,7 @@ export class StripeService extends PaymentProviderAbstract {
     organizationId: string,
     userId: string,
     body: BillingSubscribeDto,
-    allowTrial: boolean
+    allowTrial: boolean,
   ) {
     const id = makeId(10);
     const priceData = pricing[body.billing];
@@ -998,7 +997,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const findProduct =
       allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
+        (product) => product.name.toUpperCase() === body.billing.toUpperCase(),
       ) ||
       (await stripe.products.create({
         active: true,
@@ -1019,7 +1018,7 @@ export class StripeService extends PaymentProviderAbstract {
             (body.period === 'MONTHLY'
               ? priceData.month_price
               : priceData.year_price) *
-              100
+              100,
       ) ||
       (await stripe.prices.create({
         active: true,
@@ -1042,7 +1041,7 @@ export class StripeService extends PaymentProviderAbstract {
       body,
       findPrice!.id,
       userId,
-      allowTrial
+      allowTrial,
     );
   }
 
@@ -1051,7 +1050,7 @@ export class StripeService extends PaymentProviderAbstract {
     organizationId: string,
     userId: string,
     body: BillingSubscribeDto,
-    allowTrial: boolean
+    allowTrial: boolean,
   ) {
     const id = makeId(10);
     const priceData = pricing[body.billing];
@@ -1064,7 +1063,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const findProduct =
       allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
+        (product) => product.name.toUpperCase() === body.billing.toUpperCase(),
       ) ||
       (await stripe.products.create({
         active: true,
@@ -1085,7 +1084,7 @@ export class StripeService extends PaymentProviderAbstract {
             (body.period === 'MONTHLY'
               ? priceData.month_price
               : priceData.year_price) *
-              100
+              100,
       ) ||
       (await stripe.prices.create({
         active: true,
@@ -1112,7 +1111,7 @@ export class StripeService extends PaymentProviderAbstract {
         body,
         findPrice!.id,
         userId,
-        allowTrial
+        allowTrial,
       );
     }
 
@@ -1146,7 +1145,7 @@ export class StripeService extends PaymentProviderAbstract {
       });
 
       const action = await this.getRequiredActionFromSubscription(
-        currentUserSubscription.data[0].id
+        currentUserSubscription.data[0].id,
       );
       if (action.requiresAction) {
         return { id, ...action };
@@ -1184,7 +1183,7 @@ export class StripeService extends PaymentProviderAbstract {
 
       // invoices of other services sharing the Stripe account stop here
       const subscription = await stripe.subscriptions.retrieve(
-        typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+        typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id,
       );
       if (
         subscription.metadata?.service !== 'gitroom' ||
@@ -1203,7 +1202,7 @@ export class StripeService extends PaymentProviderAbstract {
           f.id !== invoice.id &&
           f.amount_paid > 0 &&
           (f.created < invoice.created ||
-            (f.created === invoice.created && f.id < invoice.id))
+            (f.created === invoice.created && f.id < invoice.id)),
       );
       if (paidBefore) {
         return;
@@ -1216,13 +1215,13 @@ export class StripeService extends PaymentProviderAbstract {
         {
           value: invoice.amount_paid / 100,
           currency: invoice.currency,
-        }
+        },
       );
     } catch (err) {
       console.error(
         'stripe_pixel_conversion_failed',
         { stripe_invoice_id: invoice.id },
-        err
+        err,
       );
     }
   }
@@ -1233,7 +1232,7 @@ export class StripeService extends PaymentProviderAbstract {
     metadata: Stripe.Metadata,
     eventId: string,
     tt: TrackEnum,
-    additional: Record<string, any>
+    additional: Record<string, any>,
   ) {
     try {
       const { userId, fbc, fbp } = metadata || {};
@@ -1254,13 +1253,13 @@ export class StripeService extends PaymentProviderAbstract {
         additional,
         fbc,
         user,
-        fbp
+        fbp,
       );
     } catch (err) {
       console.error(
         'stripe_pixel_event_failed',
         { stripe_object_id: eventId, event: TrackEnum[tt] },
-        err
+        err,
       );
     }
   }
@@ -1356,7 +1355,7 @@ export class StripeService extends PaymentProviderAbstract {
     }
     await this._subscriptionService.deleteSubscription(
       customer,
-      STRIPE_PROVIDER
+      STRIPE_PROVIDER,
     );
 
     return { cancelled: true };
@@ -1365,7 +1364,7 @@ export class StripeService extends PaymentProviderAbstract {
   private mapSubscriptionDiscounts(subscription?: Stripe.Subscription) {
     return (subscription?.discounts || [])
       .filter(
-        (discount): discount is Stripe.Discount => typeof discount !== 'string'
+        (discount): discount is Stripe.Discount => typeof discount !== 'string',
       )
       .map((discount) => {
         const coupon =
@@ -1381,8 +1380,8 @@ export class StripeService extends PaymentProviderAbstract {
             ? Math.max(
                 0,
                 Math.ceil(
-                  (discount.end - Date.now() / 1000) / (30 * 24 * 60 * 60)
-                )
+                  (discount.end - Date.now() / 1000) / (30 * 24 * 60 * 60),
+                ),
               )
             : null,
         };
@@ -1407,11 +1406,11 @@ export class StripeService extends PaymentProviderAbstract {
     const org = await this._organizationService.getOrgById(organizationId);
     const subscription =
       await this._subscriptionService.getSubscriptionByOrganizationId(
-        organizationId
+        organizationId,
       );
 
     const stripeSubscription = await this.getActiveStripeSubscription(
-      org?.paymentId
+      org?.paymentId,
     );
 
     const coupons = this.mapSubscriptionDiscounts(stripeSubscription);
@@ -1455,7 +1454,7 @@ export class StripeService extends PaymentProviderAbstract {
 
   async applyCoupon(
     organizationId: string,
-    body: { type: string; value: number; months: number }
+    body: { type: string; value: number; months: number },
   ) {
     const info = await this.getCouponInfo(organizationId);
     if (!info.supported) {
@@ -1475,7 +1474,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const org = await this._organizationService.getOrgById(organizationId);
     const stripeSubscription = await this.getActiveStripeSubscription(
-      org?.paymentId
+      org?.paymentId,
     );
 
     if (!stripeSubscription) {
@@ -1510,7 +1509,7 @@ export class StripeService extends PaymentProviderAbstract {
   async cancelCoupon(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
     const stripeSubscription = await this.getActiveStripeSubscription(
-      org?.paymentId
+      org?.paymentId,
     );
 
     if (!stripeSubscription) {
@@ -1629,7 +1628,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const currentSubscription =
       await this._subscriptionService.getSubscriptionByOrganizationId(
-        organizationId
+        organizationId,
       );
 
     return {
@@ -1670,7 +1669,7 @@ export class StripeService extends PaymentProviderAbstract {
     if (preview.subscriptionIds.length) {
       await this._subscriptionService.deleteSubscription(
         org?.paymentId!,
-        STRIPE_PROVIDER
+        STRIPE_PROVIDER,
       );
     }
 
@@ -1685,7 +1684,7 @@ export class StripeService extends PaymentProviderAbstract {
   async lifetimeDeal(organizationId: string, code: string) {
     const getCurrentSubscription =
       await this._subscriptionService.getSubscriptionByOrganizationId(
-        organizationId
+        organizationId,
       );
     if (getCurrentSubscription && !getCurrentSubscription?.isLifetime) {
       throw new Error('You already have a non lifetime subscription');
@@ -1715,7 +1714,7 @@ export class StripeService extends PaymentProviderAbstract {
         'MONTHLY',
         null,
         testCode,
-        organizationId
+        organizationId,
       );
       return {
         success: true,

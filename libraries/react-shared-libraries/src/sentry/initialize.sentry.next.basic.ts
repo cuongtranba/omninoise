@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/nextjs';
 
-export const initializeSentryBasic = (environment: string, dsn: string, extension: any) => {
+export const initializeSentryBasic = (
+  environment: string,
+  dsn: string,
+  extension: any,
+) => {
   if (!dsn) {
     return;
   }
@@ -48,14 +52,20 @@ export const initializeSentryBasic = (environment: string, dsn: string, extensio
       values.length > 0 &&
       values.every((value) => {
         const frames = value.stacktrace?.frames || [];
-        const wrapperIndex = frames.map(frameKey).lastIndexOf(sentryWrapperFrame);
+        const wrapperIndex = frames
+          .map(frameKey)
+          .lastIndexOf(sentryWrapperFrame);
         const callbackFrames = frames
           .slice(wrapperIndex + 1)
           .filter((frame) => frame.filename && (frame.lineno || frame.colno));
         if (!callbackFrames.length) {
-          return thirdPartyFramelessPatterns.some((pattern) => pattern.test(value.value || ''));
+          return thirdPartyFramelessPatterns.some((pattern) =>
+            pattern.test(value.value || ''),
+          );
         }
-        return callbackFrames.every((frame) => !frame.filename!.includes('/_next/'));
+        return callbackFrames.every(
+          (frame) => !frame.filename!.includes('/_next/'),
+        );
       })
     );
   };
@@ -76,7 +86,9 @@ export const initializeSentryBasic = (environment: string, dsn: string, extensio
         },
       },
       integrations: [
-        Sentry.consoleLoggingIntegration({ levels: ['log', 'info', 'warn', 'error', 'debug', 'assert', 'trace'] }),
+        Sentry.consoleLoggingIntegration({
+          levels: ['log', 'info', 'warn', 'error', 'debug', 'assert', 'trace'],
+        }),
       ],
       environment: environment || 'development',
       spotlight: process.env.SENTRY_SPOTLIGHT === '1',
@@ -117,13 +129,16 @@ export const initializeSentryBasic = (environment: string, dsn: string, extensio
                   try {
                     mod.showReportDialog({ eventId: event.event_id });
                   } catch (err) {
-                    // eslint-disable-next-line no-console
+                    // oxlint-disable-next-line no-console
                     console.error('Sentry.showReportDialog failed:', err);
                   }
                 })
                 .catch((importErr) => {
-                  // eslint-disable-next-line no-console
-                  console.error('Failed to import @sentry/react for report dialog:', importErr);
+                  // oxlint-disable-next-line no-console
+                  console.error(
+                    'Failed to import @sentry/react for report dialog:',
+                    importErr,
+                  );
                 });
             }
           }
@@ -144,7 +159,7 @@ export const initializeSentryBasic = (environment: string, dsn: string, extensio
     }
   } catch (err) {
     // Log initialization errors
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line no-console
     console.error('Sentry.init failed:', err);
   }
 };

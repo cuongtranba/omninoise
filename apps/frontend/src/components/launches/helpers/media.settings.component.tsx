@@ -22,7 +22,7 @@ export const MediaSettingsLayout = () => {
       thumbnail: string;
       alt: string;
     }) => void;
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    // oxlint-disable-next-line @typescript-eslint/no-empty-function
   } | null>({
     callback: (params: {
       id: string;
@@ -48,7 +48,7 @@ export const MediaSettingsLayout = () => {
         setCallback(params);
         setMedia(params.media);
         setShowPostSelector(true);
-      }
+      },
     );
     return () => {
       setShowPostSelector(false);
@@ -159,7 +159,7 @@ export const CreateThumbnail: FC<{
           setIsCapturing(false);
         },
         'image/jpeg',
-        0.8
+        0.8,
       );
     } catch (error) {
       console.error('Error capturing frame:', error);
@@ -189,14 +189,14 @@ export const CreateThumbnail: FC<{
                 setIsCapturing(false);
               },
               'image/jpeg',
-              0.8
+              0.8,
             );
           }
         }
       } catch (fallbackError) {
         console.error('Fallback capture also failed:', fallbackError);
         alert(
-          'Unable to capture frame. This might be due to CORS restrictions on the video source.'
+          'Unable to capture frame. This might be due to CORS restrictions on the video source.',
         );
         setIsCapturing(false);
       }
@@ -319,10 +319,10 @@ export const MediaComponentInner: FC<{
   const [altText, setAltText] = useState<string>(media?.alt || '');
   const [loading, setLoading] = useState(false);
   const [thumbnail, setThumbnail] = useState<string | null>(
-    props.media?.thumbnail || null
+    props.media?.thumbnail || null,
   );
   const [thumbnailTimestamp, setThumbnailTimestamp] = useState<number | null>(
-    props.media?.thumbnailTimestamp || null
+    props.media?.thumbnailTimestamp || null,
   );
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { resolve } from 'path';
-import { mergeConfig, defineConfig } from 'vite';
+import { mergeConfig, defineConfig } from 'vite-plus';
 import { crx, ManifestV3Export } from '@crxjs/vite-plugin';
 import baseConfig, { baseManifest, baseBuildOptions } from './vite.config.base';
 import hotReloadExtension from 'hot-reload-extension-vite';

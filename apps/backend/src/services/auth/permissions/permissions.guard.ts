@@ -16,7 +16,7 @@ import { SubscriptionException } from '@gitroom/nestjs-libraries/permissions/per
 export class PoliciesGuard implements CanActivate {
   constructor(
     private _reflector: Reflector,
-    private _authorizationService: PermissionsService
+    private _authorizationService: PermissionsService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -33,24 +33,33 @@ export class PoliciesGuard implements CanActivate {
     const policyHandlers =
       this._reflector.get<AbilityPolicy[]>(
         CHECK_POLICIES_KEY,
-        context.getHandler()
+        context.getHandler(),
       ) || [];
 
     if (!policyHandlers || !policyHandlers.length) {
       return true;
     }
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     const { org }: { org: Organization } = request;
 
-    const refreshChannelId = typeof request.query?.refresh === 'string' ? request.query.refresh : undefined;
+    const refreshChannelId =
+      typeof request.query?.refresh === 'string'
+        ? request.query.refresh
+        : undefined;
 
-    // @ts-ignore
-    const ability = await this._authorizationService.check(org.id, org.createdAt, org.users[0].role, policyHandlers, refreshChannelId);
+    const ability = await this._authorizationService.check(
+      org.id,
+      org.createdAt,
+      // @ts-ignore
+      org.users[0].role,
+      policyHandlers,
+      refreshChannelId,
+    );
 
     const item = policyHandlers.find(
-      (handler) => !this.execPolicyHandler(handler, ability)
+      (handler) => !this.execPolicyHandler(handler, ability),
     );
 
     if (item) {

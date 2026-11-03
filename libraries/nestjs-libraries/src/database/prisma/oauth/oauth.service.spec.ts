@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -23,7 +23,7 @@ let appId: string;
 const approve = async (
   name: string,
   membership: { role: 'USER' | 'ADMIN'; disabled?: boolean } | null,
-  organizationId = orgId
+  organizationId = orgId,
 ) => {
   const user = await prisma.user.create({
     data: {
@@ -59,7 +59,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
   orgId = (await prisma.organization.create({ data: { name: `org-${run}` } }))
     .id;
@@ -79,7 +79,9 @@ afterAll(async () => {
   await prisma.oAuthAuthorization.deleteMany({ where });
   await prisma.userOrganization.deleteMany({ where });
   await prisma.oAuthApp.delete({ where: { id: appId } });
-  await prisma.user.deleteMany({ where: { email: { endsWith: `-${run}@example.com` } } });
+  await prisma.user.deleteMany({
+    where: { email: { endsWith: `-${run}@example.com` } },
+  });
   await prisma.organization.deleteMany({ where: { name: { endsWith: run } } });
   await prisma.$disconnect();
 });

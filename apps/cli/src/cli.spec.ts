@@ -10,7 +10,7 @@ import { createServer, IncomingHttpHeaders, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vite-plus/test';
 import { stringify } from 'yaml';
 import { run } from './cli';
 import { Context } from './context';
@@ -129,7 +129,7 @@ const PUBLISH = {
 /** A project folder `proj` with a profile above it and the files publish needs. */
 const makeProject = (
   publish: Record<string, unknown> = PUBLISH,
-  profile: Record<string, unknown> = PROFILE
+  profile: Record<string, unknown> = PROFILE,
 ) => {
   const root = mkdtempSync(join(tmpdir(), 'omninoise-cli-'));
   const dir = join(root, 'projects', 'proj');
@@ -149,7 +149,7 @@ const makeProject = (
 const exec = async (
   argv: string[],
   env: Record<string, string>,
-  openBrowser: Context['openBrowser'] = () => undefined
+  openBrowser: Context['openBrowser'] = () => undefined,
 ) => {
   let stdout = '';
   let stderr = '';
@@ -172,7 +172,7 @@ test('publish --dry-run builds each channel its own cut, caption and footer with
   const { dir } = makeProject();
   const { code, stdout } = await exec(
     ['publish', dir, '--at', AT, '--dry-run'],
-    {}
+    {},
   );
   const media = 'https://omninoise.example.com/uploads/dry';
 
@@ -247,7 +247,7 @@ test.each([
     expect(code).toBe(1);
     expect(stderr).toContain(message);
     expect(seen).toEqual([]);
-  }
+  },
 );
 
 test('publish uploads the files, then POSTs the posts with the raw key and creationMethod CLI', async () => {
@@ -369,7 +369,7 @@ test('auth:login rejects a callback with the wrong state and saves nothing', asy
   const login = await exec(
     ['auth:login', '--url', url],
     { XDG_CONFIG_HOME: config },
-    approve('forged', reply)
+    approve('forged', reply),
   );
 
   expect(login.code).toBe(1);

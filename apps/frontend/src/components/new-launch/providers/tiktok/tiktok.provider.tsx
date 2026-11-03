@@ -2,6 +2,7 @@
 
 import {
   FC,
+  Fragment,
   useMemo,
 } from 'react';
 import {
@@ -355,6 +356,7 @@ const TikTokSettings: FC<{
               {[
                 brand_organic_toggle || brand_content_toggle ? (
                   <a
+                    key="music-usage"
                     target="_blank"
                     className="text-brandLight hover:underline"
                     href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
@@ -362,9 +364,12 @@ const TikTokSettings: FC<{
                     {t('music_usage_confirmation', 'Music Usage Confirmation')}
                   </a>
                 ) : undefined,
-                brand_content_toggle ? <> {t('and', 'and')} </> : undefined,
+                brand_content_toggle ? (
+                  <Fragment key="and"> {t('and', 'and')} </Fragment>
+                ) : undefined,
                 brand_content_toggle ? (
                   <a
+                    key="branded-content"
                     target="_blank"
                     className="text-brandLight hover:underline"
                     href="https://www.tiktok.com/legal/page/global/bc-policy/en"

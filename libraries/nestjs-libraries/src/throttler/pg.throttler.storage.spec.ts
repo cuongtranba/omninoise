@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi } from 'vite-plus/test';
 import { PgThrottlerStorage } from '@gitroom/nestjs-libraries/throttler/pg.throttler.storage';
 
 test('the hit after the limit is blocked and a new window starts counting again', async () => {
@@ -11,17 +11,17 @@ test('the hit after the limit is blocked and a new window starts counting again'
     const record = await storage.increment(key, ttl, limit, ttl, 'default');
     expect(record).toMatchObject({ totalHits: hit, isBlocked: false });
   }
-  expect(await storage.increment(key, ttl, limit, ttl, 'default')).toMatchObject(
-    { totalHits: limit + 1, isBlocked: true }
-  );
+  expect(
+    await storage.increment(key, ttl, limit, ttl, 'default'),
+  ).toMatchObject({ totalHits: limit + 1, isBlocked: true });
 
   // Block and window both last one second, so both lapse together.
   await vi.waitFor(
     async () => {
       expect(
-        await storage.increment(key, ttl, limit, ttl, 'default')
+        await storage.increment(key, ttl, limit, ttl, 'default'),
       ).toMatchObject({ totalHits: 1, isBlocked: false });
     },
-    { timeout: 5000, interval: 200 }
+    { timeout: 5000, interval: 200 },
   );
 });

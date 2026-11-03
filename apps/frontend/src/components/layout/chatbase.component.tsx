@@ -2,7 +2,7 @@
 
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // oxlint-disable-next-line @typescript-eslint/no-explicit-any
     chatbase: any;
   }
 }
@@ -38,7 +38,7 @@ export const ChatbaseComponentLoad: FC = () => {
       refreshWhenHidden: false,
       refreshWhenOffline: false,
       refreshInterval: 0,
-    }
+    },
   );
 
   if (!data) {
@@ -53,7 +53,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
 
   useEffect(() => {
     if (!window.chatbase || window.chatbase('getState') !== 'initialized') {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       window.chatbase = (...arg) => {
         if (!window.chatbase.q) {
@@ -66,7 +66,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
           if (prop === 'q') {
             return target.q;
           }
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           return (...args) => target(prop, ...args);
         },
@@ -76,7 +76,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
       const script = document.createElement('script');
       script.src = 'https://www.chatbase.co/embed.min.js';
       script.id = '1zVZuOz0vgFE_NLumfPPj';
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       script.domain = 'www.chatbase.co';
       document.body.appendChild(script);
@@ -92,7 +92,9 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
     window.chatbase('registerTools', {
       stripe_refund: async () => {
         try {
-          const previewResponse = await fetch('/billing/chatbase-refund/preview');
+          const previewResponse = await fetch(
+            '/billing/chatbase-refund/preview',
+          );
 
           if (!previewResponse.ok) {
             return {
@@ -117,7 +119,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
               preview.currency || ''
             ).toUpperCase()}. Do you approve?`,
             'Yes, cancel and refund',
-            'Cancel subscription'
+            'Cancel subscription',
           );
 
           if (!approved) {

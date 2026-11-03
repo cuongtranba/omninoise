@@ -71,11 +71,11 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
 
   override async checkValidity(
     posts: Array<ValidityMedia[]>,
-    settings: any
+    settings: any,
   ): Promise<string | true> {
     if (
       settings?.subreddit?.some(
-        (p: any) => p?.value?.type === 'media' && posts?.[0]?.length !== 1
+        (p: any) => p?.value?.type === 'media' && posts?.[0]?.length !== 1,
       )
     ) {
       return 'When posting a media post, you must attached exactly one media file.';
@@ -83,7 +83,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
 
     if (
       posts?.some((p) =>
-        p?.some((a) => !a?.thumbnail && (a?.path?.indexOf?.('mp4') ?? -1) > -1)
+        p?.some((a) => !a?.thumbnail && (a?.path?.indexOf?.('mp4') ?? -1) > -1),
       )
     ) {
       return 'You must attach a thumbnail to your video post.';
@@ -99,7 +99,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${Buffer.from(
-            `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
+            `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`,
           ).toString('base64')}`,
         },
         body: new URLSearchParams({
@@ -134,7 +134,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     const url = `https://www.reddit.com/api/v1/authorize?client_id=${
       process.env.REDDIT_CLIENT_ID
     }&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(
-      `${process.env.FRONTEND_URL}/integrations/social/reddit`
+      `${process.env.FRONTEND_URL}/integrations/social/reddit`,
     )}&duration=permanent&scope=${encodeURIComponent(this.scopes.join(' '))}`;
     return {
       url,
@@ -155,7 +155,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${Buffer.from(
-            `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
+            `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`,
           ).toString('base64')}`,
         },
         body: new URLSearchParams({
@@ -207,7 +207,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         },
         'reddit',
         0,
-        true
+        true,
       )
     ).json();
 
@@ -221,7 +221,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         acc.append(value.name, value.value);
         return acc;
       },
-      new FormDataUpload()
+      new FormDataUpload(),
     );
 
     upload.append('file', stream, {
@@ -245,7 +245,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         this.identifier,
         String(d.data || '{}'),
         Buffer.from('{}'),
-        'Reddit media upload did not return a location'
+        'Reddit media upload did not return a location',
       );
     }
 
@@ -261,7 +261,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     username: string,
     sr: string,
     title: string,
-    armedAt: number
+    armedAt: number,
   ): Promise<{ id: string; url: string } | undefined> {
     const { data } = await (
       await this.fetch(
@@ -274,7 +274,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         },
         'reddit',
         0,
-        true
+        true,
       )
     ).json();
 
@@ -289,7 +289,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
       (c: any) =>
         (c?.data?.subreddit || '').toLowerCase() === sr &&
         (!title || (c?.data?.title || '') === title) &&
-        (c?.data?.created_utc || 0) * 1000 > cutoff
+        (c?.data?.created_utc || 0) * 1000 > cutoff,
     );
 
     if (!found?.data?.id) {
@@ -305,7 +305,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   }
 
   private completedResponse(
-    results: RedditPendingData['results']
+    results: RedditPendingData['results'],
   ): PendingCheckResponse {
     return {
       status: 'completed',
@@ -323,7 +323,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   async postPending(
     id: string,
     accessToken: string,
-    postDetails: PostDetails<RedditSettingsDto>[]
+    postDetails: PostDetails<RedditSettingsDto>[],
   ): Promise<PostResponse[]> {
     const [post] = postDetails;
 
@@ -352,7 +352,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   override async checkPostStatus(
     accessToken: string,
     pendingData: RedditPendingData,
-    integration: Integration
+    integration: Integration,
   ): Promise<PendingCheckResponse> {
     const data = { ...pendingData };
 
@@ -371,7 +371,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
             integration.profile,
             data.armed.sr,
             data.armed.title,
-            data.armed.armedAt
+            data.armed.armedAt,
           );
         } catch (err) {
           if (err instanceof RefreshToken) {
@@ -447,7 +447,10 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     // finds the armed marker and asks Reddit instead of resubmitting blindly.
     const value = data.subreddits[data.cursor].value;
     data.armed = {
-      sr: value.subreddit.replace(/^\/?r\//, '').replace(/^\/+|\/+$/g, '').toLowerCase(),
+      sr: value.subreddit
+        .replace(/^\/?r\//, '')
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase(),
       title: value.title || '',
       armedAt: Date.now(),
       media: value.type === 'media',
@@ -461,7 +464,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   override async finalizePost(
     accessToken: string,
     pendingData: RedditPendingData,
-    integration: Integration
+    integration: Integration,
   ): Promise<PendingCheckResponse> {
     const data = { ...pendingData };
     const entry = data.subreddits?.[data.cursor];
@@ -499,14 +502,17 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
               ? {
                   video_poster_url: await this.uploadFileToReddit(
                     accessToken,
-                    data.mediaThumbnail!
+                    data.mediaThumbnail!,
                   ),
                 }
               : {}),
           }
         : {}),
       text: data.message,
-      sr: value.subreddit.replace(/^\/?r\//, '').replace(/^\/+|\/+$/g, '').toLowerCase(),
+      sr: value.subreddit
+        .replace(/^\/?r\//, '')
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase(),
     };
 
     const all = await (
@@ -537,7 +543,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         Buffer.from('{}'),
         `Reddit rejected the post to r/${postData.sr}: ${all.json.errors
           .map((e: any[]) => e?.[1] || e?.[0] || '')
-          .join(', ')}`
+          .join(', ')}`,
       );
     }
 
@@ -575,26 +581,26 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails<RedditSettingsDto>[],
-    integration: Integration
+    integration: Integration,
   ): Promise<PostResponse[]> {
     const [response] = await this.postPending(id, accessToken, postDetails);
 
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       const check = await this.checkPostStatus(
         accessToken,
         pendingData,
-        integration
+        integration,
       );
 
       if (check.status === 'ready') {
         const finalize = await this.finalizePost(
           accessToken,
           check.pendingData,
-          integration
+          integration,
         );
 
         if (finalize.status === 'completed') {
@@ -631,7 +637,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           Buffer.from('{}'),
-          'Reddit took too long to answer, please check your account before posting again'
+          'Reddit took too long to answer, please check your account before posting again',
         );
       }
 
@@ -646,7 +652,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     lastCommentId: string | undefined,
     accessToken: string,
     postDetails: PostDetails<RedditSettingsDto>[],
-    integration: Integration
+    integration: Integration,
   ): Promise<PostResponse[]> {
     const [commentPost] = postDetails;
 
@@ -691,7 +697,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -704,7 +710,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
               Authorization: `Bearer ${accessToken}`,
             },
           },
-          this.identifier
+          this.identifier,
         )
       ).json();
 
@@ -742,7 +748,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number
+    date: number,
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -761,7 +767,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
               Authorization: `Bearer ${accessToken}`,
             },
           },
-          this.identifier
+          this.identifier,
         )
       ).json();
 
@@ -787,7 +793,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
           data: [
             {
               total: String(
-                Math.round((sum('upvote_ratio') / posts.length) * 10000) / 100
+                Math.round((sum('upvote_ratio') / posts.length) * 10000) / 100,
               ),
               date: today,
             },
@@ -842,7 +848,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         },
         'reddit',
         0,
-        false
+        false,
       )
     ).json();
 
@@ -853,7 +859,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
           ({ data }: { data: any }) =>
             data.subreddit_type === 'public' &&
             data.submission_type !== 'image' &&
-            !exact.some((e) => e.id === data.id)
+            !exact.some((e) => e.id === data.id),
         )
         .map(({ data: { title, url, id } }: any) => ({
           title,
@@ -878,7 +884,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
           },
           'reddit',
           0,
-          false
+          false,
         )
       ).json();
     } catch (err) {
@@ -944,7 +950,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         },
         'reddit',
         0,
-        false
+        false,
       )
     ).json();
 
@@ -962,11 +968,11 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         },
         'reddit',
         0,
-        false
+        false,
       )
     ).json();
 
-    // eslint-disable-next-line no-async-promise-executor
+    // oxlint-disable-next-line no-async-promise-executor
     const newData = await new Promise<{ id: string; name: string }[]>(
       async (res) => {
         try {
@@ -982,7 +988,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
               },
               'reddit',
               0,
-              false
+              false,
             )
           ).json();
 
@@ -990,7 +996,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         } catch (err) {
           return res([]);
         }
-      }
+      },
     );
 
     return {

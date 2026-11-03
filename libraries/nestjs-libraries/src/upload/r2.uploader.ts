@@ -15,7 +15,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// oxlint-disable-next-line typescript/no-require-imports -- file-type is ESM-only
 const { fileTypeFromBuffer } = require('file-type');
 
 const ALLOWED_EXT_TO_MIME: Record<string, string> = {
@@ -70,7 +70,7 @@ function generateRandomString() {
 export default async function handleR2Upload(
   endpoint: string,
   req: Request,
-  res: Response
+  res: Response,
 ) {
   switch (endpoint) {
     case 'create-multipart-upload':
@@ -92,10 +92,13 @@ export default async function handleR2Upload(
 export async function simpleUpload(
   data: Buffer,
   originalFilename: string,
-  _contentType: string
+  _contentType: string,
 ) {
   const detected = await fileTypeFromBuffer(data);
-  if (!detected || !Object.values(ALLOWED_EXT_TO_MIME).includes(detected.mime)) {
+  if (
+    !detected ||
+    !Object.values(ALLOWED_EXT_TO_MIME).includes(detected.mime)
+  ) {
     throw new Error('Unsupported file type.');
   }
   const fileExtension = `.${detected.ext}`;
@@ -211,7 +214,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     const safeExt = normalizeExtension(key || '');
     if (!safeExt) {
       await R2.send(
-        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
+        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key }),
       );
       return res.status(400).json({ message: 'Unsupported file type.' });
     }
@@ -222,7 +225,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
         Bucket: CLOUDFLARE_BUCKETNAME,
         Key: key,
         Range: 'bytes=0-4100',
-      })
+      }),
     );
     const chunks: Buffer[] = [];
     // @ts-ignore
@@ -243,7 +246,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
         : [expectedMime];
     if (!detected || !acceptedMimes.includes(detected.mime)) {
       await R2.send(
-        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
+        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key }),
       );
       return res
         .status(400)

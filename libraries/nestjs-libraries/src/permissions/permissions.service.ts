@@ -20,7 +20,7 @@ export class PermissionsService {
     private _subscriptionService: SubscriptionService,
     private _postsService: PostsService,
     private _integrationService: IntegrationService,
-    private _webhooksService: WebhooksService
+    private _webhooksService: WebhooksService,
   ) {}
   async getPackageOptions(orgId: string) {
     const subscription =
@@ -45,7 +45,7 @@ export class PermissionsService {
     created_at: Date,
     permission: 'USER' | 'ADMIN' | 'SUPERADMIN',
     requestedPermission: Array<[AuthorizationActions, Sections]>,
-    refreshChannelId?: string
+    refreshChannelId?: string,
   ) {
     const { can, build } = new AbilityBuilder<
       Ability<[AuthorizationActions, Sections]>
@@ -64,7 +64,7 @@ export class PermissionsService {
       }
       return build({
         detectSubjectType: (item) =>
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           item.constructor,
       });
@@ -80,7 +80,7 @@ export class PermissionsService {
           const existingIntegration =
             await this._integrationService.getIntegrationByInternalId(
               orgId,
-              refreshChannelId
+              refreshChannelId,
             );
           if (existingIntegration) {
             can(action, section);
@@ -115,12 +115,12 @@ export class PermissionsService {
           (await this._subscriptionService.getSubscription(orgId))?.createdAt ||
           created_at;
         const totalMonthPast = Math.abs(
-          dayjs(createdAt).diff(dayjs(), 'month')
+          dayjs(createdAt).diff(dayjs(), 'month'),
         );
         const checkFrom = dayjs(createdAt).add(totalMonthPast, 'month');
         const count = await this._postsService.countPostsFromDay(
           orgId,
-          checkFrom.toDate()
+          checkFrom.toDate(),
         );
 
         if (count < options.posts_per_month) {
@@ -175,7 +175,7 @@ export class PermissionsService {
 
     return build({
       detectSubjectType: (item) =>
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         item.constructor,
     });

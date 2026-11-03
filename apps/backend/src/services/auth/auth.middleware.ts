@@ -29,7 +29,7 @@ export const removeAuth = (res: Response) => {
 export class AuthMiddleware implements NestMiddleware {
   constructor(
     private _organizationService: OrganizationService,
-    private _userService: UsersService
+    private _userService: UsersService,
   ) {}
   async use(req: Request, res: Response, next: NextFunction) {
     const auth = req.headers.auth || req.cookies.auth;
@@ -47,7 +47,9 @@ export class AuthMiddleware implements NestMiddleware {
         throw new HttpForbiddenException();
       }
 
-      let user = (await this._userService.getUserById(payload.id)) as User | null;
+      let user = (await this._userService.getUserById(
+        payload.id,
+      )) as User | null;
 
       if (!user) {
         throw new HttpForbiddenException();
@@ -59,25 +61,24 @@ export class AuthMiddleware implements NestMiddleware {
 
       const impersonate = req.cookies.impersonate || req.headers.impersonate;
       if (user?.isSuperAdmin && impersonate) {
-        const loadImpersonate = await this._organizationService.getUserOrg(
-          impersonate
-        );
+        const loadImpersonate =
+          await this._organizationService.getUserOrg(impersonate);
 
         if (loadImpersonate) {
           user = loadImpersonate.user;
           user.isSuperAdmin = true;
           delete user.password;
 
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
           req.user = user;
 
           // @ts-ignore
           loadImpersonate.organization.users =
             loadImpersonate.organization.users.filter(
-              (f) => f.userId === user.id
+              (f) => f.userId === user.id,
             );
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
           req.org = loadImpersonate.organization;
 
@@ -109,11 +110,11 @@ export class AuthMiddleware implements NestMiddleware {
         await this._organizationService.updateApiKey(setOrg.id);
       }
 
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       req.user = user;
 
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       req.org = setOrg;
 

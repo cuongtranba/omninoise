@@ -32,7 +32,7 @@ export class NoAuthIntegrationsController {
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
   ) {}
 
   @Get('/')
@@ -45,7 +45,7 @@ export class NoAuthIntegrationsController {
   @UseFilters(new NotEnoughScopesFilter())
   async connectSocialMedia(
     @Param('integration') integration: string,
-    @Body() body: ConnectIntegrationDto
+    @Body() body: ConnectIntegrationDto,
   ) {
     if (
       !this._integrationManager
@@ -65,7 +65,7 @@ export class NoAuthIntegrationsController {
       // The state expires after an hour and is deleted once used (page reload)
       throw new HttpException(
         'This connection link expired or was already used, please connect the channel again',
-        400
+        400,
       );
     }
 
@@ -108,7 +108,7 @@ export class NoAuthIntegrationsController {
       picture,
       username,
       additionalSettings,
-      // eslint-disable-next-line no-async-promise-executor
+      // oxlint-disable-next-line no-async-promise-executor
     } = await new Promise<AuthTokenDetails>(async (res) => {
       try {
         const auth = await integrationProvider.authenticate(
@@ -117,7 +117,7 @@ export class NoAuthIntegrationsController {
             codeVerifier: getCodeVerifier,
             refresh: body.refresh,
           },
-          details ? JSON.parse(details) : undefined
+          details ? JSON.parse(details) : undefined,
         );
 
         if (typeof auth === 'string') {
@@ -138,7 +138,7 @@ export class NoAuthIntegrationsController {
             const newAuth = await integrationProvider.reConnect(
               auth.id,
               refresh,
-              auth.accessToken
+              auth.accessToken,
             );
             // keep the fresh refresh token and expiration from the new
             // authentication, otherwise the stored refresh token is wiped and
@@ -210,7 +210,7 @@ export class NoAuthIntegrationsController {
       org.isTrailing &&
       (await this._integrationService.checkPreviousConnections(
         org.id,
-        String(id)
+        String(id),
       ))
     ) {
       throw new HttpException('', 412);
@@ -227,7 +227,7 @@ export class NoAuthIntegrationsController {
         org.id,
         refresh,
         integration,
-        { id: String(id), username }
+        { id: String(id), username },
       );
     } else if (!refresh) {
       // A fresh connect of a migration target for an account the org already
@@ -236,7 +236,7 @@ export class NoAuthIntegrationsController {
       await this._integrationService.migrateIntegrationOnConnect(
         org.id,
         integration,
-        { id: String(id), username }
+        { id: String(id), username },
       );
     }
 
@@ -260,14 +260,14 @@ export class NoAuthIntegrationsController {
         details
           ? AuthService.fixedEncryption(details)
           : integrationProvider.customFields
-          ? AuthService.fixedEncryption(
-              Buffer.from(body.code, 'base64').toString()
-            )
-          : integrationProvider.isChromeExtension
-          ? AuthService.fixedEncryption(
-              Buffer.from(body.code, 'base64').toString()
-            )
-          : undefined
+            ? AuthService.fixedEncryption(
+                Buffer.from(body.code, 'base64').toString(),
+              )
+            : integrationProvider.isChromeExtension
+              ? AuthService.fixedEncryption(
+                  Buffer.from(body.code, 'base64').toString(),
+                )
+              : undefined,
       );
 
     this._refreshIntegrationService
@@ -285,8 +285,8 @@ export class NoAuthIntegrationsController {
           'pages' in integrationProvider
             ? 'pages'
             : 'companies' in integrationProvider
-            ? 'companies'
-            : null;
+              ? 'companies'
+              : null;
 
         if (fetchMethod) {
           // @ts-ignore - dynamic method call
@@ -367,7 +367,7 @@ export class NoAuthIntegrationsController {
 
   @Post('/extension-refresh')
   async extensionRefreshCookies(
-    @Body() body: { jwt: string; cookies: string }
+    @Body() body: { jwt: string; cookies: string },
   ) {
     let payload: any;
     try {
@@ -394,7 +394,7 @@ export class NoAuthIntegrationsController {
 
     const integration = await this._integrationService.getIntegrationById(
       organizationId,
-      integrationId
+      integrationId,
     );
     if (
       !integration ||
@@ -422,7 +422,7 @@ export class NoAuthIntegrationsController {
     if (String(authResult.id) !== String(integration.internalId)) {
       await this._integrationService.refreshNeeded(
         organizationId,
-        integrationId
+        integrationId,
       );
       return { success: false, reason: 'account_mismatch' };
     }
@@ -446,8 +446,8 @@ export class NoAuthIntegrationsController {
       // stored encrypted like connectSocialMedia does, never signed: the
       // cookies JSON comes from the request
       AuthService.fixedEncryption(
-        Buffer.from(body.cookies, 'base64').toString()
-      )
+        Buffer.from(body.cookies, 'base64').toString(),
+      ),
     );
 
     return { success: true };

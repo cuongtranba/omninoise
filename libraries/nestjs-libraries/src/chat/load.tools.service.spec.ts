@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
@@ -27,7 +27,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule, ChatModule],
@@ -65,11 +65,11 @@ test('the schedule tool refuses an organization that reached its posts per month
       id: orgId,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN' }],
-    })
+    }),
   );
 
   await expect(
-    integrationSchedulePostTool.execute({ socialPost: [] }, { requestContext })
+    integrationSchedulePostTool.execute({ socialPost: [] }, { requestContext }),
   ).rejects.toThrow(/maximum number of posts/);
 });
 
@@ -86,14 +86,14 @@ test('the schedule tool runs when the organization is within its limits', async 
       id: orgId,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN' }],
-    })
+    }),
   );
 
   expect(
     await integrationSchedulePostTool.execute(
       { socialPost: [] },
-      { requestContext }
-    )
+      { requestContext },
+    ),
   ).toEqual({ output: [] });
 });
 
@@ -137,7 +137,7 @@ test('a post created by the schedule tool is stored like one created from the da
         },
       ],
     },
-    'WEB'
+    'WEB',
   );
 
   const { integrationSchedulePostTool } = await moduleRef
@@ -150,7 +150,7 @@ test('a post created by the schedule tool is stored like one created from the da
       id: orgId,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN' }],
-    })
+    }),
   );
   const mcpResult = await integrationSchedulePostTool.execute(
     {
@@ -168,7 +168,7 @@ test('a post created by the schedule tool is stored like one created from the da
         },
       ],
     },
-    { requestContext }
+    { requestContext },
   );
 
   // media ids are generated per request
@@ -221,7 +221,7 @@ test('the schedule tool creates nothing when one of its posts is invalid', async
       id: orgId,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN' }],
-    })
+    }),
   );
   const socialPost = (content: string) => ({
     integrationId: integration.id,
@@ -235,7 +235,7 @@ test('the schedule tool creates nothing when one of its posts is invalid', async
 
   const result = await integrationSchedulePostTool.execute(
     { socialPost: [socialPost('<p>valid</p>'), socialPost('')] },
-    { requestContext }
+    { requestContext },
   );
 
   expect(result).toEqual({
@@ -244,6 +244,6 @@ test('the schedule tool creates nothing when one of its posts is invalid', async
     },
   });
   expect(
-    await prisma.post.count({ where: { integrationId: integration.id } })
+    await prisma.post.count({ where: { integrationId: integration.id } }),
   ).toBe(0);
 });

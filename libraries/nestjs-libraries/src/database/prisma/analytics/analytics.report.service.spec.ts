@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -46,7 +46,7 @@ class FakeProvider extends BlueskyProvider {
     id: string,
     accessToken: string,
     days: number,
-    offset?: number
+    offset?: number,
   ) {
     const served = this.served[id];
     return offset ? served.previous : served.current;
@@ -77,7 +77,7 @@ const notifications = new NotificationService(
   new NotificationsRepository(repo, repo),
   new EmailService(queue),
   new OrganizationRepository(repo, repo, repo),
-  queue
+  queue,
 );
 const refresh = new NoRefresh(manager, queue);
 const integrations = new IntegrationService(
@@ -86,7 +86,7 @@ const integrations = new IntegrationService(
   manager,
   notifications,
   refresh,
-  queue
+  queue,
 );
 
 const days = 7;
@@ -133,13 +133,13 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
   orgId = (await prisma.organization.create({ data: { name: 'analytics' } }))
     .id;
 
   const moduleRef = (await Test.createTestingModule({}).compile()).get(
-    ModuleRef
+    ModuleRef,
   );
   const openai = new OpenaiService();
   const media = new MediaService(
@@ -150,11 +150,11 @@ beforeAll(async () => {
       integrations,
       new OrganizationService(
         new OrganizationRepository(repo, repo, repo),
-        notifications
-      )
+        notifications,
+      ),
     ),
     new VideoManager(moduleRef),
-    queue
+    queue,
   );
   const posts = new PostsService(
     new PostsRepository(repo, repo, repo, repo, repo, repo),
@@ -164,7 +164,7 @@ beforeAll(async () => {
     new ShortLinkService(),
     openai,
     queue,
-    refresh
+    refresh,
   );
   report = new AnalyticsReportService(integrations, manager, posts);
 });
@@ -179,20 +179,20 @@ test('compares with the previous window only when it ends before the current one
   const current = [
     metric(
       'impressions',
-      [0, 1, 2, 3, 4, 5, 6].map((d) => point(d, 20))
+      [0, 1, 2, 3, 4, 5, 6].map((d) => point(d, 20)),
     ),
   ];
   const olderWindow = [
     metric(
       'impressions',
-      [10, 10, 10, 10, 20, 20, 20].map((total, i) => point(8 + i, total))
+      [10, 10, 10, 10, 20, 20, 20].map((total, i) => point(8 + i, total)),
     ),
   ];
   // A provider that ignores the offset serves points of the current window again
   const sameWindow = [
     metric(
       'impressions',
-      [0, 1, 2, 3, 4, 5, 6].map((d) => point(d, 10))
+      [0, 1, 2, 3, 4, 5, 6].map((d) => point(d, 10)),
     ),
   ];
 
@@ -208,12 +208,12 @@ test('compares with the previous window only when it ends before the current one
   const [honestMetric] = await integrations.checkAnalytics(
     { id: orgId },
     honest,
-    String(days)
+    String(days),
   );
   const [ignoringMetric] = await integrations.checkAnalytics(
     { id: orgId },
     ignoresOffset,
-    String(days)
+    String(days),
   );
 
   expect([honestMetric.percentageChange, honestMetric.previousTotal]).toEqual([

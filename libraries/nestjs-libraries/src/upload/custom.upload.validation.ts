@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { pipeline, Readable, Transform } from 'stream';
 import { IUploadProvider } from './upload.interface';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// oxlint-disable-next-line typescript/no-require-imports -- file-type is ESM-only
 const { fileTypeStream } = require('file-type');
 
 // What users may put in the media library, whether by multipart upload or
@@ -51,7 +51,7 @@ export function maxSizeStream(maxSize: number) {
 export async function uploadStreamToStorage(
   storage: IUploadProvider,
   webStream: ReadableStream,
-  declaredSize = 0
+  declaredSize = 0,
 ) {
   let sniffed: ReadableStream & { fileType?: { mime: string; ext: string } };
   try {
@@ -75,14 +75,14 @@ export async function uploadStreamToStorage(
   const body = pipeline(
     Readable.fromWeb(sniffed as any),
     maxSizeStream(maxSize),
-    () => {}
+    () => {},
   );
 
   try {
     const uploaded = await storage.uploadStream(
       body,
       detected.mime,
-      detected.ext
+      detected.ext,
     );
     return { ...uploaded, ext: detected.ext };
   } catch (err) {

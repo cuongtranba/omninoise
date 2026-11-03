@@ -82,8 +82,8 @@ export const ButtonCaster: FC<{
       new TrustWalletAdapter(),
       new XDEFIWalletAdapter(),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [network]
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [network],
   );
   return (
     <ConnectionProvider endpoint={endpoint}>
@@ -135,7 +135,7 @@ const InnerWallet = () => {
     try {
       const challenge = await (
         await fetch(
-          `/auth/oauth/WALLET?publicKey=${wallet?.publicKey?.toString()}`
+          `/auth/oauth/WALLET?publicKey=${wallet?.publicKey?.toString()}`,
         )
       ).text();
       const encoded = new TextEncoder().encode(challenge);
@@ -146,7 +146,7 @@ const InnerWallet = () => {
           signature: Buffer.from(signed).toString('hex'),
           challenge,
           publicKey: wallet?.publicKey?.toString(),
-        })
+        }),
       ).toString('base64');
       window.location.href = `/auth?provider=WALLET&code=${info}`;
     } catch (err) {

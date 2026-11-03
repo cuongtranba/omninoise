@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { toolList } from '@gitroom/nestjs-libraries/chat/tools/tool.list';
@@ -166,11 +166,11 @@ const parseRoutes = (dir: string): string[] => {
     // a decorator argument that is not a plain string (array, template with
     // variables, constant) would be skipped silently, so refuse it
     const unsupported = source.match(
-      /^[ \t]*@(Controller|Get|Post|Put|Delete|Patch|All)\(\s*[^'"`)\s][^\n]*/m
+      /^[ \t]*@(Controller|Get|Post|Put|Delete|Patch|All)\(\s*[^'"`)\s][^\n]*/m,
     );
     if (unsupported) {
       throw new Error(
-        `Unsupported route decorator in ${file}: ${unsupported[0]}`
+        `Unsupported route decorator in ${file}: ${unsupported[0]}`,
       );
     }
     let prefix = '';
@@ -204,13 +204,13 @@ test('the route parser finds the web and public API routes', () => {
 
 test('every web route is mirrored by an MCP tool or excluded with a reason', () => {
   const uncovered = webRoutes.filter(
-    (route) => !mirrored.has(route) && !(route in EXCLUDED)
+    (route) => !mirrored.has(route) && !(route in EXCLUDED),
   );
   expect(
     uncovered,
     `These web routes have no MCP counterpart:\n${uncovered.join('\n')}\n` +
       `Every web route needs an MCP tool (in ${toolsDir}, registered in tool.list.ts) whose \`mirrors\` lists the route and that calls the same service method, ` +
-      `or an entry in EXCLUDED in ${__filename} with the specific reason it has no MCP equivalent.`
+      `or an entry in EXCLUDED in ${__filename} with the specific reason it has no MCP equivalent.`,
   ).toEqual([]);
 });
 
@@ -219,7 +219,7 @@ test('every tool mirror points at an existing route', () => {
   const stale = tools.flatMap((tool) =>
     tool.mirrors
       .filter((route) => !known.has(route))
-      .map((route) => `${tool.name}: ${route}`)
+      .map((route) => `${tool.name}: ${route}`),
   );
   expect(stale, `Stale \`mirrors\` entries:\n${stale.join('\n')}`).toEqual([]);
 });
@@ -236,8 +236,8 @@ test('EXCLUDED only lists existing routes that no tool mirrors', () => {
 test('tools go through services, never a repository or Prisma', () => {
   const offenders = list(toolsDir, '.ts').filter((file) =>
     /from\s+['"][^'"]*\.repository['"]|PrismaService|PrismaRepository/.test(
-      readFileSync(file, 'utf8')
-    )
+      readFileSync(file, 'utf8'),
+    ),
   );
   expect(offenders).toEqual([]);
 });

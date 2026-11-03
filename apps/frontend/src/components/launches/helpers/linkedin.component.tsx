@@ -15,7 +15,7 @@ export const ShowLinkedinCompany = () => {
   const [id, setId] = useState('');
   const [callback, setCallback] = useState<{
     callback: (tag: string) => void;
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    // oxlint-disable-next-line @typescript-eslint/no-empty-function
   } | null>({
     callback: (tag: string) => {},
   } as any);
@@ -26,7 +26,7 @@ export const ShowLinkedinCompany = () => {
         setCallback(params);
         setId(params.id);
         setShowPostSelector(true);
-      }
+      },
     );
     return () => {
       setShowPostSelector(false);
@@ -171,4 +171,3 @@ export const LinkedinCompany: FC<{
     </div>
   );
 };
-

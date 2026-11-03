@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import {
   getSsrfSafeAxios,
   ssrfSafeDispatcher,
@@ -20,7 +20,7 @@ afterAll(() => {
 
 test('fetch with the SSRF dispatcher refuses a loopback IP literal', async () => {
   await expect(
-    fetch(url, { dispatcher: ssrfSafeDispatcher } as any)
+    fetch(url, { dispatcher: ssrfSafeDispatcher } as any),
   ).rejects.toThrow();
 });
 

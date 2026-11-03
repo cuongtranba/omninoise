@@ -81,7 +81,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   }
 
   override async checkValidity(
-    items: Array<ValidityMedia[]>
+    items: Array<ValidityMedia[]>,
   ): Promise<string | true> {
     const [firstItems] = items ?? [];
     if (items?.[0]?.length !== 1) {
@@ -249,7 +249,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body',
         value:
-          'Your video was uploaded to YouTube successfully, but we could not set the thumbnail: custom thumbnails require a phone-verified YouTube channel. Verify your channel at youtube.com/verify, and set this video\'s thumbnail manually in YouTube Studio.',
+          "Your video was uploaded to YouTube successfully, but we could not set the thumbnail: custom thumbnails require a phone-verified YouTube channel. Verify your channel at youtube.com/verify, and set this video's thumbnail manually in YouTube Studio.",
       };
     }
 
@@ -418,7 +418,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   async reConnect(
     id: string,
     requiredId: string,
-    accessToken: string
+    accessToken: string,
   ): Promise<Omit<AuthTokenDetails, 'refreshToken' | 'expiresIn'>> {
     const { client, youtube } = clientAndYoutube();
     client.setCredentials({ access_token: accessToken });
@@ -479,7 +479,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           '{}',
-          'Could not determine the video size for the YouTube upload'
+          'Could not determine the video size for the YouTube upload',
         );
       }
       return Number(length);
@@ -497,7 +497,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       // with the requested range: a transformed (compressed) response loses
       // its length, and a length-less object is answered with the full body.
       setHeartbeatDetails(
-        `youtube: read media ${start}-${end} ${stripQuery(path)}`
+        `youtube: read media ${start}-${end} ${stripQuery(path)}`,
       );
       const response = await fetch(path, {
         headers: {
@@ -514,7 +514,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           '{}',
-          'The media storage did not return the requested byte range, please try again'
+          'The media storage did not return the requested byte range, please try again',
         );
       }
 
@@ -534,7 +534,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   private async probeUploadSession(
     accessToken: string,
     uploadUri: string,
-    videoSize: number
+    videoSize: number,
   ): Promise<{ videoId: string } | { uploadedBytes: number }> {
     setHeartbeatDetails('youtube: probe resumable session');
     const probe = await fetch(uploadUri, {
@@ -564,7 +564,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     // permanently failing a resumable upload.
     if (probe.status === 429 || probe.status >= 500) {
       throw new Error(
-        `YouTube upload status check failed with ${probe.status}`
+        `YouTube upload status check failed with ${probe.status}`,
       );
     }
 
@@ -582,7 +582,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       '{}',
       probe.status === 404 || probe.status === 410
         ? 'The upload session expired before the video was uploaded, please post again'
-        : handleError?.value || 'Failed to check the video upload status'
+        : handleError?.value || 'Failed to check the video upload status',
     );
   }
 
@@ -590,7 +590,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration
+    integration: Integration,
   ): Promise<PostResponse[]> {
     const [firstPost, ...comments] = postDetails;
 
@@ -624,7 +624,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
             selfDeclaredMadeForKids: settings.selfDeclaredMadeForKids === 'yes',
           },
         }),
-      }
+      },
     );
 
     const uploadUri = session.headers.get('location');
@@ -633,7 +633,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
         this.identifier,
         '{}',
         '{}',
-        'Could not start the video upload, please try again'
+        'Could not start the video upload, please try again',
       );
     }
 
@@ -669,14 +669,14 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       videoId?: string;
       postDbId?: string;
     },
-    integration: Integration
+    integration: Integration,
   ): Promise<PendingCheckResponse> {
     let probe: { videoId: string } | { uploadedBytes: number };
     try {
       probe = await this.probeUploadSession(
         accessToken,
         pendingData.uploadUri,
-        pendingData.videoSize
+        pendingData.videoSize,
       );
     } catch (err) {
       if (err instanceof RefreshToken || err instanceof BadBody) {
@@ -721,7 +721,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       videoId?: string;
       postDbId?: string;
     },
-    integration: Integration
+    integration: Integration,
   ): Promise<PendingCheckResponse> {
     let videoId = pendingData.videoId;
 
@@ -731,7 +731,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       const probe = await this.probeUploadSession(
         accessToken,
         pendingData.uploadUri,
-        pendingData.videoSize
+        pendingData.videoSize,
       );
 
       if ('uploadedBytes' in probe) {
@@ -751,12 +751,12 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           const end =
             Math.min(
               uploaded + YoutubeProvider.YOUTUBE_CHUNK_SIZE,
-              pendingData.videoSize
+              pendingData.videoSize,
             ) - 1;
           const body = await this.youtubeChunkStream(
             pendingData.path,
             uploaded,
-            end
+            end,
           );
 
           setHeartbeatDetails('youtube: upload chunk to google');
@@ -802,7 +802,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           // whole upload.
           if (upload.status === 429 || upload.status >= 500) {
             throw new Error(
-              `YouTube chunk upload failed with ${upload.status}`
+              `YouTube chunk upload failed with ${upload.status}`,
             );
           }
 
@@ -816,7 +816,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
             this.identifier,
             text,
             '{}',
-            handleError?.value || 'Failed to upload the video to YouTube'
+            handleError?.value || 'Failed to upload the video to YouTube',
           );
         }
 
@@ -852,7 +852,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
                 })
               ).data,
             },
-          })
+          }),
         );
       } catch (err) {
         // the video is already live: a rejected thumbnail must not lose its id
@@ -864,7 +864,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
             pendingData.postDbId,
             videoId,
             releaseURL,
-            err.message
+            err.message,
           );
         }
         throw err;
@@ -885,13 +885,13 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     postDetails: PostDetails[],
-    integration: Integration
+    integration: Integration,
   ): Promise<PostResponse[]> {
     const [response] = await this.postPending(
       id,
       accessToken,
       postDetails,
-      integration
+      integration,
     );
 
     if (response.status !== 'pending') {
@@ -901,7 +901,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     let pendingData = response.pendingData;
     const started = Date.now();
 
-    // eslint-disable-next-line no-constant-condition
+    // oxlint-disable-next-line no-constant-condition
     while (true) {
       // Cap below the 10-minute activity timeout of the old workflows using
       // this method, leaving room for one more full upload batch: failing here
@@ -915,14 +915,14 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           this.identifier,
           '{}',
           '{}',
-          'The video upload took too long, please try a smaller video'
+          'The video upload took too long, please try a smaller video',
         );
       }
 
       const finalize = await this.finalizePost(
         accessToken,
         pendingData,
-        integration
+        integration,
       );
 
       if (finalize.status === 'completed') {
@@ -944,16 +944,14 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     id: string,
     accessToken: string,
     date: number,
-    offset = 0
+    offset = 0,
   ): Promise<AnalyticsData[]> {
     try {
       // The window is `date` days (both bounds are inclusive) ending `offset`
       // days ago, so the previous period never shares a day with this one
       const endDay = dayjs().subtract(offset, 'day');
       const endDate = endDay.format('YYYY-MM-DD');
-      const startDate = endDay
-        .subtract(date - 1, 'day')
-        .format('YYYY-MM-DD');
+      const startDate = endDay.subtract(date - 1, 'day').format('YYYY-MM-DD');
 
       const { client, youtubeAnalytics } = clientAndYoutube();
       client.setCredentials({ access_token: accessToken });
@@ -979,7 +977,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       };
 
       const mappedData = await query(
-        'views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,likes,subscribersLost,dislikes,comments,shares'
+        'views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,likes,subscribersLost,dislikes,comments,shares',
       );
 
       // Asked apart so a report that refuses it can't hide the other metrics
@@ -990,7 +988,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
         metric: string,
         label: string,
         key: string,
-        average?: boolean
+        average?: boolean,
       ) => ({
         label,
         key,
@@ -1008,33 +1006,33 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           mappedData,
           'estimatedMinutesWatched',
           'Estimated Minutes Watched',
-          'minutes_watched'
+          'minutes_watched',
         ),
         series(
           mappedData,
           'averageViewDuration',
           'Average View Duration',
           'avg_watch_time',
-          true
+          true,
         ),
         series(
           mappedData,
           'averageViewPercentage',
           'Average View Percentage',
           'avg_view_percentage',
-          true
+          true,
         ),
         series(
           mappedData,
           'subscribersGained',
           'Subscribers Gained',
-          'subscribers_gained'
+          'subscribers_gained',
         ),
         series(
           mappedData,
           'subscribersLost',
           'Subscribers Lost',
-          'subscribers_lost'
+          'subscribers_lost',
         ),
         series(mappedData, 'likes', 'Likes', 'likes'),
         ...[
@@ -1054,7 +1052,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     integrationId: string,
     accessToken: string,
     postId: string,
-    date: number
+    date: number,
   ): Promise<AnalyticsData[]> {
     const today = dayjs().format('YYYY-MM-DD');
 
@@ -1166,12 +1164,12 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
         throw new RefreshToken(
           this.identifier,
           JSON.stringify(err.response.data || {}),
-          '{}'
+          '{}',
         );
       }
       console.error(
         'Error fetching YouTube post analytics:',
-        err?.message || err
+        err?.message || err,
       );
       return [];
     }

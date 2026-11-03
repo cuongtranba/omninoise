@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
@@ -50,7 +50,7 @@ const connection = (id: string, userId?: string) => {
       id,
       createdAt: new Date(),
       users: [{ role: 'SUPERADMIN', userId }],
-    })
+    }),
   );
   return { requestContext };
 };
@@ -70,7 +70,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule, ChatModule],
@@ -104,11 +104,11 @@ test('a media of another organization cannot be deleted or edited', async () => 
 
   const deleted = await tools.mediaManageTool.execute(
     { action: 'delete', id: mine.id },
-    connection(stranger)
+    connection(stranger),
   );
   const edited = await tools.mediaManageTool.execute(
     { action: 'update', id: mine.id, alt: 'changed' },
-    connection(stranger)
+    connection(stranger),
   );
 
   expect(deleted.output).toHaveProperty('errors');
@@ -126,7 +126,7 @@ test('a deleted media leaves the media library', async () => {
 
   const result = await tools.mediaManageTool.execute(
     { action: 'delete', id: mine.id },
-    connection(owner)
+    connection(owner),
   );
 
   expect(result.output).toEqual({ deleted: { id: mine.id } });
@@ -142,12 +142,12 @@ test('an image is not generated and no media is saved when the account has no AI
   try {
     const result = await tools.generateImageTool.execute(
       { prompt: 'a red bicycle', writePromptFirst: true },
-      connection(owner)
+      connection(owner),
     );
 
     expect(result.error).toMatch(/credits/);
     expect(await prisma.media.count({ where: { organizationId: owner } })).toBe(
-      0
+      0,
     );
   } finally {
     delete process.env.STRIPE_PUBLISHABLE_KEY;
@@ -197,7 +197,7 @@ test('the AI credits used in the current billing period are subtracted for an or
     const requestContext = new RequestContext();
     requestContext.set(
       'organization',
-      JSON.stringify({ ...loaded, users: [{ role: 'SUPERADMIN' }] })
+      JSON.stringify({ ...loaded, users: [{ role: 'SUPERADMIN' }] }),
     );
     const result = await tools.aiCreditsTool.execute({}, { requestContext });
 
@@ -221,11 +221,11 @@ test('the notifications of another organization are never listed', async () => {
 
   const result = await tools.notificationsTool.execute(
     { action: 'list' },
-    connection(stranger, reader)
+    connection(stranger, reader),
   );
 
   expect(
-    result.output.notifications.map((n: { content: string }) => n.content)
+    result.output.notifications.map((n: { content: string }) => n.content),
   ).toEqual([`own-${run}`]);
 });
 
@@ -234,7 +234,7 @@ test('notifications cannot be read through an API key because they belong to a u
 
   const result = await tools.notificationsTool.execute(
     { action: 'unread' },
-    connection(owner)
+    connection(owner),
   );
 
   expect(result.output).toHaveProperty('errors');
@@ -255,13 +255,13 @@ test('opening the notifications marks them as read for that user only', async ()
 
   await tools.notificationsTool.execute(
     { action: 'list' },
-    connection(owner, first)
+    connection(owner, first),
   );
 
   const unread = (userId: string) =>
     tools.notificationsTool.execute(
       { action: 'unread' },
-      connection(owner, userId)
+      connection(owner, userId),
     );
   expect((await unread(first)).output).toEqual({ total: 0 });
   expect((await unread(second)).output).toEqual({ total: 1 });
@@ -280,15 +280,15 @@ test('the copilot conversations of another organization are not visible', async 
 
   const own = await tools.copilotThreadsTool.execute(
     { action: 'list' },
-    connection(owner)
+    connection(owner),
   );
   const foreign = await tools.copilotThreadsTool.execute(
     { action: 'list' },
-    connection(stranger)
+    connection(stranger),
   );
   const foreignMessages = await tools.copilotThreadsTool.execute(
     { action: 'messages', id: threadId },
-    connection(stranger)
+    connection(stranger),
   );
 
   expect(own.output.threads).toEqual([
@@ -315,7 +315,7 @@ test('the analytics of a channel of another organization are refused', async () 
 
   const result = await tools.analyticsTool.execute(
     { integrationId: mine.id },
-    connection(stranger)
+    connection(stranger),
   );
 
   expect(result.output).toEqual({ errors: 'Invalid integration' });

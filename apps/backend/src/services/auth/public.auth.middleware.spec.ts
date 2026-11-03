@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { Test } from '@nestjs/testing';
@@ -38,7 +38,7 @@ const authenticate = async (authorization: string) => {
   let passed = false;
   await new PublicAuthMiddleware(
     moduleRef.get(OrganizationService),
-    moduleRef.get(OAuthService)
+    moduleRef.get(OAuthService),
   ).use(req, res, () => {
     passed = true;
   });
@@ -89,7 +89,7 @@ beforeAll(async () => {
       '--schema',
       'libraries/nestjs-libraries/src/database/prisma/schema.prisma',
     ],
-    { env: process.env, stdio: 'pipe' }
+    { env: process.env, stdio: 'pipe' },
   );
   moduleRef = await Test.createTestingModule({
     imports: [DatabaseModule, JobsModule],

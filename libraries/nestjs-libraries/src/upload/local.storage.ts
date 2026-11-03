@@ -6,7 +6,7 @@ import { pipeline } from 'stream/promises';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { parseDataUrl } from '@gitroom/nestjs-libraries/upload/data.url';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// oxlint-disable-next-line typescript/no-require-imports -- file-type is ESM-only
 const { fileTypeFromBuffer } = require('file-type');
 
 const LOCAL_STORAGE_ALLOWED_MIME = new Set<string>([
@@ -110,7 +110,7 @@ export class LocalStorage implements IUploadProvider {
   async uploadStream(
     stream: Readable,
     mimetype: string,
-    ext: string
+    ext: string,
   ): Promise<UploadedStream> {
     try {
       if (!LOCAL_STORAGE_ALLOWED_MIME.has(mimetype)) {
@@ -147,7 +147,7 @@ export class LocalStorage implements IUploadProvider {
     const localPath = resolve(
       filePath.startsWith(publicPrefix)
         ? this.uploadDirectory + filePath.slice(publicPrefix.length)
-        : filePath
+        : filePath,
     );
     if (!localPath.startsWith(base + sep)) {
       throw new Error('Unsafe file path');
