@@ -31,7 +31,7 @@ flowchart LR
 | Part | Path | Role |
 | --- | --- | --- |
 | Backend | `apps/backend` | NestJS API. Writes data with Prisma and enqueues jobs; it never runs them. |
-| Frontend | `apps/frontend` | Next.js + React UI, served behind nginx. |
+| Frontend | `apps/frontend` | Next.js (React) UI, served behind nginx. |
 | Orchestrator | `apps/orchestrator` | Job worker. Publishes posts at their scheduled time, refreshes tokens, sends emails and digests, runs autopost. Handlers are in `apps/orchestrator/src/jobs`. |
 | Shared code | `libraries/` | Services, Prisma schema, providers and React components shared by the apps. |
 
@@ -109,7 +109,7 @@ Every push to `main` runs `.github/workflows/deploy.yml`:
 
 1. The checks in `.github/workflows/build.yml` (lint and format check, build and the Postgres tests),
    which also run on every pull request.
-2. Build `Dockerfile.dev` for amd64 and arm64 and publish
+2. Build `Dockerfile` for amd64 and arm64 and publish
    `ghcr.io/cuongtranba/omninoise:sha-<short sha>`. There is no `latest` tag.
 3. Write that tag into `deploy/compose.yaml`, push the file to Dokploy
    (`compose.update`), start a deployment (`compose.deploy`) and wait for it.

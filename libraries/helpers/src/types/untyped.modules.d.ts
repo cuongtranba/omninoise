@@ -1,6 +1,6 @@
 // Type declarations for package entry points that ship none, or that
 // `moduleResolution: node` cannot see. The tsconfig.json of apps/backend,
-// apps/orchestrator, apps/commands and apps/frontend lists this file in its
+// apps/orchestrator and apps/frontend lists this file in its
 // include, so their type checks pick it up.
 
 declare module 'evp_bytestokey' {

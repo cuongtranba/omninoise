@@ -18,7 +18,7 @@ const DDL = [
 const LIVE = '(kv_store.expires_at IS NULL OR kv_store.expires_at > now())';
 
 /**
- * The small subset of the ioredis API Postiz uses, backed by an UNLOGGED
+ * The small subset of the Redis client API Postiz uses, backed by an UNLOGGED
  * Postgres table. Expired rows count as absent everywhere.
  */
 class PostgresKeyValue {
