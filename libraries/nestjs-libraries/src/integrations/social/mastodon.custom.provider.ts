@@ -15,6 +15,14 @@ export class MastodonCustomProvider extends MastodonProvider {
   override maxConcurrentJob = 5; // Custom Mastodon instances typically have generous limits
   editor = 'normal' as const;
 
+  constructor() {
+    super();
+    // Analytics read from the default instance, a custom instance url is not
+    // known to them
+    this.analytics = undefined;
+    this.postAnalytics = undefined;
+  }
+
   async externalUrl(url: string) {
     const form = new FormData();
     form.append('client_name', 'Omninoise');

@@ -6,12 +6,24 @@ import { TotalList } from '@gitroom/frontend/components/analytics/stars.and.fork
 import { chunk } from 'lodash';
 import useCookie from 'react-use-cookie';
 
-function mergeDataPoints(data: TotalList[], numPoints: number): TotalList[] {
+// A merged point follows the metric: summed, averaged (rates) or the latest
+// value (counts such as followers)
+function mergeDataPoints(
+  data: TotalList[],
+  numPoints: number,
+  aggregate: 'sum' | 'average' | 'last'
+): TotalList[] {
   const res = chunk(data, Math.ceil(data.length / numPoints));
   return res.map((row) => {
+    const sum = row.reduce((acc, curr) => acc + Number(curr.total), 0);
     return {
       date: `${row[0].date} - ${row?.at(-1)?.date}`,
-      total: row.reduce((acc, curr) => acc + curr.total, 0),
+      total:
+        aggregate === 'last'
+          ? Number(row.at(-1)!.total)
+          : aggregate === 'average'
+          ? sum / row.length
+          : sum,
     };
   });
 }
@@ -19,12 +31,14 @@ function mergeDataPoints(data: TotalList[], numPoints: number): TotalList[] {
 export const ChartSocial: FC<{
   data: TotalList[];
   color?: 'purple' | 'green' | 'blue';
+  aggregate?: 'sum' | 'average' | 'last';
 }> = (props) => {
-  const { data, color = 'purple' } = props;
+  const { data, color = 'purple', aggregate = 'sum' } = props;
   const [mode] = useCookie('mode', 'dark');
 
   const list = useMemo(() => {
-    const merged = data.length < 7 ? data : mergeDataPoints(data, 7);
+    const merged =
+      data.length < 7 ? data : mergeDataPoints(data, 7, aggregate);
     if (merged.length === 1) {
       return [
         // duplicating single datapoints metrics for chart to display a line on analytics
@@ -33,7 +47,7 @@ export const ChartSocial: FC<{
       ];
     }
     return merged;
-  }, [data]);
+  }, [data, aggregate]);
 
   const ref = useRef<any>(null);
   const chart = useRef<null | DrawChart>(null);

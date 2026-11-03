@@ -664,6 +664,13 @@ model Webhooks {
   name           String
   organizationId String
   url            String
+  type           String                 @default("post.published")
+  schedule       String?
+  lookbackDays   Int?
+  metrics        String[]               @default([])
+  sections       String[]               @default([])
+  topPostsLimit  Int?
+  lastSentAt     DateTime?
   deletedAt      DateTime?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt

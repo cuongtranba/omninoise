@@ -47,6 +47,8 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     return 63206;
   }
   dto = FacebookDto;
+  analyticsDays = [7, 30, 90];
+  analyticsPreviousPeriod = true;
 
   override async checkValidity(
     [firstPost]: Array<ValidityMedia[]>,
@@ -1029,10 +1031,13 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset = 0
   ): Promise<AnalyticsData[]> {
-    const until = dayjs().endOf('day').unix();
-    const since = dayjs().subtract(date, 'day').unix();
+    // The window ends `offset` days ago (the previous period of a trend)
+    const untilDay = dayjs().subtract(offset, 'day').endOf('day');
+    const until = untilDay.unix();
+    const since = untilDay.subtract(date, 'day').unix();
 
     // Reach/impression metrics (page_impressions_unique, page_posts_impressions_unique,
     // page_video_views) were deprecated by Meta on 2026-06-15 and now return an
@@ -1064,23 +1069,58 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       return Number(value) || 0;
     };
 
-    return (
-      data?.map((d: any) => ({
-        label:
-          d.name === 'page_total_media_view_unique'
-            ? 'Page Impressions'
-            : d.name === 'page_post_engagements'
-            ? 'Posts Engagement'
-            : d.name === 'page_daily_follows'
-            ? 'Page followers'
-            : 'Media views',
-        percentageChange: 5,
-        data: d?.values?.map((v: any) => ({
-          total: sumValue(v.value),
+    const metrics: Record<
+      string,
+      { label: string; key: string; scale?: number }
+    > = {
+      page_total_media_view_unique: { label: 'Page Impressions', key: 'reach' },
+      page_media_view: { label: 'Media views', key: 'impressions' },
+      page_post_engagements: { label: 'Posts Engagement', key: 'engagements' },
+      page_daily_follows: { label: 'Page followers', key: 'follower_change' },
+      page_views_total: { label: 'Page Views', key: 'profile_views' },
+      page_daily_unfollows_unique: { label: 'Unfollows', key: 'unfollows' },
+      // Meta returns the view time in milliseconds
+      page_video_view_time: {
+        label: 'Watch Time',
+        key: 'watch_time',
+        scale: 1 / 1000,
+      },
+      page_total_actions: { label: 'Page Clicks', key: 'clicks' },
+    };
+
+    // Newer metrics are asked one by one: Graph fails the whole request when a
+    // metric is invalid, and they must never break the metrics above.
+    const extra = await Promise.all(
+      [
+        'page_views_total',
+        'page_daily_unfollows_unique',
+        'page_video_view_time',
+        'page_total_actions',
+      ].map(async (metric) => {
+        try {
+          const result = await (
+            await fetch(
+              `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${id}/insights?metric=${metric}&access_token=${accessToken}&period=day&since=${since}&until=${until}`
+            )
+          ).json();
+          return result?.error ? [] : result?.data || [];
+        } catch (err) {
+          return [];
+        }
+      })
+    );
+
+    return [...(data || []), ...extra.flat()]
+      .filter((d: any) => metrics[d.name])
+      .map((d: any) => ({
+        label: metrics[d.name].label,
+        key: metrics[d.name].key,
+        percentageChange: 0,
+        data: (d?.values || []).map((v: any) => ({
+          total: sumValue(v.value) * (metrics[d.name].scale ?? 1),
           date: dayjs(v.end_time).format('YYYY-MM-DD'),
         })),
-      })) || []
-    );
+      }));
   }
 
   async postAnalytics(
@@ -1115,26 +1155,26 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
         )
       ).json();
 
-      if (!data || data.length === 0) {
-        return [];
-      }
-
       const result: AnalyticsData[] = [];
 
-      for (const metric of data) {
+      for (const metric of data || []) {
         const value = metric.values?.[0]?.value;
         if (value === undefined) continue;
 
         let label = '';
+        let key = '';
         let total = '';
 
         switch (metric.name) {
           case 'post_total_media_view_unique':
+            // Unique views of the media, which is the reach of the post
             label = 'Impressions';
+            key = 'reach';
             total = String(value);
             break;
           case 'post_clicks':
             label = 'Clicks';
+            key = 'clicks';
             total = String(value);
             break;
           case 'post_clicks_by_type':
@@ -1154,6 +1194,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
                 value as Record<string, number>
               ).reduce((sum: number, v: number) => sum + v, 0);
               label = 'Reactions';
+              key = 'likes';
               total = String(totalReactions);
             }
             break;
@@ -1162,11 +1203,53 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
         if (label) {
           result.push({
             label,
+            ...(key ? { key } : {}),
             percentageChange: 0,
             data: [{ total, date: today }],
           });
         }
       }
+
+      // Shares and comments only exist on the post node. Never fails the
+      // insights above: a refused request just adds nothing.
+      try {
+        const post = await (
+          await fetch(
+            `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${postId}?fields=shares,comments.summary(true).limit(0),reactions.summary(true).limit(0)&access_token=${accessToken}`
+          )
+        ).json();
+
+        if (!post?.error) {
+          const counts = [
+            { label: 'Shares', key: 'shares', value: post?.shares?.count },
+            {
+              label: 'Comments',
+              key: 'comments',
+              value: post?.comments?.summary?.total_count,
+            },
+            {
+              label: 'Reactions',
+              key: 'likes',
+              value: post?.reactions?.summary?.total_count,
+            },
+          ];
+
+          for (const count of counts) {
+            if (
+              count.value === undefined ||
+              result.some((r) => r.key === count.key)
+            ) {
+              continue;
+            }
+            result.push({
+              label: count.label,
+              key: count.key,
+              percentageChange: 0,
+              data: [{ total: String(count.value), date: today }],
+            });
+          }
+        }
+      } catch (err) {}
 
       return result;
     } catch (err) {
@@ -1229,15 +1312,18 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
         if (value === undefined) continue;
 
         let label = '';
+        let key = '';
         let total = '';
 
         switch (metric.name) {
           case 'total_video_views':
             label = 'Views';
+            key = 'video_views';
             total = String(value);
             break;
           case 'fb_reels_total_plays':
             label = 'Plays';
+            key = 'video_views';
             total = String(value);
             break;
           case 'total_video_reactions_by_type_total':
@@ -1248,6 +1334,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
                 value as Record<string, number>
               ).reduce((sum: number, v: number) => sum + v, 0);
               label = 'Reactions';
+              key = 'likes';
               total = String(totalReactions);
             }
             break;
@@ -1258,6 +1345,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
                 value as Record<string, number>
               ).reduce((sum: number, v: number) => sum + v, 0);
               label = 'Engagement';
+              key = 'engagements';
               total = String(totalActions);
             }
             break;
@@ -1266,6 +1354,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
         if (label) {
           result.push({
             label,
+            ...(key ? { key } : {}),
             percentageChange: 0,
             data: [{ total, date: today }],
           });

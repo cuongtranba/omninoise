@@ -47,6 +47,37 @@ export class WebhooksRepository {
     });
   }
 
+  getWebhookById(id: string, orgId?: string) {
+    return this._webhooks.model.webhooks.findFirst({
+      where: {
+        id,
+        ...(orgId ? { organizationId: orgId } : {}),
+        deletedAt: null,
+      },
+      include: {
+        integrations: {
+          select: {
+            integrationId: true,
+          },
+        },
+      },
+    });
+  }
+
+  setLastSent(id: string) {
+    return this._webhooks.model.webhooks.update({
+      where: {
+        id,
+      },
+      data: {
+        lastSentAt: new Date(),
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
   deleteWebhook(orgId: string, id: string) {
     return this._webhooks.model.webhooks.update({
       where: {
@@ -69,10 +100,22 @@ export class WebhooksRepository {
         organizationId: orgId,
         url: body.url,
         name: body.name,
+        type: body.type,
+        schedule: body.schedule,
+        lookbackDays: body.lookbackDays,
+        metrics: body.metrics,
+        sections: body.sections,
+        topPostsLimit: body.topPostsLimit,
       },
       update: {
         url: body.url,
         name: body.name,
+        type: body.type,
+        schedule: body.schedule,
+        lookbackDays: body.lookbackDays,
+        metrics: body.metrics,
+        sections: body.sections,
+        topPostsLimit: body.topPostsLimit,
       },
     });
 

@@ -2,12 +2,13 @@
 
 import useSWR from 'swr';
 import { useCallback, useMemo, useState } from 'react';
-import { capitalize, orderBy } from 'lodash';
+import { orderBy } from 'lodash';
 import clsx from 'clsx';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { RenderAnalytics } from '@gitroom/frontend/components/platform-analytics/render.analytics';
+import { OverviewAnalytics } from '@gitroom/frontend/components/platform-analytics/overview.analytics';
 import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
 import { useRouter } from 'next/navigation';
@@ -17,42 +18,21 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import useCookie from 'react-use-cookie';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
-const allowedIntegrations = [
-  'facebook',
-  'instagram',
-  'instagram-standalone',
-  'linkedin-page',
-  'tiktok',
-  'tiktok-business',
-  'youtube',
-  'gmb',
-  'pinterest',
-  'threads',
-  'x',
-];
-export const PlatformAnalytics = () => {
+const useAnalyticsIntegrations = () => {
   const fetch = useFetch();
-  const t = useT();
-  const router = useRouter();
   const { disableXAnalytics } = useVariables();
-
-  const [current, setCurrent] = useState(0);
-  const [key, setKey] = useState(7);
-  const [refresh, setRefresh] = useState(false);
-  const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
-  const toaster = useToaster();
   const load = useCallback(async () => {
-    const int = (
+    return (
       await (await fetch('/integrations/list')).json()
     ).integrations.filter((f: any) => {
       if (f.identifier === 'x' && disableXAnalytics) {
         return false;
       }
-      return true;
+      return !!f.analytics;
     });
-    return int.filter((f: any) => allowedIntegrations.includes(f.identifier));
-  }, []);
-  const { data, isLoading } = useSWR('analytics-list', load, {
+  }, [disableXAnalytics]);
+
+  return useSWR('analytics-list', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     revalidateIfStale: false,
@@ -61,6 +41,19 @@ export const PlatformAnalytics = () => {
     refreshWhenOffline: false,
     fallbackData: [],
   });
+};
+
+export const PlatformAnalytics = () => {
+  const t = useT();
+  const router = useRouter();
+
+  // -1 selects the Overview entry
+  const [current, setCurrent] = useState(-1);
+  const [key, setKey] = useState(7);
+  const [refresh, setRefresh] = useState(false);
+  const [collapseMenu, setCollapseMenu] = useCookie('collapseMenu', '0');
+  const toaster = useToaster();
+  const { data, isLoading } = useAnalyticsIntegrations();
   const sortedIntegrations = useMemo(() => {
     return orderBy(
       data,
@@ -72,71 +65,24 @@ export const PlatformAnalytics = () => {
     return sortedIntegrations[current];
   }, [current, sortedIntegrations]);
   const options = useMemo(() => {
-    if (!currentIntegration) {
-      return [];
-    }
-    const arr = [];
-    if (
-      [
-        'facebook',
-        'instagram',
-        'instagram-standalone',
-        'linkedin-page',
-        'pinterest',
-        'youtube',
-        'threads',
-        'gmb',
-        'x',
-        'tiktok',
-        'tiktok-business',
-      ].indexOf(currentIntegration.identifier) !== -1
-    ) {
-      arr.push({
-        key: 7,
-        value: t('7_days', '7 Days'),
-      });
-    }
-    if (
-      [
-        'facebook',
-        'instagram',
-        'instagram-standalone',
-        'linkedin-page',
-        'pinterest',
-        'youtube',
-        'threads',
-        'gmb',
-        'x',
-        'tiktok',
-        'tiktok-business',
-      ].indexOf(currentIntegration.identifier) !== -1
-    ) {
-      arr.push({
-        key: 30,
-        value: t('30_days', '30 Days'),
-      });
-    }
-    if (
-      ['facebook', 'linkedin-page', 'pinterest', 'youtube', 'x', 'gmb'].indexOf(
-        currentIntegration.identifier
-      ) !== -1
-    ) {
-      arr.push({
-        key: 90,
-        value: t('90_days', '90 Days'),
-      });
-    }
-    return arr;
-  }, [currentIntegration]);
+    const labels: Record<number, string> = {
+      7: t('7_days', '7 Days'),
+      30: t('30_days', '30 Days'),
+      90: t('90_days', '90 Days'),
+    };
+    const days = currentIntegration
+      ? currentIntegration.analyticsDays || []
+      : [7, 30, 90];
+    return days
+      .filter((day: number) => !!labels[day])
+      .map((day: number) => ({ key: day, value: labels[day] }));
+  }, [currentIntegration, t]);
   const keys = useMemo(() => {
-    if (!currentIntegration) {
-      return 7;
-    }
-    if (options.find((p) => p.key === key)) {
+    if (options.find((p: { key: number }) => p.key === key)) {
       return key;
     }
     return options[0]?.key;
-  }, [key, currentIntegration]);
+  }, [key, options]);
 
   if (isLoading) {
     return (
@@ -159,10 +105,6 @@ export const PlatformAnalytics = () => {
             'you_have_to_add_social_media_channels',
             'You have to add Social Media channels'
           )}
-        </div>
-        <div className="text-[20px]">
-          {t('supported', 'Supported:')}
-          {allowedIntegrations.map((p) => capitalize(p)).join(', ')}
         </div>
         <Button onClick={() => router.push('/launches')}>
           {t(
@@ -208,6 +150,45 @@ export const PlatformAnalytics = () => {
             </div>
           </div>
           <div className="flex gap-[15px] mobile:gap-[12px] flex-col mobile:flex-row mobile:overflow-x-auto mobile:ps-[12px] mobile:pt-[6px] mobile:pb-[6px] scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+            <div
+              onClick={() => {
+                setRefresh(true);
+                setTimeout(() => {
+                  setRefresh(false);
+                }, 10);
+                setCurrent(-1);
+              }}
+              className={clsx(
+                'flex gap-[12px] items-center group/profile justify-center hover:bg-boxHover rounded-e-[8px] mobile:shrink-0',
+                !!currentIntegration &&
+                  'opacity-20 hover:opacity-100 cursor-pointer'
+              )}
+            >
+              <div className="h-full w-[4px] -ms-[12px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity">
+                <SVGLine />
+              </div>
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-btnSimple text-btnText flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+              </div>
+              <div className="flex-1 whitespace-nowrap text-ellipsis overflow-hidden group-[.sidebar]:hidden mobile:hidden">
+                {t('analytics_overview', 'Overview')}
+              </div>
+            </div>
             {sortedIntegrations.map((integration, index) => (
               <div
                 key={integration.id}
@@ -227,7 +208,7 @@ export const PlatformAnalytics = () => {
                 }}
                 className={clsx(
                   'flex gap-[12px] items-center group/profile justify-center hover:bg-boxHover rounded-e-[8px] mobile:shrink-0',
-                  currentIntegration.id !== integration.id &&
+                  currentIntegration?.id !== integration.id &&
                     'opacity-20 hover:opacity-100 cursor-pointer'
                 )}
               >
@@ -287,9 +268,10 @@ export const PlatformAnalytics = () => {
                 name="date"
                 disableForm={true}
                 hideErrors={true}
+                value={keys}
                 onChange={(e) => setKey(+e.target.value)}
               >
-                {options.map((option) => (
+                {options.map((option: { key: number; value: string }) => (
                   <option key={option.key} value={option.key}>
                     {option.value}
                   </option>
@@ -297,6 +279,9 @@ export const PlatformAnalytics = () => {
               </Select>
             </div>
             <div className="flex-1">
+              {!!keys && !refresh && !currentIntegration && (
+                <OverviewAnalytics date={keys} />
+              )}
               {!!keys && !!currentIntegration && !refresh && (
                 <RenderAnalytics integration={currentIntegration} date={keys} />
               )}

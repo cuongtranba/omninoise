@@ -62,6 +62,8 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   name = 'YouTube';
   isBetweenSteps = true;
   dto = YoutubeSettingsDto;
+  analyticsDays = [7, 30, 90];
+  analyticsPreviousPeriod = true;
   scopes = [
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email',
@@ -941,86 +943,108 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset = 0
   ): Promise<AnalyticsData[]> {
     try {
-      const endDate = dayjs().format('YYYY-MM-DD');
-      const startDate = dayjs().subtract(date, 'day').format('YYYY-MM-DD');
+      // The window is `date` days (both bounds are inclusive) ending `offset`
+      // days ago, so the previous period never shares a day with this one
+      const endDay = dayjs().subtract(offset, 'day');
+      const endDate = endDay.format('YYYY-MM-DD');
+      const startDate = endDay
+        .subtract(date - 1, 'day')
+        .format('YYYY-MM-DD');
 
       const { client, youtubeAnalytics } = clientAndYoutube();
       client.setCredentials({ access_token: accessToken });
 
       const youtubeClient = youtubeAnalytics(client);
-      const { data } = await youtubeClient.reports.query({
-        ids: 'channel==MINE',
-        startDate,
-        endDate,
-        metrics:
-          'views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,likes,subscribersLost',
-        dimensions: 'day',
-        sort: 'day',
-      });
+      const query = async (metrics: string) => {
+        const { data } = await youtubeClient.reports.query({
+          ids: 'channel==MINE',
+          startDate,
+          endDate,
+          metrics,
+          dimensions: 'day',
+          sort: 'day',
+        });
 
-      const columns = data?.columnHeaders?.map((p) => p.name)!;
-      const mappedData = data?.rows?.map((p) => {
-        return columns.reduce((acc, curr, index) => {
-          acc[curr!] = p[index];
-          return acc;
-        }, {} as any);
-      });
+        const columns = data?.columnHeaders?.map((p) => p.name)!;
+        return data?.rows?.map((p) => {
+          return columns.reduce((acc, curr, index) => {
+            acc[curr!] = p[index];
+            return acc;
+          }, {} as any);
+        });
+      };
 
-      const acc = [] as any[];
-      acc.push({
-        label: 'Estimated Minutes Watched',
-        data: mappedData?.map((p: any) => ({
-          total: p.estimatedMinutesWatched,
+      const mappedData = await query(
+        'views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,likes,subscribersLost,dislikes,comments,shares'
+      );
+
+      // Asked apart so a report that refuses it can't hide the other metrics
+      const engagedData = await query('engagedViews').catch(() => undefined);
+
+      const series = (
+        data: any[] | undefined,
+        metric: string,
+        label: string,
+        key: string,
+        average?: boolean
+      ) => ({
+        label,
+        key,
+        ...(average ? { average: true } : {}),
+        percentageChange: 0,
+        data: data?.map((p: any) => ({
+          total: p[metric],
           date: p.day,
         })),
       });
 
-      acc.push({
-        label: 'Average View Duration',
-        average: true,
-        data: mappedData?.map((p: any) => ({
-          total: p.averageViewDuration,
-          date: p.day,
-        })),
-      });
-
-      acc.push({
-        label: 'Average View Percentage',
-        average: true,
-        data: mappedData?.map((p: any) => ({
-          total: p.averageViewPercentage,
-          date: p.day,
-        })),
-      });
-
-      acc.push({
-        label: 'Subscribers Gained',
-        data: mappedData?.map((p: any) => ({
-          total: p.subscribersGained,
-          date: p.day,
-        })),
-      });
-
-      acc.push({
-        label: 'Subscribers Lost',
-        data: mappedData?.map((p: any) => ({
-          total: p.subscribersLost,
-          date: p.day,
-        })),
-      });
-
-      acc.push({
-        label: 'Likes',
-        data: mappedData?.map((p: any) => ({
-          total: p.likes,
-          date: p.day,
-        })),
-      });
-
-      return acc;
+      return [
+        // The original metrics keep their label and unit (public API)
+        series(
+          mappedData,
+          'estimatedMinutesWatched',
+          'Estimated Minutes Watched',
+          'minutes_watched'
+        ),
+        series(
+          mappedData,
+          'averageViewDuration',
+          'Average View Duration',
+          'avg_watch_time',
+          true
+        ),
+        series(
+          mappedData,
+          'averageViewPercentage',
+          'Average View Percentage',
+          'avg_view_percentage',
+          true
+        ),
+        series(
+          mappedData,
+          'subscribersGained',
+          'Subscribers Gained',
+          'subscribers_gained'
+        ),
+        series(
+          mappedData,
+          'subscribersLost',
+          'Subscribers Lost',
+          'subscribers_lost'
+        ),
+        series(mappedData, 'likes', 'Likes', 'likes'),
+        ...[
+          series(mappedData, 'views', 'Views', 'video_views'),
+          series(engagedData, 'engagedViews', 'Engaged Views', 'engaged_views'),
+          series(mappedData, 'dislikes', 'Dislikes', 'dislikes'),
+          series(mappedData, 'comments', 'Comments', 'comments'),
+          series(mappedData, 'shares', 'Shares', 'shares'),
+        ].filter((p) => p.data?.length),
+      ];
     } catch (err) {
       return [];
     }
@@ -1035,7 +1059,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     const today = dayjs().format('YYYY-MM-DD');
 
     try {
-      const { client, youtube } = clientAndYoutube();
+      const { client, youtube, youtubeAnalytics } = clientAndYoutube();
       client.setCredentials({ access_token: accessToken });
       const youtubeClient = youtube(client);
 
@@ -1057,6 +1081,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       if (stats.viewCount !== undefined) {
         result.push({
           label: 'Views',
+          key: 'video_views',
           percentageChange: 0,
           data: [{ total: String(stats.viewCount), date: today }],
         });
@@ -1065,6 +1090,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       if (stats.likeCount !== undefined) {
         result.push({
           label: 'Likes',
+          key: 'likes',
           percentageChange: 0,
           data: [{ total: String(stats.likeCount), date: today }],
         });
@@ -1073,6 +1099,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       if (stats.commentCount !== undefined) {
         result.push({
           label: 'Comments',
+          key: 'comments',
           percentageChange: 0,
           data: [{ total: String(stats.commentCount), date: today }],
         });
@@ -1085,6 +1112,52 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
           data: [{ total: String(stats.favoriteCount), date: today }],
         });
       }
+
+      // Watch time and shares only exist in the analytics report, since the
+      // video was published. Never fails the statistics above.
+      try {
+        const publishedAt = video.snippet?.publishedAt;
+        const { data } = await youtubeAnalytics(client).reports.query({
+          ids: 'channel==MINE',
+          filters: `video==${postId}`,
+          startDate: dayjs(publishedAt || undefined).format('YYYY-MM-DD'),
+          endDate: today,
+          metrics: 'estimatedMinutesWatched,averageViewDuration,shares',
+        });
+
+        const row = data?.rows?.[0];
+        const columns = data?.columnHeaders?.map((p) => p.name) || [];
+        const value = (name: string) => {
+          const index = columns.indexOf(name);
+          return index === -1 ? undefined : row?.[index];
+        };
+
+        const extra = [
+          {
+            label: 'Watch Time',
+            key: 'watch_time',
+            // YouTube reports the watch time in minutes
+            total: value('estimatedMinutesWatched') * 60,
+          },
+          {
+            label: 'Average View Duration',
+            key: 'avg_watch_time',
+            total: value('averageViewDuration'),
+          },
+          { label: 'Shares', key: 'shares', total: value('shares') },
+        ];
+
+        for (const metric of extra) {
+          if (Number.isFinite(Number(metric.total)) && row) {
+            result.push({
+              label: metric.label,
+              key: metric.key,
+              percentageChange: 0,
+              data: [{ total: String(metric.total), date: today }],
+            });
+          }
+        }
+      } catch (err) {}
 
       return result;
     } catch (err: any) {

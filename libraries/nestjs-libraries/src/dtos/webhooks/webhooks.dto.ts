@@ -1,5 +1,18 @@
-import { IsDefined, IsOptional, IsString, IsUrl } from 'class-validator';
+import {
+  IsArray,
+  IsDefined,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Max,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { analyticsMetricKeys } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 import { IsSafeWebhookUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 
 export class WebhooksIntegrationDto {
@@ -27,6 +40,34 @@ export class WebhooksDto {
   @Type(() => WebhooksIntegrationDto)
   @IsDefined()
   integrations: WebhooksIntegrationDto[];
+
+  @IsOptional()
+  @IsIn(['post.published', 'analytics.report'])
+  type?: 'post.published' | 'analytics.report';
+
+  @ValidateIf((o) => o.type === 'analytics.report')
+  @IsIn(['daily', 'weekly', 'monthly'])
+  schedule?: 'daily' | 'weekly' | 'monthly';
+
+  @IsOptional()
+  @IsIn([1, 7, 30, 90])
+  lookbackDays?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(analyticsMetricKeys, { each: true })
+  metrics?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(['channels', 'summary', 'topPosts'], { each: true })
+  sections?: ('channels' | 'summary' | 'topPosts')[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  topPostsLimit?: number;
 }
 
 export class OnlyURL {
@@ -61,4 +102,60 @@ export class UpdateDto {
   @Type(() => WebhooksIntegrationDto)
   @IsDefined()
   integrations: WebhooksIntegrationDto[];
+
+  @IsOptional()
+  @IsIn(['post.published', 'analytics.report'])
+  type?: 'post.published' | 'analytics.report';
+
+  @ValidateIf((o) => o.type === 'analytics.report')
+  @IsIn(['daily', 'weekly', 'monthly'])
+  schedule?: 'daily' | 'weekly' | 'monthly';
+
+  @IsOptional()
+  @IsIn([1, 7, 30, 90])
+  lookbackDays?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(analyticsMetricKeys, { each: true })
+  metrics?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(['channels', 'summary', 'topPosts'], { each: true })
+  sections?: ('channels' | 'summary' | 'topPosts')[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  topPostsLimit?: number;
+}
+
+export class AnalyticsPreviewDto {
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WebhooksIntegrationDto)
+  integrations?: WebhooksIntegrationDto[];
+
+  @IsOptional()
+  @IsIn([1, 7, 30, 90])
+  lookbackDays?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(analyticsMetricKeys, { each: true })
+  metrics?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(['channels', 'summary', 'topPosts'], { each: true })
+  sections?: ('channels' | 'summary' | 'topPosts')[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  topPostsLimit?: number;
 }

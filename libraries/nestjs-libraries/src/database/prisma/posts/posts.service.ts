@@ -933,6 +933,20 @@ export class PostsService {
     return this._postRepository.countPostsFromDay(orgId, date);
   }
 
+  getPublishedPostsForAnalytics(
+    orgId: string,
+    integrationIds: string[],
+    since: Date,
+    limitPerIntegration: number
+  ) {
+    return this._postRepository.getPublishedPostsForAnalytics(
+      orgId,
+      integrationIds,
+      since,
+      limitPerIntegration
+    );
+  }
+
   getPostByForWebhookId(id: string, integrationId: string) {
     return this._postRepository.getPostByForWebhookId(id, integrationId);
   }

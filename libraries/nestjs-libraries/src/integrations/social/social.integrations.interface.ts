@@ -1,4 +1,5 @@
 import { Integration } from '@prisma/client';
+import { AnalyticsCategory } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 
 export interface ClientInformation {
   client_id: string;
@@ -26,7 +27,8 @@ export interface IAuthenticator {
   analytics?(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset?: number // Days: the window ending `offset` days ago instead of today
   ): Promise<AnalyticsData[]>;
   postAnalytics?(
     integrationId: string,
@@ -71,6 +73,12 @@ export interface AnalyticsData {
   label: string;
   data: Array<{ total: string; date: string }>;
   percentageChange: number;
+  key?: string; // Metric id from analytics.metrics.ts
+  category?: AnalyticsCategory;
+  format?: 'number' | 'percent' | 'duration'; // duration is in seconds
+  aggregate?: 'sum' | 'average' | 'last'; // How the points make the total
+  average?: boolean; // Legacy way to say aggregate average
+  previousTotal?: number;
 }
 
 
@@ -180,6 +188,8 @@ export interface SocialProvider
   extends IAuthenticator,
     ISocialMediaIntegration {
   identifier: string;
+  analyticsDays?: number[]; // Date windows analytics can serve
+  analyticsPreviousPeriod?: boolean; // analytics honours the offset
   refreshWait?: boolean;
   convertToJPEG?: boolean;
   stripLinks?: () => boolean;

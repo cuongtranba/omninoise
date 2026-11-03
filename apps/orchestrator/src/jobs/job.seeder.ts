@@ -4,6 +4,7 @@ import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
 import { socialIntegrationList } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { MISSING_POSTS_KEY } from '@gitroom/orchestrator/jobs/system.jobs';
+import { analyticsWebhookRunAt } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { PostActivity } from '@gitroom/orchestrator/activities/post.activity';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 
@@ -30,6 +31,7 @@ export class JobSeeder {
       posts: 0,
       refresh: 0,
       autoposts: 0,
+      analyticsWebhooks: 0,
       streaks: 0,
     };
 
@@ -140,6 +142,24 @@ export class JobSeeder {
       counts.autoposts += res.created ? 1 : 0;
     }
 
+    const analyticsWebhooks = await this._prisma.webhooks.findMany({
+      where: { type: 'analytics.report', deletedAt: null },
+      select: { id: true, organizationId: true, schedule: true },
+    });
+    for (const webhook of analyticsWebhooks) {
+      const res = await this._queue.enqueue(
+        'analytics.webhook',
+        { id: webhook.id, organizationId: webhook.organizationId },
+        {
+          dedupeKey: `analytics.webhook:${webhook.id}`,
+          mode: 'keep',
+          organizationId: webhook.organizationId,
+          runAt: analyticsWebhookRunAt(webhook.schedule),
+        }
+      );
+      counts.analyticsWebhooks += res.created ? 1 : 0;
+    }
+
     // organizations with a running streak (streakSince is set while it runs)
     const orgs = await this._prisma.organization.findMany({
       where: { streakSince: { not: null } },
@@ -165,7 +185,8 @@ export class JobSeeder {
     console.log(
       `Job seeding done (new jobs): ${counts.missingPosts} missing-posts sweep, ` +
         `${counts.posts} posts, ${counts.refresh} token refreshes, ` +
-        `${counts.autoposts} autoposts, ${counts.streaks} streaks`
+        `${counts.autoposts} autoposts, ${counts.analyticsWebhooks} analytics webhooks, ` +
+        `${counts.streaks} streaks`
     );
     return counts;
   }

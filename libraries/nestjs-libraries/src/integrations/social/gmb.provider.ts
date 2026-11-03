@@ -50,6 +50,8 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
     'https://www.googleapis.com/auth/business.manage',
   ];
   editor = 'normal' as const;
+  analyticsDays = [7, 30, 90];
+  analyticsPreviousPeriod = true;
   dto = GmbSettingsDto;
 
   maxLength() {
@@ -557,81 +559,195 @@ export class GmbProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  // The daily values of each metric, as { metric: { 'YYYY-MM-DD': value } }
+  private async fetchDailyMetrics(
+    locationPath: string,
+    accessToken: string,
+    metrics: string[],
+    startDate: string,
+    endDate: string
+  ) {
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+
+    const query = [
+      ...metrics.map((metric) => `dailyMetrics=${metric}`),
+      `dailyRange.startDate.year=${start.year()}`,
+      `dailyRange.startDate.month=${start.month() + 1}`,
+      `dailyRange.startDate.day=${start.date()}`,
+      `dailyRange.endDate.year=${end.year()}`,
+      `dailyRange.endDate.month=${end.month() + 1}`,
+      `dailyRange.endDate.day=${end.date()}`,
+    ].join('&');
+
+    const response = await fetch(
+      `https://businessprofileperformance.googleapis.com/v1/${locationPath}:fetchMultiDailyMetricsTimeSeries?${query}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    // Response structure: { multiDailyMetricTimeSeries: [{ dailyMetricTimeSeries: [...] }] }
+    const values: Record<string, Record<string, number>> = {};
+    for (const group of data.multiDailyMetricTimeSeries || []) {
+      for (const series of group.dailyMetricTimeSeries || []) {
+        values[series.dailyMetric] = Object.fromEntries(
+          (series.timeSeries?.datedValues || []).map((dv: any) => [
+            `${dv.date.year}-${String(dv.date.month).padStart(2, '0')}-${String(
+              dv.date.day
+            ).padStart(2, '0')}`,
+            parseInt(dv.value || '0', 10),
+          ])
+        );
+      }
+    }
+
+    return values;
+  }
+
+  // One series out of the metrics, adding them up for each day
+  private sumDailyMetrics(
+    values: Record<string, Record<string, number>>,
+    metrics: string[]
+  ) {
+    const days = new Set(
+      metrics.flatMap((metric) => Object.keys(values[metric] || {}))
+    );
+
+    return [...days].sort().map((date) => ({
+      total: String(
+        metrics.reduce((all, metric) => all + (values[metric]?.[date] || 0), 0)
+      ),
+      date,
+    }));
+  }
+
   async analytics(
     id: string,
     accessToken: string,
-    date: number
+    date: number,
+    offset = 0
   ): Promise<AnalyticsData[]> {
     try {
-      const endDate = dayjs().format('YYYY-MM-DD');
-      const startDate = dayjs().subtract(date, 'day').format('YYYY-MM-DD');
+      // The window is `date` days (both bounds are inclusive) ending `offset`
+      // days ago, so the previous period never shares a day with this one
+      const endDate = dayjs().subtract(offset, 'day').format('YYYY-MM-DD');
+      const startDate = dayjs()
+        .subtract(date + offset - 1, 'day')
+        .format('YYYY-MM-DD');
 
       // id is in format: accounts/{accountId}/locations/{locationId}
       // Business Profile Performance API expects: locations/{locationId}
       const locationId = id.split('/locations/')[1];
       const locationPath = `locations/${locationId}`;
 
+      const mapMetrics = [
+        'BUSINESS_IMPRESSIONS_DESKTOP_MAPS',
+        'BUSINESS_IMPRESSIONS_MOBILE_MAPS',
+      ];
+      const searchMetrics = [
+        'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
+        'BUSINESS_IMPRESSIONS_MOBILE_SEARCH',
+      ];
+
       // Use the Business Profile Performance API
-      const response = await fetch(
-        `https://businessprofileperformance.googleapis.com/v1/${locationPath}:fetchMultiDailyMetricsTimeSeries?dailyMetrics=WEBSITE_CLICKS&dailyMetrics=CALL_CLICKS&dailyMetrics=BUSINESS_DIRECTION_REQUESTS&dailyMetrics=BUSINESS_IMPRESSIONS_DESKTOP_MAPS&dailyMetrics=BUSINESS_IMPRESSIONS_MOBILE_MAPS&dailyRange.startDate.year=${dayjs(
-          startDate
-        ).year()}&dailyRange.startDate.month=${
-          dayjs(startDate).month() + 1
-        }&dailyRange.startDate.day=${dayjs(
-          startDate
-        ).date()}&dailyRange.endDate.year=${dayjs(
-          endDate
-        ).year()}&dailyRange.endDate.month=${
-          dayjs(endDate).month() + 1
-        }&dailyRange.endDate.day=${dayjs(endDate).date()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+      const values = await this.fetchDailyMetrics(
+        locationPath,
+        accessToken,
+        [
+          'WEBSITE_CLICKS',
+          'CALL_CLICKS',
+          'BUSINESS_DIRECTION_REQUESTS',
+          ...mapMetrics,
+          ...searchMetrics,
+        ],
+        startDate,
+        endDate
       );
 
-      const data = await response.json();
-
-      // Response structure: { multiDailyMetricTimeSeries: [{ dailyMetricTimeSeries: [...] }] }
-      const dailyMetricTimeSeries =
-        data.multiDailyMetricTimeSeries?.[0]?.dailyMetricTimeSeries;
-
-      if (!dailyMetricTimeSeries || dailyMetricTimeSeries.length === 0) {
-        return [];
-      }
-
-      const metricLabels: { [key: string]: string } = {
-        WEBSITE_CLICKS: 'Website Clicks',
-        CALL_CLICKS: 'Phone Calls',
-        BUSINESS_DIRECTION_REQUESTS: 'Direction Requests',
-        BUSINESS_IMPRESSIONS_DESKTOP_MAPS: 'Desktop Map Views',
-        BUSINESS_IMPRESSIONS_MOBILE_MAPS: 'Mobile Map Views',
-      };
+      // The original metrics keep their label (public API), the sums are new
+      const series: { label: string; key?: string; metrics: string[] }[] = [
+        { label: 'Website Clicks', key: 'clicks', metrics: ['WEBSITE_CLICKS'] },
+        { label: 'Phone Calls', key: 'calls', metrics: ['CALL_CLICKS'] },
+        {
+          label: 'Direction Requests',
+          key: 'direction_requests',
+          metrics: ['BUSINESS_DIRECTION_REQUESTS'],
+        },
+        {
+          label: 'Desktop Map Views',
+          metrics: ['BUSINESS_IMPRESSIONS_DESKTOP_MAPS'],
+        },
+        {
+          label: 'Mobile Map Views',
+          metrics: ['BUSINESS_IMPRESSIONS_MOBILE_MAPS'],
+        },
+        { label: 'Map Views', key: 'map_views', metrics: mapMetrics },
+        { label: 'Search Views', key: 'search_views', metrics: searchMetrics },
+        {
+          label: 'Impressions',
+          key: 'impressions',
+          metrics: [...mapMetrics, ...searchMetrics],
+        },
+      ];
 
       const analytics: AnalyticsData[] = [];
 
-      for (const series of dailyMetricTimeSeries) {
-        const metricName = series.dailyMetric;
-        const label = metricLabels[metricName] || metricName;
+      for (const { label, key, metrics } of series) {
+        const data = this.sumDailyMetrics(values, metrics);
 
-        const datedValues = series.timeSeries?.datedValues || [];
-
-        const dataPoints = datedValues.map((dv: any) => ({
-          total: parseInt(dv.value || '0', 10),
-          date: `${dv.date.year}-${String(dv.date.month).padStart(
-            2,
-            '0'
-          )}-${String(dv.date.day).padStart(2, '0')}`,
-        }));
-
-        if (dataPoints.length > 0) {
+        if (data.length > 0) {
           analytics.push({
             label,
+            key,
             percentageChange: 0,
-            data: dataPoints,
+            data,
           });
         }
+      }
+
+      // Asked on their own: Google refuses the ones a location does not support
+      try {
+        const extraValues = await this.fetchDailyMetrics(
+          locationPath,
+          accessToken,
+          [
+            'MESSAGING_CLICKS',
+            'BUSINESS_BOOKINGS',
+            'BUSINESS_FOOD_MENU_CLICKS',
+          ],
+          startDate,
+          endDate
+        );
+
+        const extraSeries = [
+          { label: 'Messages', key: 'messages', metric: 'MESSAGING_CLICKS' },
+          { label: 'Bookings', key: 'bookings', metric: 'BUSINESS_BOOKINGS' },
+          {
+            label: 'Menu Clicks',
+            key: 'menu_clicks',
+            metric: 'BUSINESS_FOOD_MENU_CLICKS',
+          },
+        ];
+
+        for (const { label, key, metric } of extraSeries) {
+          const data = this.sumDailyMetrics(extraValues, [metric]);
+
+          if (data.length > 0) {
+            analytics.push({
+              label,
+              key,
+              percentageChange: 0,
+              data,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching extra GMB analytics:', error);
       }
 
       return analytics;

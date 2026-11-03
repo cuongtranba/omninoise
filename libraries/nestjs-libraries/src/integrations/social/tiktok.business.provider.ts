@@ -56,6 +56,7 @@ export class TiktokBusinessProvider
     return 2200;
   }
 
+  analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
   private baseUrl = 'https://business-api.tiktok.com/open_api/v1.3';
 
   // The TikTok developer portal only accepts redirect URLs that end with "/"
@@ -1017,6 +1018,8 @@ export class TiktokBusinessProvider
         if (userStats.followers_count !== undefined) {
           result.push({
             label: 'Followers',
+            key: 'followers',
+            aggregate: 'last',
             percentageChange: 0,
             data: [{ total: String(userStats.followers_count), date: today }],
           });
@@ -1025,6 +1028,7 @@ export class TiktokBusinessProvider
         if (userStats.following_count !== undefined) {
           result.push({
             label: 'Following',
+            key: 'following',
             percentageChange: 0,
             data: [{ total: String(userStats.following_count), date: today }],
           });
@@ -1033,6 +1037,7 @@ export class TiktokBusinessProvider
         if (userStats.total_likes !== undefined) {
           result.push({
             label: 'Total Likes',
+            key: 'total_likes',
             percentageChange: 0,
             data: [{ total: String(userStats.total_likes), date: today }],
           });
@@ -1041,6 +1046,7 @@ export class TiktokBusinessProvider
         if (userStats.videos_count !== undefined) {
           result.push({
             label: 'Videos',
+            key: 'videos_count',
             percentageChange: 0,
             data: [{ total: String(userStats.videos_count), date: today }],
           });
@@ -1071,24 +1077,28 @@ export class TiktokBusinessProvider
 
         result.push({
           label: 'Views',
+          key: 'video_views',
           percentageChange: 0,
           data: [{ total: String(totalViews), date: today }],
         });
 
         result.push({
           label: 'Recent Likes',
+          key: 'likes',
           percentageChange: 0,
           data: [{ total: String(totalLikes), date: today }],
         });
 
         result.push({
           label: 'Recent Comments',
+          key: 'comments',
           percentageChange: 0,
           data: [{ total: String(totalComments), date: today }],
         });
 
         result.push({
           label: 'Recent Shares',
+          key: 'shares',
           percentageChange: 0,
           data: [{ total: String(totalShares), date: today }],
         });
@@ -1243,6 +1253,7 @@ export class TiktokBusinessProvider
       if (video.video_views !== undefined) {
         result.push({
           label: 'Views',
+          key: 'video_views',
           percentageChange: 0,
           data: [{ total: String(video.video_views), date: today }],
         });
@@ -1251,6 +1262,7 @@ export class TiktokBusinessProvider
       if (video.likes !== undefined) {
         result.push({
           label: 'Likes',
+          key: 'likes',
           percentageChange: 0,
           data: [{ total: String(video.likes), date: today }],
         });
@@ -1259,6 +1271,7 @@ export class TiktokBusinessProvider
       if (video.comments !== undefined) {
         result.push({
           label: 'Comments',
+          key: 'comments',
           percentageChange: 0,
           data: [{ total: String(video.comments), date: today }],
         });
@@ -1267,6 +1280,7 @@ export class TiktokBusinessProvider
       if (video.shares !== undefined) {
         result.push({
           label: 'Shares',
+          key: 'shares',
           percentageChange: 0,
           data: [{ total: String(video.shares), date: today }],
         });

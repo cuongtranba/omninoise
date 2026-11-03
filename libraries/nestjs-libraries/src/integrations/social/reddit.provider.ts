@@ -1,4 +1,5 @@
 import {
+  AnalyticsData,
   AuthTokenDetails,
   PendingCheckResponse,
   PostDetails,
@@ -8,6 +9,7 @@ import {
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import { RedditSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/reddit.dto';
 import { timer } from '@gitroom/helpers/utils/timer';
+import dayjs from 'dayjs';
 import {
   BadBody,
   Disconnect,
@@ -59,6 +61,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   name = 'Reddit';
   isBetweenSteps = false;
   scopes = ['read', 'identity', 'submit', 'flair'];
+  analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
   editor = 'normal' as const;
   dto = RedditSettingsDto;
 
@@ -683,6 +686,127 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
         status: 'published',
       },
     ];
+  }
+
+  async analytics(
+    id: string,
+    accessToken: string,
+    date: number
+  ): Promise<AnalyticsData[]> {
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      const me = await (
+        await this.fetch(
+          'https://oauth.reddit.com/api/v1/me',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+          this.identifier
+        )
+      ).json();
+
+      const karma =
+        me.total_karma ?? (me.link_karma ?? 0) + (me.comment_karma ?? 0);
+
+      return [
+        {
+          label: 'Karma',
+          key: 'karma',
+          percentageChange: 0,
+          data: [{ total: String(karma), date: today }],
+        },
+        {
+          label: 'Post Karma',
+          percentageChange: 0,
+          data: [{ total: String(me.link_karma ?? 0), date: today }],
+        },
+        {
+          label: 'Comment Karma',
+          percentageChange: 0,
+          data: [{ total: String(me.comment_karma ?? 0), date: today }],
+        },
+      ];
+    } catch (err) {
+      if (err instanceof RefreshToken || err instanceof Disconnect) {
+        throw err;
+      }
+      console.error('Error fetching Reddit analytics:', err);
+      return [];
+    }
+  }
+
+  async postAnalytics(
+    integrationId: string,
+    accessToken: string,
+    postId: string,
+    date: number
+  ): Promise<AnalyticsData[]> {
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      // A post to several subreddits stores its ids joined by a comma
+      const ids = postId
+        .split(',')
+        .filter(Boolean)
+        .map((p) => (p.startsWith('t3_') ? p : `t3_${p}`));
+
+      const { data } = await (
+        await this.fetch(
+          `https://oauth.reddit.com/api/info?id=${ids.join(',')}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+          this.identifier
+        )
+      ).json();
+
+      const posts = (data?.children || []).map((c: any) => c.data);
+      if (!posts.length) {
+        return [];
+      }
+
+      const sum = (field: string) =>
+        posts.reduce((all: number, p: any) => all + (p[field] || 0), 0);
+
+      return [
+        {
+          label: 'Score',
+          key: 'score',
+          percentageChange: 0,
+          data: [{ total: String(sum('score')), date: today }],
+        },
+        {
+          label: 'Upvote Ratio',
+          key: 'upvote_ratio',
+          percentageChange: 0,
+          data: [
+            {
+              total: String(
+                Math.round((sum('upvote_ratio') / posts.length) * 10000) / 100
+              ),
+              date: today,
+            },
+          ],
+        },
+        {
+          label: 'Comments',
+          key: 'comments',
+          percentageChange: 0,
+          data: [{ total: String(sum('num_comments')), date: today }],
+        },
+      ];
+    } catch (err) {
+      if (err instanceof RefreshToken || err instanceof Disconnect) {
+        throw err;
+      }
+      console.error('Error fetching Reddit post analytics:', err);
+      return [];
+    }
   }
 
   @Tool({
