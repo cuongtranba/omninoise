@@ -18,6 +18,9 @@ import {
   BskyAgent,
   RichText,
   AppBskyEmbedVideo,
+  AppBskyFeedDefs,
+  AppBskyFeedGetPostThread,
+  AppBskyFeedPost,
   AppBskyVideoDefs,
   AtpAgent,
   BlobRef,
@@ -76,6 +79,12 @@ async function reduceImageBySize(url: string, maxSizeKB = 976) {
 // status - it does NOT wait for the processing. The blob only exists once the
 // job completes; a BlobRef can't survive JSON serialization through the
 // workflow history, so callers re-read it from getVideoJobStatus when needed.
+// getPostThread answers with a NotFoundPost or BlockedPost, which have no post,
+// when the post can't be read
+const getThreadPost = (
+  thread: AppBskyFeedGetPostThread.OutputSchema['thread'],
+) => (AppBskyFeedDefs.isThreadViewPost(thread) ? thread.post : undefined);
+
 async function startVideoUpload(
   agent: AtpAgent,
   videoPath: string,
@@ -93,7 +102,6 @@ async function startVideoUpload(
     method: 'HEAD',
     // identity encoding so content-length matches the bytes the GET streams
     headers: { 'accept-encoding': 'identity' },
-    // @ts-ignore - undici-only option; blocks SSRF to internal IPs
     dispatcher: getSsrfSafeDispatcher(),
   });
   const videoSize = Number(headResponse.headers.get('content-length') || 0);
@@ -109,7 +117,6 @@ async function startVideoUpload(
   setHeartbeatDetails('bluesky: read video');
   const videoResponse = await fetch(videoPath, {
     headers: { 'accept-encoding': 'identity' },
-    // @ts-ignore - undici-only option; blocks SSRF to internal IPs
     dispatcher: getSsrfSafeDispatcher(),
   });
   if (!videoResponse.ok || !videoResponse.body) {
@@ -653,7 +660,6 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     let uri: string;
     try {
       setHeartbeatDetails('bluesky: create post');
-      // @ts-ignore
       const created = await agent.post({
         text: rt.text,
         facets: rt.facets,
@@ -796,18 +802,18 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       depth: 0,
     });
 
-    // @ts-ignore
-    const parentCid = parentThread.data.thread.post?.cid;
-    const rootUri =
-      // @ts-ignore
-      parentThread.data.thread.post?.record?.reply?.root?.uri || postId;
-    const rootCid =
-      // @ts-ignore
-      parentThread.data.thread.post?.record?.reply?.root?.cid || parentCid;
+    const parentPost = getThreadPost(parentThread.data.thread);
+    // PostView.record is an open object, an app.bsky.feed.post one always
+    // carries a ReplyRef when it is a reply
+    const parentRecord = AppBskyFeedPost.isRecord(parentPost?.record)
+      ? (parentPost.record as AppBskyFeedPost.Record)
+      : undefined;
+    const parentCid = parentPost?.cid;
+    const rootUri = parentRecord?.reply?.root?.uri || postId;
+    const rootCid = parentRecord?.reply?.root?.cid || parentCid;
 
     setHeartbeatDetails('bluesky: create post');
-    // @ts-ignore
-    const { cid, uri, commit } = await agent.post({
+    const { cid, uri } = await agent.post({
       text: rt.text,
       facets: rt.facets,
       createdAt: new Date().toISOString(),
@@ -875,15 +881,10 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       depth: 0,
     });
 
-    // @ts-ignore
-    if (getThread.data.thread.post?.likeCount >= +fields.likesAmount) {
+    const threadPost = getThreadPost(getThread.data.thread);
+    if (threadPost?.likeCount >= +fields.likesAmount) {
       await timer(2000);
-      await agent.repost(
-        // @ts-ignore
-        getThread.data.thread.post?.uri,
-        // @ts-ignore
-        getThread.data.thread.post?.cid,
-      );
+      await agent.repost(threadPost?.uri, threadPost?.cid);
       return true;
     }
 
@@ -936,8 +937,8 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       depth: 0,
     });
 
-    // @ts-ignore
-    if (getThread.data.thread.post?.likeCount >= +fields.likesAmount) {
+    const threadPost = getThreadPost(getThread.data.thread);
+    if (threadPost?.likeCount >= +fields.likesAmount) {
       await timer(2000);
       const rt = new RichText({
         text: stripHtmlValidation('normal', fields.post, true),
@@ -949,16 +950,12 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
         createdAt: new Date().toISOString(),
         reply: {
           root: {
-            // @ts-ignore
-            uri: getThread.data.thread.post?.uri,
-            // @ts-ignore
-            cid: getThread.data.thread.post?.cid,
+            uri: threadPost?.uri,
+            cid: threadPost?.cid,
           },
           parent: {
-            // @ts-ignore
-            uri: getThread.data.thread.post?.uri,
-            // @ts-ignore
-            cid: getThread.data.thread.post?.cid,
+            uri: threadPost?.uri,
+            cid: threadPost?.cid,
           },
         },
       });

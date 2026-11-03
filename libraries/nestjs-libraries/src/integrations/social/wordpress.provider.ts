@@ -131,7 +131,6 @@ export class WordpressProvider
           Authorization: `Basic ${auth}`,
           'User-Agent': WORDPRESS_USER_AGENT,
         },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
     } catch (err) {
@@ -232,7 +231,6 @@ export class WordpressProvider
         Authorization: `Basic ${auth}`,
         'User-Agent': WORDPRESS_USER_AGENT,
       },
-      // @ts-ignore - undici-only option; blocks SSRF to internal IPs
       dispatcher: getSsrfSafeDispatcher(),
     });
 

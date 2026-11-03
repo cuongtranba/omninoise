@@ -62,7 +62,6 @@ export default class Postiz {
     return (
       await fetch(`${this._path}/public/v1/upload`, {
         method: 'POST',
-        // @ts-ignore
         body: formData,
         headers: {
           Authorization: this._apiKey,

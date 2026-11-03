@@ -13,14 +13,13 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 
 const FetchProvider = createContext(
   customFetch(
-    // @ts-ignore
     {
       baseUrl: '',
-      beforeRequest: () => {},
-      afterRequest: () => {
+      beforeRequest: async () => undefined,
+      afterRequest: async () => {
         return true;
       },
-    } as Params
+    }
   )
 );
 
@@ -29,12 +28,10 @@ export const FetchWrapperComponent: FC<Params & { children: ReactNode }> = (
 ) => {
   const { children, ...params } = props;
   const { isSecured } = useVariables();
-  // @ts-ignore
   const fetchData = useRef(
     customFetch(params, undefined, undefined, isSecured)
   );
   return (
-    // @ts-ignore
     <FetchProvider.Provider value={fetchData.current}>
       {children}
     </FetchProvider.Provider>

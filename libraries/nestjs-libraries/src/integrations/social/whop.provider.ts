@@ -237,7 +237,6 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
         method: 'HEAD',
         // identity encoding so content-length matches the bytes the GET streams
         headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
       const contentLength = Number(
@@ -274,7 +273,6 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
       if (createFileResponse.upload_url) {
         const fileResponse = await fetch(item.path, {
           headers: { 'accept-encoding': 'identity' },
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
         });
         if (!fileResponse.ok || !fileResponse.body) {

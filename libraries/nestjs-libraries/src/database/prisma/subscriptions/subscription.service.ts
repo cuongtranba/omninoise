@@ -3,7 +3,7 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { SubscriptionRepository } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.repository';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
-import { Organization } from '@prisma/client';
+import { Organization, Subscription } from '@prisma/client';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
@@ -397,8 +397,12 @@ export class SubscriptionService {
     return { deleted: count };
   }
 
-  async checkCredits(organization: Organization, checkType = 'ai_images') {
-    // @ts-ignore
+  async checkCredits(
+    organization: Organization & {
+      subscription?: Pick<Subscription, 'subscriptionTier' | 'createdAt'> | null;
+    },
+    checkType = 'ai_images'
+  ) {
     const type = organization?.subscription?.subscriptionTier || 'FREE';
 
     if (type === 'FREE') {
@@ -406,7 +410,6 @@ export class SubscriptionService {
     }
 
     const checkFromMonth = this.currentPeriodStart(
-      // @ts-ignore
       organization.subscription.createdAt
     );
     const imageGenerationCount =

@@ -598,8 +598,7 @@ export abstract class SocialAbstract {
 
     const request = await fetch(url, {
       ...options,
-      // @ts-ignore - undici-only option, not in the lib.dom RequestInit type
-      dispatcher: (options as any).dispatcher ?? getSsrfSafeDispatcher(),
+      dispatcher: options.dispatcher ?? getSsrfSafeDispatcher(),
     });
 
     if (request.status === 200 || request.status === 201) {

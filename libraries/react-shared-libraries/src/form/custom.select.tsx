@@ -45,7 +45,6 @@ export const CustomSelect: FC<{
     const split = (props.name + '.value').split('.');
     let errIn = form?.formState?.errors;
     for (let i = 0; i < split.length; i++) {
-      // @ts-ignore
       errIn = errIn?.[split[i]];
     }
     return errIn?.message;

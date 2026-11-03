@@ -4,7 +4,7 @@ import {
   AddProviderButton,
   CustomVariables,
 } from '@gitroom/frontend/components/launches/add.provider.component';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { capitalize, groupBy, orderBy } from 'lodash';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
@@ -258,11 +258,12 @@ export const MenuGroupComponent: FC<
       isOver: !!monitor.isOver(),
     }),
   }));
+  const dropRef = useRef<HTMLDivElement>(null);
+  drop(dropRef);
   return (
     <div
       className="gap-[16px] flex flex-col relative"
-      // @ts-ignore
-      ref={drop}
+      ref={dropRef}
     >
       {collectedProps.isOver && (
         <div className="absolute start-0 top-0 w-full h-full pointer-events-none">
@@ -349,10 +350,13 @@ export const MenuComponent: FC<
       id: integration.id,
     },
   }));
+  const dragRef = useRef<HTMLDivElement>(null);
+  const dragPreviewRef = useRef<HTMLDivElement>(null);
+  drag(dragRef);
+  dragPreview(dragPreviewRef);
   return (
     <div
-      // @ts-ignore
-      ref={dragPreview}
+      ref={dragPreviewRef}
       {...(integration.refreshNeeded && {
         onClick: refreshChannel(integration),
         'data-tooltip-id': 'tooltip',
@@ -421,8 +425,7 @@ export const MenuComponent: FC<
         )}
       </div>
       <div
-        // @ts-ignore
-        ref={drag}
+        ref={dragRef}
         {...(integration.disabled &&
         totalNonDisabledChannels === user?.totalChannels
           ? {
@@ -624,7 +627,6 @@ export const LaunchesComponent = () => {
     );
   }
 
-  // @ts-ignore
   return (
     <DNDProvider>
       <Onboarding />

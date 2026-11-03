@@ -1,9 +1,12 @@
 'use client';
 
+type ChatbaseCommand = ((...args: unknown[]) => unknown) & {
+  q?: unknown[][];
+};
+
 declare global {
   interface Window {
-    // oxlint-disable-next-line @typescript-eslint/no-explicit-any
-    chatbase: any;
+    chatbase?: ChatbaseCommand;
   }
 }
 
@@ -53,22 +56,18 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
 
   useEffect(() => {
     if (!window.chatbase || window.chatbase('getState') !== 'initialized') {
-      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      window.chatbase = (...arg) => {
-        if (!window.chatbase.q) {
-          window.chatbase.q = [];
+      const command: ChatbaseCommand = (...arg) => {
+        if (!command.q) {
+          command.q = [];
         }
-        window.chatbase.q.push(arg);
+        command.q.push(arg);
       };
-      window.chatbase = new Proxy(window.chatbase, {
+      window.chatbase = new Proxy(command, {
         get(target, prop) {
           if (prop === 'q') {
             return target.q;
           }
-          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          return (...args) => target(prop, ...args);
+          return (...args: unknown[]) => target(prop, ...args);
         },
       });
     }
@@ -76,9 +75,7 @@ const ChatBaseCode: FC<{ token: string }> = ({ token }) => {
       const script = document.createElement('script');
       script.src = 'https://www.chatbase.co/embed.min.js';
       script.id = '1zVZuOz0vgFE_NLumfPPj';
-      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      script.domain = 'www.chatbase.co';
+      Object.assign(script, { domain: 'www.chatbase.co' });
       document.body.appendChild(script);
     };
     if (document.readyState === 'complete') {

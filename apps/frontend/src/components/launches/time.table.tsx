@@ -8,7 +8,6 @@ import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
 import utc from 'dayjs/plugin/utc';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-// @ts-ignore
 import useKeypress from 'react-use-keypress';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { sortBy } from 'lodash';

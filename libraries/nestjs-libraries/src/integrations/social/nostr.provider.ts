@@ -13,8 +13,7 @@ import WebSocket from 'ws';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { Integration } from '@prisma/client';
 
-// @ts-ignore
-global.WebSocket = WebSocket;
+Object.assign(globalThis, { WebSocket });
 
 const list = [
   'wss://nos.lol',

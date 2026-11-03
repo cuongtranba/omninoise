@@ -1,4 +1,3 @@
-// @ts-ignore
 import twitter from 'twitter-text';
 
 export const textSlicer = (

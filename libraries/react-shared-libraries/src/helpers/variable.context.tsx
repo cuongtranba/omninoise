@@ -36,6 +36,11 @@ interface VariableContextInterface {
   googleAdsTrialTracking?: string;
   recaptchaSiteKey?: string;
 }
+declare global {
+  interface Window {
+    vars: VariableContextInterface;
+  }
+}
 const VariableContext = createContext({
   stripeClient: '',
   billingEnabled: false,
@@ -78,7 +83,6 @@ export const VariableContextComponent: FC<
   const { children, ...otherProps } = props;
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // @ts-ignore
       window.vars = otherProps;
     }
   }, []);
@@ -92,6 +96,5 @@ export const useVariables = () => {
   return useContext(VariableContext);
 };
 export const loadVars = () => {
-  // @ts-ignore
-  return window.vars as VariableContextInterface;
+  return window.vars;
 };

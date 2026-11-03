@@ -1,7 +1,6 @@
 import { sign, verify } from 'jsonwebtoken';
 import { hashSync, compareSync } from 'bcrypt';
 import crypto from 'crypto';
-// @ts-ignore
 import EVP_BytesToKey from 'evp_bytestokey';
 const algorithm = 'aes-256-cbc';
 const { keyLength, ivLength } = crypto.getCipherInfo(algorithm);
@@ -10,8 +9,8 @@ function deriveLegacyKeyIv(secret: string) {
   const { keyLength, ivLength } = crypto.getCipherInfo(algorithm); // 32, 16
   const pass = Buffer.isBuffer(secret) ? secret : Buffer.from(secret ?? '', 'utf8');
 
-  // evp_bytestokey: key length in **bits**, IV length in **bytes**
-  const { key, iv } = EVP_BytesToKey(pass, null, keyLength * 8, ivLength, 'md5');
+  // evp_bytestokey (always MD5): key length in **bits**, IV length in **bytes**
+  const { key, iv } = EVP_BytesToKey(pass, null, keyLength * 8, ivLength);
 
   if (key.length !== keyLength || iv.length !== ivLength) {
     throw new Error(`Derived wrong sizes (key=${key.length}, iv=${iv.length})`);

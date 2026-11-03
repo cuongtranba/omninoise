@@ -714,6 +714,9 @@ importers:
       '@types/react-dom':
         specifier: 19.1.6
         version: 19.1.6(@types/react@19.1.8)
+      '@types/twitter-text':
+        specifier: 3.1.10
+        version: 3.1.10
       '@types/uuid':
         specifier: ^9.0.8
         version: 9.0.8
@@ -7405,6 +7408,9 @@ packages:
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
+
+  '@types/twitter-text@3.1.10':
+    resolution: {integrity: sha512-+wF6TYQtvokyCc42VKF9OAvEgro0JIAEMor+A7eZsZtkgD/LPAIJx5+g7529nQUzRpas2hlmJEPfZgkzxr0xnA==}
 
   '@types/unist@2.0.11':
     resolution: {integrity: sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==}
@@ -24063,6 +24069,8 @@ snapshots:
   '@types/tough-cookie@4.0.5': {}
 
   '@types/trusted-types@2.0.7': {}
+
+  '@types/twitter-text@3.1.10': {}
 
   '@types/unist@2.0.11': {}
 

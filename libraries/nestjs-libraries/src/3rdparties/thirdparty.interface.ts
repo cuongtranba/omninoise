@@ -5,7 +5,11 @@ export abstract class ThirdPartyAbstract<T = any> {
     apiKey: string
   ): Promise<false | { name: string; username: string; id: string }>;
   abstract sendData(apiKey: string, data: T): Promise<string>;
-  [key: string]: ((apiKey: string, data?: any) => Promise<any>) | undefined;
+  // only providers with a media library implement it
+  importMedia?(
+    apiKey: string,
+    items: { url: string; name: string }[]
+  ): Promise<{ url: string; name: string }[]>;
 }
 export interface ThirdPartyParams {
   identifier: string;

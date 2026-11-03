@@ -35,7 +35,6 @@ const instanceFetch = async (url: string | URL, init?: RequestInit) => {
   const response = await fetch(url, {
     ...init,
     redirect: 'error',
-    // @ts-ignore - undici option, not in lib.dom fetch types
     dispatcher: ssrfSafeDispatcher,
   });
 

@@ -51,10 +51,10 @@ export class StripeService extends PaymentProviderAbstract {
 
   async processWebhook(event: Stripe.Event) {
     // Maybe it comes from another stripe webhook
+    const object = event?.data?.object;
+    const metadata = object && 'metadata' in object ? object.metadata : undefined;
     if (
-      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      event?.data?.object?.metadata?.service !== 'gitroom' &&
+      metadata?.service !== 'gitroom' &&
       event.type !== 'invoice.payment_succeeded'
     ) {
       return { ok: true };

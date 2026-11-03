@@ -3,10 +3,9 @@ import { JSDOM } from 'jsdom';
 
 function findDepth(element: Element) {
   let depth = 0;
-  let elementer = element;
+  let elementer: Node = element;
   while (elementer.parentNode) {
     depth++;
-    // @ts-ignore
     elementer = elementer.parentNode;
   }
   return depth;

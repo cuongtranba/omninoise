@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createReadStream, statSync } from 'fs';
 import { resolve, sep } from 'path';
-// @ts-ignore
 import mime from 'mime';
 async function* nodeStreamToIterator(stream: any) {
   for await (const chunk of stream) {

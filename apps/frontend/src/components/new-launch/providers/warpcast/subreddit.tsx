@@ -1,11 +1,13 @@
 'use client';
 
-import { FC, FormEvent, useCallback, useState } from 'react';
+import { FC, useCallback, useState } from 'react';
 import { useCustomProviderFunction } from '@gitroom/frontend/components/launches/helpers/use.custom.provider.function';
 import { Input } from '@gitroom/react/form/input';
 import { useDebouncedCallback } from 'use-debounce';
-import { useWatch } from 'react-hook-form';
+import { FieldError, get, useWatch } from 'react-hook-form';
 import { useSettings } from '@gitroom/frontend/components/launches/helpers/use.values';
+type SubredditErrors = FieldError &
+  Partial<Record<'subreddit', FieldError>>;
 export const Subreddit: FC<{
   onChange: (event: {
     target: {
@@ -27,8 +29,10 @@ export const Subreddit: FC<{
   const state = useSettings();
   const split = name.split('.');
   const [loading, setLoading] = useState(false);
-  // @ts-ignore
-  const errors = state?.formState?.errors?.[split?.[0]]?.[split?.[1]]?.value;
+  const errors: SubredditErrors | undefined = get(
+    state?.formState?.errors,
+    `${split?.[0]}.${split?.[1]}.value`
+  );
   const [results, setResults] = useState([]);
   const func = useCustomProviderFunction();
   const value = useWatch({
@@ -83,16 +87,12 @@ export const Subreddit: FC<{
     [value]
   );
   const search = useDebouncedCallback(
-    useCallback(async (e: FormEvent<HTMLInputElement>) => {
-      // @ts-ignore
+    useCallback(async (input: HTMLInputElement) => {
       setResults([]);
-      // @ts-ignore
-      if (!e.target.value) {
+      if (!input.value) {
         return;
       }
-      // @ts-ignore
-      const results = await func.get('subreddits', { word: e.target.value });
-      // @ts-ignore
+      const results = await func.get('subreddits', { word: input.value });
       setResults(results);
     }, []),
     500
@@ -121,9 +121,8 @@ export const Subreddit: FC<{
             error={errors?.message}
             disableForm={true}
             onInput={async (e) => {
-              // @ts-ignore
-              setSearchValue(e.target.value);
-              await search(e);
+              setSearchValue(e.currentTarget.value);
+              await search(e.currentTarget);
             }}
           />
           {!!results.length && !loading && (

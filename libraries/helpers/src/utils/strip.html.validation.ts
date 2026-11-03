@@ -1,7 +1,7 @@
 import striptags from 'striptags';
 import { parseFragment, serialize } from 'parse5';
 
-const bold = {
+const bold: Record<string, string> = {
   a: '𝗮',
   b: '𝗯',
   c: '𝗰',
@@ -66,7 +66,7 @@ const bold = {
   '0': '𝟬',
 };
 
-const underlineMap = {
+const underlineMap: Record<string, string> = {
   a: 'a̲',
   b: 'b̲',
   c: 'c̲',
@@ -313,7 +313,6 @@ export const convertToAscii = (value: string): string => {
     .replace(/<strong>(.+?)<\/strong>/gi, (match, p1) => {
       // an entity such as &lt; is kept as is, not letter-mapped
       const replacer = p1.replace(/&[#\w]+;|[\s\S]/g, (char: string) => {
-        // @ts-ignore
         return char.length > 1 ? char : bold?.[char] || char;
       });
 
@@ -321,7 +320,6 @@ export const convertToAscii = (value: string): string => {
     })
     .replace(/<u>(.+?)<\/u>/gi, (match, p1) => {
       const replacer = p1.replace(/&[#\w]+;|[\s\S]/g, (char: string) => {
-        // @ts-ignore
         return char.length > 1 ? char : underlineMap?.[char] || char;
       });
 

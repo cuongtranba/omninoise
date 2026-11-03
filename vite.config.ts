@@ -54,7 +54,16 @@ export default defineConfig({
       'no-array-constructor': 'error',
       'no-unused-expressions': 'error',
       'no-unused-vars': 'off',
-      'typescript/ban-ts-comment': 'off',
+      // No type-check suppressions: fix the type instead.
+      'typescript/ban-ts-comment': [
+        'error',
+        {
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-expect-error': true,
+          'ts-check': false,
+        },
+      ],
       'typescript/no-duplicate-enum-values': 'error',
       'typescript/no-empty-object-type': 'off',
       'typescript/no-explicit-any': 'off',

@@ -142,7 +142,6 @@ export const Menu: FC<{
   const changeShow: MouseEventHandler<HTMLDivElement> = useCallback(
     (e) => {
       e.stopPropagation();
-      // @ts-ignore
       const boundBox = showRef?.current?.getBoundingClientRect();
       setShow(
         show
@@ -325,7 +324,6 @@ export const Menu: FC<{
       title: t('additional_settings', 'Additional Settings'),
       children: (
         <SettingsModal
-          // @ts-ignore
           integration={findIntegration}
           onClose={() => {
             mutate();
@@ -350,7 +348,6 @@ export const Menu: FC<{
       closeOnClickOutside: true,
       children: (
         <CustomerModal
-          // @ts-ignore
           integration={findIntegration}
           onClose={() => {
             mutate();

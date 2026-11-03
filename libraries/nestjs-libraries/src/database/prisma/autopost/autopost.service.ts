@@ -154,7 +154,6 @@ export class AutopostService {
             'application/rss+xml, application/rdf+xml;q=0.8, application/atom+xml;q=0.6, application/xml;q=0.4, text/xml;q=0.4',
         },
         signal: AbortSignal.timeout(60000),
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       });
       if (!response.ok) {
@@ -213,7 +212,6 @@ export class AutopostService {
       const loadDom = new JSDOM(
         await (
           await fetch(url, {
-            // @ts-ignore - undici-only option; blocks SSRF to internal IPs
             dispatcher: getSsrfSafeDispatcher(),
           })
         ).text()

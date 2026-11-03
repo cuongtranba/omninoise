@@ -6,6 +6,7 @@ import React, {
   memo,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -1253,10 +1254,11 @@ const CalendarItem: FC<{
     }),
     []
   );
+  const dragNodeRef = useRef<HTMLDivElement>(null);
+  dragRef(dragNodeRef);
   return (
     <div
-      // @ts-ignore
-      ref={dragRef}
+      ref={dragNodeRef}
       className={clsx(
         'w-full flex h-full flex-1 flex-col group',
         'relative',

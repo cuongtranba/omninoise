@@ -158,7 +158,6 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     const body = JSON.parse(Buffer.from(params.code, 'base64').toString());
 
     const load = await fetch(body.service + '/api/v3/user/login', {
-      // @ts-ignore - undici-only option; blocks SSRF to internal IPs
       dispatcher: getSsrfSafeDispatcher(),
       body: JSON.stringify({
         username_or_email: body.identifier,
@@ -182,7 +181,6 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
           body.service +
             `/api/v3/user?username=${encodeURIComponent(body.identifier)}`,
           {
-            // @ts-ignore - undici-only option; blocks SSRF to internal IPs
             dispatcher: getSsrfSafeDispatcher(),
             headers: {
               Authorization: `Bearer ${jwt}`,
@@ -215,7 +213,6 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     );
 
     const options = {
-      // @ts-ignore - undici-only option; blocks SSRF to internal IPs
       dispatcher: getSsrfSafeDispatcher(),
       body: JSON.stringify({
         username_or_email: body.identifier,
@@ -272,7 +269,6 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     for (const lemmy of firstPost.settings.subreddit) {
       const { post_view } = await (
         await this.fetch(service + '/api/v3/post', {
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
           body: JSON.stringify({
             community_id: +lemmy.value.id,
@@ -335,7 +331,6 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     for (const singlePostId of postIds) {
       const { comment_view } = await (
         await this.fetch(service + '/api/v3/comment', {
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
           body: JSON.stringify({
             post_id: +singlePostId,
@@ -389,7 +384,6 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
       await this.fetch(
         service + `/api/v3/search?type_=Communities&sort=Active&q=${data.word}`,
         {
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
           headers: {
             Authorization: `Bearer ${jwt}`,

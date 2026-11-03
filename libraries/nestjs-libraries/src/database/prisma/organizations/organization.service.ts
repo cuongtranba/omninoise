@@ -8,7 +8,13 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
-import { Organization, ShortLinkPreference, User } from '@prisma/client';
+import {
+  Organization,
+  Role,
+  ShortLinkPreference,
+  Subscription,
+  User,
+} from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
 @Injectable()
@@ -209,7 +215,9 @@ export class OrganizationService {
   // Only the super admin of the instance can add an existing account to an
   // organization by its email
   async addTeamMemberByEmail(
-    org: Organization,
+    org: Organization & {
+      subscription?: Pick<Subscription, 'subscriptionTier'> | null;
+    },
     requester: Pick<User, 'isSuperAdmin'>,
     body: AdminAddTeamMemberDto
   ) {
@@ -218,7 +226,6 @@ export class OrganizationService {
     }
 
     const tier =
-      // @ts-ignore
       org?.subscription?.subscriptionTier ||
       (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE');
 
@@ -272,14 +279,16 @@ export class OrganizationService {
     return { added: true };
   }
 
-  async deleteTeamMember(org: Organization, userId: string) {
+  async deleteTeamMember(
+    org: Organization & { users?: { role: Role }[] },
+    userId: string
+  ) {
     const userOrgs = await this._organizationRepository.getOrgsByUserId(userId);
     const findOrgToDelete = userOrgs.find((orgUser) => orgUser.id === org.id);
     if (!findOrgToDelete) {
       throw new Error('User is not part of this organization');
     }
 
-    // @ts-ignore
     const myRole = org.users[0].role;
     const userRole = findOrgToDelete.users[0].role;
     const myLevel = myRole === 'USER' ? 0 : myRole === 'ADMIN' ? 1 : 2;

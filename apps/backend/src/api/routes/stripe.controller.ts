@@ -5,6 +5,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 
 @ApiTags('Stripe')
@@ -17,7 +18,6 @@ export class StripeController {
     return await this._paymentService.webhook(
       'stripe',
       req.rawBody,
-      // @ts-ignore
       req.headers
     );
   }

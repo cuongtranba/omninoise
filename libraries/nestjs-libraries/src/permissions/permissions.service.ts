@@ -62,12 +62,7 @@ export class PermissionsService {
         }
         can(action, section);
       }
-      return build({
-        detectSubjectType: (item) =>
-          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          item.constructor,
-      });
+      return build();
     }
 
     const { subscription, options } = await this.getPackageOptions(orgId);
@@ -173,11 +168,6 @@ export class PermissionsService {
       }
     }
 
-    return build({
-      detectSubjectType: (item) =>
-        // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        item.constructor,
-    });
+    return build();
   }
 }

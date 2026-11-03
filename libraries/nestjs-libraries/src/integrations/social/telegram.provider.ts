@@ -10,7 +10,6 @@ import {
   BadBody,
   SocialAbstract,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-//@ts-ignore
 import mime from 'mime';
 import TelegramBot from 'node-telegram-bot-api';
 import { Integration } from '@prisma/client';

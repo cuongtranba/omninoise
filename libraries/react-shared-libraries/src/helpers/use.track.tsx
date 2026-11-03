@@ -3,6 +3,12 @@ import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useCallback } from 'react';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
 export const useTrack = () => {
   const user = useUser();
   const fetch = useFetch();
@@ -31,7 +37,6 @@ export const useTrack = () => {
           })
         ).json();
         if (window.fbq) {
-          // @ts-ignore
           window.fbq('track', TrackEnum[track], additional, {
             eventID: uq,
           });

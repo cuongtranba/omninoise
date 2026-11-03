@@ -156,7 +156,6 @@ export class MediaService {
     let response: globalThis.Response;
     try {
       response = await fetch(url, {
-        // @ts-ignore — undici option, not in lib.dom fetch types
         dispatcher: ssrfSafeDispatcher,
       });
     } catch (err) {
@@ -653,8 +652,7 @@ export class MediaService {
       throw new Error(`Video with identifier ${identifier} not found`);
     }
 
-    // @ts-ignore
-    const functionToCall = video.instance[functionName];
+    const functionToCall: unknown = Reflect.get(video.instance, functionName);
     if (
       typeof functionToCall !== 'function' ||
       this._videoManager.checkAvailableVideoFunction(functionToCall)

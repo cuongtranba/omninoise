@@ -61,7 +61,6 @@ export class LocalStorage implements IUploadProvider {
         throw new Error('Unsafe URL');
       }
       const loadImage = await fetch(path, {
-        // @ts-ignore — undici option, not in lib.dom fetch types
         dispatcher: ssrfSafeDispatcher,
       });
       body = Buffer.from(await loadImage.arrayBuffer());

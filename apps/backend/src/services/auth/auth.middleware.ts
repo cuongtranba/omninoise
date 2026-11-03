@@ -69,17 +69,12 @@ export class AuthMiddleware implements NestMiddleware {
           user.isSuperAdmin = true;
           delete user.password;
 
-          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
           req.user = user;
 
-          // @ts-ignore
           loadImpersonate.organization.users =
             loadImpersonate.organization.users.filter(
               (f) => f.userId === user.id,
             );
-          // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-expect-error
           req.org = loadImpersonate.organization;
 
           setSentryUserContext({
@@ -110,12 +105,8 @@ export class AuthMiddleware implements NestMiddleware {
         await this._organizationService.updateApiKey(setOrg.id);
       }
 
-      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
       req.user = user;
 
-      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
       req.org = setOrg;
 
       setSentryUserContext({

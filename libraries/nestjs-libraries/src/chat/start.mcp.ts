@@ -88,6 +88,11 @@ export const startMcp = async (app: INestApplication) => {
     return resolveApiKey(token);
   };
 
+  // The MCP transport reads the resolved organization off `req.auth`
+  type McpRequest<P = Request['params']> = Request<P> & {
+    auth?: Awaited<ReturnType<typeof resolveApiKey>>;
+  };
+
   // psh_ tokens: a self-hosted Postiz this server relays to (McpRelayService)
   const resolveSelfHosted = (token: string) =>
     oauthService.getSelfHostedByAccessToken(token);
@@ -422,14 +427,13 @@ export const startMcp = async (app: INestApplication) => {
     });
   });
 
-  app.use('/mcp', async (req: Request, res: Response, next: () => void) => {
+  app.use('/mcp', async (req: McpRequest, res: Response, next: () => void) => {
     // Skip if this is the /mcp/:id route
     if (req.path !== '/' && req.path !== '') {
       next();
       return;
     }
 
-    // @ts-ignore
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -446,9 +450,7 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
-    // @ts-ignore
     req.auth = await resolveAuth(token);
-    // @ts-ignore
     if (!req.auth) {
       res.status(401).send('Invalid API Key or OAuth token');
       return;
@@ -458,7 +460,6 @@ export const startMcp = async (app: INestApplication) => {
 
     endListenStream(req, res);
     fixAcceptHeader(req);
-    // @ts-ignore
     await runWithContext({ requestId: token, auth: req.auth }, async () => {
       await server.startHTTP({
         url,
@@ -472,8 +473,7 @@ export const startMcp = async (app: INestApplication) => {
     });
   });
 
-  app.use('/mcp/:id', async (req: Request, res: Response) => {
-    // @ts-ignore
+  app.use('/mcp/:id', async (req: McpRequest<{ id: string }>, res: Response) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -484,9 +484,7 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
-    // @ts-ignore
     req.auth = await resolveApiKey(req.params.id);
-    // @ts-ignore
     if (!req.auth) {
       res.status(400).send('Invalid API Key');
       return;
@@ -500,7 +498,6 @@ export const startMcp = async (app: INestApplication) => {
     endListenStream(req, res);
     fixAcceptHeader(req);
     await runWithContext(
-      // @ts-ignore
       { requestId: req.params.id, auth: req.auth },
       async () => {
         await server.startHTTP({
@@ -516,8 +513,7 @@ export const startMcp = async (app: INestApplication) => {
     );
   });
 
-  app.use(['/sse/:id', '/message/:id'], async (req: Request, res: Response) => {
-    // @ts-ignore
+  app.use(['/sse/:id', '/message/:id'], async (req: McpRequest<{ id: string }>, res: Response) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -528,9 +524,7 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
-    // @ts-ignore
     req.auth = await resolveApiKey(req.params.id);
-    // @ts-ignore
     if (!req.auth) {
       res.status(400).send('Invalid API Key');
       return;
@@ -539,7 +533,6 @@ export const startMcp = async (app: INestApplication) => {
     const url = new URL(req.originalUrl, process.env.NEXT_PUBLIC_BACKEND_URL);
 
     await runWithContext(
-      // @ts-ignore
       { requestId: req.params.id, auth: req.auth },
       async () => {
         await new MCPServer(serverConfig).startSSE({

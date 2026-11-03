@@ -15,7 +15,10 @@ import { CheckPolicies } from '@gitroom/nestjs-libraries/permissions/permissions
 import { ApiTags } from '@nestjs/swagger';
 import { NotEnoughScopesFilter } from '@gitroom/nestjs-libraries/integrations/integration.missing.scopes';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
-import { AuthTokenDetails } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
+import {
+  AuthTokenDetails,
+  SocialProvider,
+} from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { NotEnoughScopes } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import {
   AuthorizationActions,
@@ -289,8 +292,11 @@ export class NoAuthIntegrationsController {
               : null;
 
         if (fetchMethod) {
-          // @ts-ignore - dynamic method call
-          pages = await integrationProvider[fetchMethod](accessToken);
+          // the `in` checks above guarantee the provider implements fetchMethod
+          pages = await (
+            integrationProvider as SocialProvider &
+              Record<typeof fetchMethod, (accessToken: string) => Promise<any[]>>
+          )[fetchMethod](accessToken);
         }
       } catch (err) {
         console.log('Failed to fetch pages:', err);
@@ -308,7 +314,6 @@ export class NoAuthIntegrationsController {
               apiKey: org.apiKey,
             }),
           }),
-          // @ts-ignore — undici option, not in lib.dom fetch types
           dispatcher: getSsrfSafeDispatcher(),
         });
       } catch (err) {}

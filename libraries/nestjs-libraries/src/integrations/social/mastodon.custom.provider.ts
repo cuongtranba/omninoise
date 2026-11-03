@@ -36,7 +36,6 @@ export class MastodonCustomProvider extends MastodonProvider {
       await fetch(url + '/api/v1/apps', {
         method: 'POST',
         body: form,
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
         dispatcher: getSsrfSafeDispatcher(),
       })
     ).json();

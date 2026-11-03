@@ -142,7 +142,6 @@ const InnerWallet = () => {
       const signed = await wallet?.signMessage?.(encoded)!;
       const info = Buffer.from(
         JSON.stringify({
-          // @ts-ignore
           signature: Buffer.from(signed).toString('hex'),
           challenge,
           publicKey: wallet?.publicKey?.toString(),

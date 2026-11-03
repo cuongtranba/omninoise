@@ -641,12 +641,10 @@ export class PublicIntegrationsController {
 
     const tools = this._integrationManager.getAllTools();
     if (
-      // @ts-ignore
       !tools[integrationProvider.identifier]?.some(
         (p: any) => p.methodName === body.methodName
       ) ||
-      // @ts-ignore
-      !integrationProvider[body.methodName]
+      !Reflect.get(integrationProvider, body.methodName)
     ) {
       throw new HttpException({ msg: 'Tool not found' }, 404);
     }

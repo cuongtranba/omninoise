@@ -19,7 +19,6 @@ export class HeygenProvider extends ThirdPartyAbstract<{
   aspect_ratio: string;
   captions: string;
 }> {
-  // @ts-ignore
   constructor(private _openaiService: OpenaiService) {
     super();
   }

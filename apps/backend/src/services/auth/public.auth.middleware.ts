@@ -19,7 +19,6 @@ export class PublicAuthMiddleware implements NestMiddleware {
   // of the routes reads it: an API key acts as the owner of its organization,
   // an OAuth token as the user who approved the app
   private setOrg(req: Request, org: Organization, role: Role) {
-    // @ts-ignore
     req.org = { ...org, users: [{ role }] };
   }
 
@@ -35,7 +34,6 @@ export class PublicAuthMiddleware implements NestMiddleware {
       let role: Role = Role.SUPERADMIN;
       const isOAuthApp = auth.startsWith('pos_');
 
-      // @ts-ignore
       req.isOAuthApp = isOAuthApp;
 
       if (isOAuthApp) {
@@ -50,7 +48,6 @@ export class PublicAuthMiddleware implements NestMiddleware {
         org = authorization.organization;
         role = authorization.role;
         // The user who approved the OAuth app, so /me can show who is connected
-        // @ts-ignore
         req.oauthUserId = authorization.userId;
       } else {
         org = await this._organizationService.getOrgByApiKey(auth);
@@ -72,9 +69,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
       this.setOrg(req, org, role);
       const includeDeleted =
         (req.headers['x-postiz-include-deleted'] as string)?.trim() === 'true';
-      // @ts-ignore
       req.authOrgId = org.id;
-      // @ts-ignore
       req.includeDeleted = includeDeleted;
 
       const overrideOrgId = (req.headers['x-postiz-org'] as string)?.trim();
@@ -111,9 +106,7 @@ export class PublicAuthMiddleware implements NestMiddleware {
     }
 
     setSentryUserContext({
-      // @ts-ignore
       orgId: req.org.id,
-      // @ts-ignore
       paymentId: req.org.paymentId,
     });
     next();

@@ -4,7 +4,6 @@ import {
 } from 'class-validator-jsonschema';
 import { validate, ValidationError, ValidationTypes } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-// @ts-ignore
 import { defaultMetadataStorage } from 'class-transformer/cjs/storage';
 
 export function getValidationSchemas() {

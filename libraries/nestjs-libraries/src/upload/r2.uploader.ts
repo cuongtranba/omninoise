@@ -154,7 +154,7 @@ export async function prepareUploadParts(req: Request, res: Response) {
 
   const parts = partData.parts;
 
-  const response = {
+  const response: { presignedUrls: Record<number, string> } = {
     presignedUrls: {},
   };
 
@@ -169,7 +169,6 @@ export async function prepareUploadParts(req: Request, res: Response) {
       const command = new UploadPartCommand({ ...params });
       const url = await getSignedUrl(R2, command, { expiresIn: 3600 });
 
-      // @ts-ignore
       response.presignedUrls[part.number] = url;
     } catch (err) {
       console.log('Error', err);
@@ -228,7 +227,6 @@ export async function completeMultipartUpload(req: Request, res: Response) {
       }),
     );
     const chunks: Buffer[] = [];
-    // @ts-ignore
     for await (const chunk of head.Body as AsyncIterable<Buffer>) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }

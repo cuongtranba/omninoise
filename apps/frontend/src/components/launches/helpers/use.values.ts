@@ -66,12 +66,13 @@ export const useValues = (
     });
   }, [form, integration]);
 
-  // @ts-ignore
-  finalInformation[integration] = finalInformation[integration] || {};
-  finalInformation[integration].posts = value;
-  finalInformation[integration].isValid = form.formState.isValid;
-  finalInformation[integration].settings = getValues;
-  finalInformation[integration].trigger = form.trigger;
+  finalInformation[integration] = {
+    ...finalInformation[integration],
+    posts: value,
+    isValid: form.formState.isValid,
+    settings: getValues,
+    trigger: form.trigger,
+  };
   if (checkValidity) {
     finalInformation[integration].checkValidity = checkValidity;
   }

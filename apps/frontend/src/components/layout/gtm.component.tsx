@@ -5,6 +5,12 @@ import { FC, useEffect } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 export const TrialTracker: FC = () => {
   const user = useUser();
   const { googleAdsId, googleAdsTrialTracking } = useVariables();
@@ -12,8 +18,6 @@ export const TrialTracker: FC = () => {
     if (
       typeof window === 'undefined' ||
       !user?.id ||
-      // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
       !window.gtag ||
       !googleAdsId ||
       !googleAdsTrialTracking
@@ -24,9 +28,7 @@ export const TrialTracker: FC = () => {
     const key = `gtm_start_trial_${user?.id}`;
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, '1');
-    // oxlint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    gtag('event', 'conversion', {
+    window.gtag('event', 'conversion', {
       send_to: `${googleAdsId}/${googleAdsTrialTracking}`,
       transaction_id: user.id,
     });

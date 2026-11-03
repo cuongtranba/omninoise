@@ -577,7 +577,6 @@ export class PostActivity {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify(post),
-              // @ts-ignore — undici option, not in lib.dom fetch types
               dispatcher: getSsrfSafeDispatcher(),
             });
           } catch (e) {

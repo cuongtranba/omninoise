@@ -169,15 +169,12 @@ export const useMenuItem = () => {
 export const TopMenu: FC = () => {
   const user = useUser();
   const { firstMenu, secondMenu } = useMenuItem();
-  const { isGeneral, billingEnabled } = useVariables();
+  const { billingEnabled } = useVariables();
   return (
     <>
       <div className="flex flex-1 flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
         {
-          // @ts-ignore
           user?.orgId &&
-            // @ts-ignore
-            (user.tier !== 'FREE' || !isGeneral || !billingEnabled) &&
             firstMenu
               .filter((f) => {
                 if (f.hide) {

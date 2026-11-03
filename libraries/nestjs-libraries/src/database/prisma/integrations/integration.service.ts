@@ -301,12 +301,10 @@ export class IntegrationService {
     let refreshed = false;
     while (true) {
       try {
-        // @ts-ignore
-        const load = await provider[methodName](
-          current.token,
-          data,
-          current.internalId,
-          current
+        const load = await Reflect.apply(
+          Reflect.get(provider, methodName),
+          provider,
+          [current.token, data, current.internalId, current]
         );
 
         return { status: 'ok', data: load };
@@ -1152,13 +1150,18 @@ export class IntegrationService {
       getIntegration.providerIdentifier
     );
 
-    // @ts-ignore
-    await getSocialIntegration?.[getAllInternalPlugs.methodName]?.(
-      getIntegration,
-      originalIntegration,
-      data.post,
-      data.information
-    );
+    const plugMethod: unknown =
+      getSocialIntegration &&
+      Reflect.get(getSocialIntegration, getAllInternalPlugs.methodName);
+    if (typeof plugMethod === 'function') {
+      await plugMethod.call(
+        getSocialIntegration,
+        getIntegration,
+        originalIntegration,
+        data.post,
+        data.information
+      );
+    }
 
     return;
   }
@@ -1179,14 +1182,17 @@ export class IntegrationService {
       getPlugById.integration.providerIdentifier
     );
 
-    // @ts-ignore
-    const process = await integration[getPlugById.plugFunction](
-      getPlugById.integration,
-      data.postId,
-      JSON.parse(getPlugById.data).reduce((all: any, current: any) => {
-        all[current.name] = current.value;
-        return all;
-      }, {})
+    const process = await Reflect.apply(
+      Reflect.get(integration, getPlugById.plugFunction),
+      integration,
+      [
+        getPlugById.integration,
+        data.postId,
+        JSON.parse(getPlugById.data).reduce((all: any, current: any) => {
+          all[current.name] = current.value;
+          return all;
+        }, {}),
+      ]
     );
 
     if (process) {

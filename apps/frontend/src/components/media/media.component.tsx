@@ -2,7 +2,6 @@
 
 import React, {
   ChangeEvent,
-  ClipboardEvent,
   FC,
   Fragment,
   useCallback,
@@ -22,7 +21,10 @@ import EventEmitter from 'events';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import clsx from 'clsx';
 import { VideoFrame } from '@gitroom/react/helpers/video.frame';
-import { useUppyUploader } from '@gitroom/frontend/components/media/new.uploader';
+import {
+  UploadedMedia,
+  useUppyUploader,
+} from '@gitroom/frontend/components/media/new.uploader';
 import dynamic from 'next/dynamic';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { AiImage } from '@gitroom/frontend/components/launches/ai.image';
@@ -238,7 +240,7 @@ export const MediaBox: FC<{
     `get-media-${page}-${debouncedSearch}`,
     loadMedia
   );
-  const [selected, setSelected] = useState([]);
+  const [selected, setSelected] = useState<UploadedMedia[]>([]);
   const t = useT();
   const uploaderRef = useRef<any>(null);
   const mediaDirectory = useMediaDirectory();
@@ -298,7 +300,6 @@ export const MediaBox: FC<{
     if (standalone) {
       return;
     }
-    // @ts-ignore
     setMedia(selected);
     modals.closeCurrent();
   }, [selected]);
@@ -321,15 +322,20 @@ export const MediaBox: FC<{
 
       setLoading(true);
 
-      // @ts-ignore
-      uppy.addFiles(files);
+      uppy.addFiles(
+        files.map((file) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: file,
+        }))
+      );
     },
     [toaster, t]
   );
 
   const dragAndDrop = useCallback(
-    async (event: ClipboardEvent<HTMLDivElement> | File[]) => {
-      // @ts-ignore
+    async (event: File[]) => {
       const clipboardItems = event.map((p) => ({
         kind: 'file',
         getAsFile: () => p,
@@ -339,7 +345,6 @@ export const MediaBox: FC<{
       }
 
       const files: File[] = [];
-      // @ts-ignore
       for (const item of clipboardItems) {
         if (item.kind === 'file') {
           const file = item.getAsFile();

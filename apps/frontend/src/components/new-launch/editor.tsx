@@ -728,19 +728,17 @@ export const Editor: FC<{
   );
 
   const paste = useCallback(
-    (event: ClipboardEvent | File[], slice?: Slice) => {
+    (event: ClipboardEvent, slice?: Slice) => {
       if (num > 0 && comments === 'no-media') {
         return false;
       }
-      // @ts-ignore
       const clipboardItems = event.clipboardData?.items;
       if (!clipboardItems) {
         return false;
       }
 
       const clipboardFiles: File[] = [];
-      // @ts-ignore
-      for (const item of clipboardItems) {
+      for (const item of Array.from(clipboardItems)) {
         if (item.kind === 'file') {
           const file = item.getAsFile();
           if (file) {
@@ -751,7 +749,6 @@ export const Editor: FC<{
 
       // a copied picture also comes as html linking to the site it was copied
       // from, so the file wins unless the html has text of its own
-      // @ts-ignore
       const html = event.clipboardData.getData('text/html');
       const uploadInline =
         !!clipboardFiles.length &&
@@ -1154,7 +1151,7 @@ export const OnlyEditor = forwardRef<
     inlineImages?: boolean;
     value: string;
     onChange: (value: string) => void;
-    paste?: (event: ClipboardEvent | File[], slice?: Slice) => boolean;
+    paste?: (event: ClipboardEvent, slice?: Slice) => boolean;
     autoFocus?: boolean;
   }
 >(({ editorType, inlineImages, value, onChange, paste, autoFocus }, ref) => {
