@@ -275,8 +275,6 @@ const otherAgents = mcpClients.filter(
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
 
-const cliCommands = localCliSteps.map((step) => step.code);
-
 const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   onBack,
   onNext,
@@ -293,6 +291,9 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   const [revealed, setRevealed] = useState(false);
   const mcpBase = mcpUrl || backendUrl;
   const apiKey = user?.publicApi || '';
+  const cliCommands = localCliSteps.map((step) =>
+    step.code.replace('{BACKEND_URL}', backendUrl)
+  );
   const available = !!apiKey && !!user?.tier?.public_api;
   // the official connectors work for self-hosted installs too
   const officialConnectors = billingEnabled || isSelfHosted;

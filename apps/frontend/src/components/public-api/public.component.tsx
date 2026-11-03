@@ -35,7 +35,7 @@ export const mcpConnectorUrls = {
 // the agent installs the CLI itself and asks you for the API key
 export const chatOnlyMcpClients = {
   'Grok Bot':
-    'Install the Omninoise CLI with `npm install -g postiz`, then install the Omninoise skill with `npx skills add gitroomhq/postiz-agent`. Ask me for my Omninoise API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
+    'Use the omninoise CLI (it is not on npm, get it from the operator of this instance). Sign in with `omninoise auth:login --url <the backend URL of this instance>`, or ask me for my Omninoise API key and set it as the OMNINOISE_API_KEY environment variable, with OMNINOISE_URL set to the backend URL, before using the CLI.',
 } as const;
 
 export const mcpClients = [
@@ -657,47 +657,52 @@ const McpSection = ({
   );
 };
 
+// {BACKEND_URL} is replaced with the backend URL of this instance
 export const localCliSteps = [
   {
-    label: 'Install the CLI',
-    code: 'npm install -g postiz',
+    label:
+      'Get the omninoise CLI from the operator of this instance (it is not on npm), then check it runs',
+    code: 'omninoise --help',
   },
   {
-    label: 'Run: postiz auth:login',
-    code: 'postiz auth:login',
-  },
-  {
-    label: 'Install the Omninoise skill for your AI agent',
-    code: 'npx skills add gitroomhq/postiz-agent',
+    label: 'Sign in to this instance',
+    code: 'omninoise auth:login --url {BACKEND_URL}',
   },
 ] as const;
 
 const ciCliSteps = [
   {
-    label: 'Install the CLI',
-    code: 'npm install -g postiz',
+    label:
+      'Get the omninoise CLI from the operator of this instance (it is not on npm), then check it runs',
+    code: 'omninoise --help',
   },
   {
     label: 'Set your API key as an environment variable',
-    code: 'export POSTIZ_API_KEY="{API_KEY}"',
+    code: 'export OMNINOISE_API_KEY="{API_KEY}"',
   },
   {
-    label: 'Install the Omninoise skill for your AI agent',
-    code: 'npx skills add gitroomhq/postiz-agent',
+    label: 'Set the backend URL of this instance',
+    code: 'export OMNINOISE_URL="{BACKEND_URL}"',
   },
 ] as const;
 
 const CliSection = ({ apiKey }: { apiKey: string }) => {
   const t = useT();
+  const { backendUrl } = useVariables();
   const [mode, setMode] = useState<'local' | 'ci'>('local');
   const [revealed, setRevealed] = useState(false);
 
   const steps =
     mode === 'local'
-      ? localCliSteps.map((step) => ({ ...step }))
+      ? localCliSteps.map((step) => ({
+          ...step,
+          code: step.code.replace('{BACKEND_URL}', backendUrl),
+        }))
       : ciCliSteps.map((step) => ({
           ...step,
-          code: step.code.replace('{API_KEY}', apiKey),
+          code: step.code
+            .replace('{API_KEY}', apiKey)
+            .replace('{BACKEND_URL}', backendUrl),
         }));
 
   const displaySteps =
@@ -721,7 +726,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           <div className="text-[13px] text-customColor18 mt-[2px]">
             {t(
               'cli_description',
-              'Use the Omninoise CLI to automate posting from your terminal, or install the skill to let your AI agent schedule posts for you.'
+              'Use the omninoise CLI, provided by the operator of this instance, to automate posting from your terminal or to let your AI agent schedule posts for you.'
             )}
           </div>
         </div>
