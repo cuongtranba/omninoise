@@ -2,7 +2,7 @@
 # Copilot Coding Agent Instructions for Postiz
 
 ## Project Architecture
-- Monorepo managed by NX, with apps in `apps/` and shared code in `libraries/`.
+- pnpm monorepo with apps in `apps/` and shared code in `libraries/`. The toolchain is Vite+ (`vp`: Oxlint, Oxfmt, Vitest), configured in the root `vite.config.ts`.
 - Main services: `frontend` (Next.js), `backend` (NestJS), `cron`, `commands`, `extension`, `sdk`, and `workers`.
 - Data layer uses Prisma ORM (`libraries/nestjs-libraries/src/database/prisma/schema.prisma`) with PostgreSQL as the default database.
 - Caches, one-shot state and rate limiting live in UNLOGGED tables in the `pgonly` Postgres schema (no Redis).
@@ -10,11 +10,13 @@
 - Social login integrations (Instagram, Facebook) and Make.com/N8N integrations.
 
 ## Developer Workflows
-- Use Node.js 20.17.0 and pnpm 8+.
+- Use Node.js from `.node-version` (22.18+) and pnpm 10.
 - Install dependencies: `pnpm install`
 - Build all apps: `pnpm run build`
 - Run all apps in dev mode: `pnpm run dev`
-- Test: `pnpm test` (Jest, coverage enabled)
+- Test: `pnpm test` (Vitest, Postgres-backed; set `TEST_DATABASE_URL`)
+- Lint and format: `pnpm run check` (what CI runs), `pnpm run lint`, `pnpm run fmt`
+- Never use `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`; fix the type (enforced by lint)
 - Individual app scripts are in each app's `package.json` (e.g., `pnpm --filter ./apps/backend run dev`).
 - Prisma DB commands: `pnpm run prisma-generate`, `pnpm run prisma-db-push`, `pnpm run prisma-reset`.
 - Docker: `docker compose -f ./docker-compose.dev.yaml up -d`
@@ -37,7 +39,7 @@
 - `libraries/` — Shared code and modules
 - `docker-compose.dev.yaml` — Local development Docker setup
 - `.env` — Environment configuration
-- `jest.config.ts` — Test configuration
+- `vite.config.ts` — Lint, format and test configuration
 - `pnpm-workspace.yaml` — Workspace package management
 - `README.md` — General project overview
 - `libraries/nestjs-libraries/src/database/prisma/schema.prisma` — Database schema

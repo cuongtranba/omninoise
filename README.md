@@ -19,7 +19,7 @@ the private repository
 flowchart LR
   user["Browser / public API / MCP"] --> nginx["nginx :5000"]
   subgraph app["omninoise container (pm2)"]
-    nginx -->|"/"| frontend["frontend :4200 (Vite React)"]
+    nginx -->|"/"| frontend["frontend :4200 (Next.js)"]
     nginx -->|"/api"| backend["backend :3000 (NestJS)"]
     orchestrator["orchestrator :3002 (job worker)"]
   end
@@ -31,7 +31,7 @@ flowchart LR
 | Part | Path | Role |
 | --- | --- | --- |
 | Backend | `apps/backend` | NestJS API. Writes data with Prisma and enqueues jobs; it never runs them. |
-| Frontend | `apps/frontend` | Vite + React UI, served behind nginx. |
+| Frontend | `apps/frontend` | Next.js + React UI, served behind nginx. |
 | Orchestrator | `apps/orchestrator` | Job worker. Publishes posts at their scheduled time, refreshes tokens, sends emails and digests, runs autopost. Handlers are in `apps/orchestrator/src/jobs`. |
 | Shared code | `libraries/` | Services, Prisma schema, providers and React components shared by the apps. |
 
@@ -53,7 +53,7 @@ The `pgonly` schema is not managed by Prisma; the apps create it on boot.
 
 ## Run locally
 
-Requirements: Node 22, pnpm 10 (`packageManager` in `package.json`), Docker.
+Requirements: Node 22.18+ (`.node-version`), pnpm 10 (`packageManager` in `package.json`), Docker.
 
 ```bash
 pnpm install                  # also generates the Prisma client
@@ -87,21 +87,27 @@ option, including the per-platform app keys.
 | `WORKER_CONCURRENCY_DIVIDER` | optional | Divides each provider queue's concurrency. |
 | `EXCLUDE_QUEUE` | optional | Queues this worker should not run. |
 
-## Test and build
+## Test, lint and build
+
+The toolchain is [Vite+](https://viteplus.dev) (`vp`): Oxlint, Oxfmt and Vitest,
+configured in the root `vite.config.ts`.
 
 ```bash
-pnpm run test:pg   # job queue, key-value store and throttler against Postgres 17
+pnpm test          # Vitest specs against Postgres 17
+pnpm run check     # lint (Oxlint) and format check (Oxfmt), as CI runs it
+pnpm run lint      # lint only
+pnpm run fmt       # format the repository
 pnpm run build     # frontend, backend and orchestrator
 ```
 
-`pnpm run test:pg` uses `TEST_DATABASE_URL` (falling back to `DATABASE_URL`).
+`pnpm test` uses `TEST_DATABASE_URL` (falling back to `DATABASE_URL`).
 One spec runs `prisma db push`, so point it at a disposable database.
 
 ## Deploy
 
 Every push to `main` runs `.github/workflows/deploy.yml`:
 
-1. The checks in `.github/workflows/build.yml` (build and the Postgres tests),
+1. The checks in `.github/workflows/build.yml` (lint and format check, build and the Postgres tests),
    which also run on every pull request.
 2. Build `Dockerfile.dev` for amd64 and arm64 and publish
    `ghcr.io/cuongtranba/omninoise:sha-<short sha>`. There is no `latest` tag.

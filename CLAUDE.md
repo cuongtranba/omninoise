@@ -13,7 +13,7 @@ We have 3 important folders
 
 - apps/backend - this is where the API code is (NESTJS)
 - apps/orchestrator - this runs the background jobs (NESTJS): a Postgres job queue (`pgonly.jobs`, see `libraries/nestjs-libraries/src/jobs`) with the job handlers in `jobs/` and the services they call in `activities/`
-- apps/frontend - this is the code of the frontend (Vite ReactJS)
+- apps/frontend - this is the code of the frontend (Next.js, React)
 - /libraries contains a lot of services shared between backend and orchestrator and frontend components.
 
 We are using only pnpm, don't use any other dependency manager.
@@ -22,7 +22,7 @@ Never install frontend components from npmjs, focus on writing native components
 The project uses tailwind 3, before writing any component look at:
 - /apps/frontend/src/app/colors.scss
 - /apps/frontend/src/app/global.scss
-- /apps/frontend/tailwind.config.js
+- /apps/frontend/tailwind.config.cjs
 
 All the --color-custom* are deprecated, don't use them.
 
@@ -42,7 +42,7 @@ For the frontend follow this:
 - Components are in /apps/frontend/src/components
 - always use SWR to fetch stuff, and use "useFetch" hook from /libraries/helpers/src/utils/custom.fetch.tsx
 
-When using SWR, each one have to be in a separate hook and must comply with react-hooks/rules-of-hooks, never put eslint-disable-next-line on it.
+When using SWR, each one have to be in a separate hook and must comply with react-hooks/rules-of-hooks, never put oxlint-disable-next-line (or eslint-disable-next-line) on it.
 
 It means that this is valid:
 const useCommunity = () => {
@@ -57,7 +57,8 @@ const useCommunity = () => {
   };
 }
 
-- Linting of the project can run only from the root.
+- The toolchain is Vite+ (`vp`): Oxlint for lint, Oxfmt for format, Vitest for tests. Lint, format and test only from the root, where `vite.config.ts` holds their config: `pnpm lint`, `pnpm fmt`, `pnpm check` (lint + format check, what CI runs), `pnpm test`.
+- Never use `// @ts-ignore`, `// @ts-expect-error` or `// @ts-nocheck`, and don't swap them for `as any` or `as unknown as`. Fix the type instead. Lint enforces this (`typescript/ban-ts-comment`).
 - Use only pnpm.
 - Never use RAW SQL queries, always use Prisma.
 - The system is in production with many users, if you want to change something, you need to be sure that you are not breaking anything for existing users and a migration might be needed

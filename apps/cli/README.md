@@ -196,7 +196,7 @@ A bad profile stops the command with the name of the key at fault, for example `
 
 ```bash
 pnpm --filter omninoise build        # dist/index.js
-pnpm exec vitest run apps/cli        # specs run against a local fake server, no database needed
+pnpm exec vp test apps/cli           # specs run against a local fake server, no database needed
 pnpm run publish-cli                 # build and publish to npm (maintainers)
 ```
 
