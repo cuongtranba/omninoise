@@ -37,7 +37,7 @@ export const ContinueProvider: FC = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('added');
     url.searchParams.delete('continue');
-    navigate(url.toString());
+    navigate(`${url.pathname}${url.search}`);
   }, []);
   const Provider = useMemo(() => {
     if (!added) {

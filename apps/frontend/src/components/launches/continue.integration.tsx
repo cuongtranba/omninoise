@@ -43,8 +43,9 @@ export const ContinueIntegration: FC<{
     (path: string, returnURL: string | undefined, successMessage: string) => {
       if (returnURL) {
         // If returnURL exists, always redirect to it with the path params
+        // returnURL is usually another site, which the router can't navigate to.
         const params = path.includes('?') ? path.split('?')[1] : '';
-        navigate(params ? `${returnURL}?${params}` : returnURL);
+        window.location.href = params ? `${returnURL}?${params}` : returnURL;
       } else if (logged) {
         // If logged in without returnURL, use normal navigation
         navigate(path);
