@@ -773,15 +773,6 @@ importers:
 
   apps/backend: {}
 
-  apps/cli:
-    dependencies:
-      yaml:
-        specifier: ^2.9.1
-        version: 2.9.1
-      yargs:
-        specifier: ^17.7.2
-        version: 17.7.2
-
   apps/extension: {}
 
   apps/frontend: {}

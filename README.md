@@ -11,7 +11,10 @@ application container and one Postgres container are the whole deployment.
 Production runs on Dokploy and is deployed from
 this repository on every push to `main`. Runbooks, decisions and content live in
 the private repository
-[cuongtranba/omninoise-ops](https://github.com/cuongtranba/omninoise-ops).
+[cuongtranba/omninoise-ops](https://github.com/cuongtranba/omninoise-ops),
+together with the operating tooling (agent skills, the `omninoise` CLI, the
+video and voice tools). This repository holds the application and its
+deployment only.
 
 ## Architecture
 

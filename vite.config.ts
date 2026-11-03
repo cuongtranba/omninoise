@@ -9,7 +9,6 @@ export default defineConfig({
     include: [
       'libraries/**/*.spec.ts',
       'apps/backend/**/*.spec.ts',
-      'apps/cli/**/*.spec.ts',
       'apps/frontend/**/*.spec.ts',
     ],
     env: {
@@ -39,8 +38,6 @@ export default defineConfig({
       '**/coverage/**',
       // Static and vendored assets served as-is.
       'apps/*/public/**',
-      // Bun-managed, with its own lint and format setup.
-      'skills/**',
     ],
     rules: {
       'no-array-constructor': 'error',
@@ -184,8 +181,6 @@ export default defineConfig({
       'i18n.json',
       '**/translation/locales/**',
       'apps/*/public/**',
-      // Bun-managed, with its own lint and format setup.
-      'skills/**',
     ],
   },
 });
