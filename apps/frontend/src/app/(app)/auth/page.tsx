@@ -1,31 +1,42 @@
-import { internalFetch } from '@gitroom/helpers/utils/internal.fetch';
-export const dynamic = 'force-dynamic';
+import useSWR from 'swr';
+import { Link, useSearchParams } from 'react-router';
 import { Register } from '@gitroom/frontend/components/auth/register';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-import Link from 'next/link';
-import { getT } from '@gitroom/react/translation/get.translation.service.backend';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { LoginWithOidc } from '@gitroom/frontend/components/auth/login.with.oidc';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Register`,
-  description: '',
+
+const useCanRegister = (enabled: boolean) => {
+  const fetch = useFetch();
+  return useSWR(
+    enabled ? '/auth/can-register' : null,
+    async (path: string) => (await (await fetch(path)).json()).register
+  );
 };
-export default async function Auth(params: {
-  searchParams: Promise<{ provider: string }>;
-}) {
-  const t = await getT();
-  if (process.env.DISABLE_REGISTRATION === 'true') {
-    const canRegister = (
-      await (await internalFetch('/auth/can-register')).json()
-    ).register;
-    if (!canRegister && !(await params?.searchParams)?.provider) {
+
+export default function Auth() {
+  const t = useT();
+  const { isGeneral, disableRegistration } = useVariables();
+  const [searchParams] = useSearchParams();
+  const { data: canRegister } = useCanRegister(disableRegistration);
+
+  const title = (
+    <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Register`}</title>
+  );
+
+  if (disableRegistration) {
+    if (canRegister === undefined) {
+      return title;
+    }
+    if (!canRegister && !searchParams.get('provider')) {
       return (
         <>
+          {title}
           <LoginWithOidc />
           <div className="text-center">
             {t('registration_is_disabled', 'Registration is disabled')}
             <br />
-            <Link className="underline hover:font-bold" href="/auth/login">
+            <Link className="underline hover:font-bold" to="/auth/login">
               {t('login_instead', 'Login instead')}
             </Link>
           </div>
@@ -33,5 +44,10 @@ export default async function Auth(params: {
       );
     }
   }
-  return <Register />;
+  return (
+    <>
+      {title}
+      <Register />
+    </>
+  );
 }

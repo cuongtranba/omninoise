@@ -1,15 +1,17 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { lazy, Suspense } from 'react';
 
-const RenderPreviewDate = dynamic(
-  () =>
-    import('@gitroom/frontend/components/preview/render.preview.date').then(
-      (mod) => mod.RenderPreviewDate
-    ),
-  { ssr: false }
+const RenderPreviewDate = lazy(() =>
+  import('@gitroom/frontend/components/preview/render.preview.date').then(
+    (mod) => ({ default: mod.RenderPreviewDate })
+  )
 );
 
 export const RenderPreviewDateClient = ({ date }: { date: string }) => {
-  return <RenderPreviewDate date={date} />;
+  return (
+    <Suspense fallback={null}>
+      <RenderPreviewDate date={date} />
+    </Suspense>
+  );
 };

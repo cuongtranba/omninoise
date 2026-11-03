@@ -8,7 +8,7 @@ import { Input } from '@gitroom/react/form/input';
 import { Button } from '@gitroom/react/form/button';
 import { useSWRConfig } from 'swr';
 import { useToaster } from '@gitroom/react/toaster/toaster';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { useFireEvents } from '@gitroom/helpers/utils/use.fire.events';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const LifetimeDeal = () => {
@@ -18,7 +18,7 @@ export const LifetimeDeal = () => {
   const [code, setCode] = useState('');
   const toast = useToaster();
   const { mutate } = useSWRConfig();
-  const router = useRouter();
+  const navigate = useNavigate();
   const fireEvents = useFireEvents();
   const claim = useCallback(async () => {
     const { success } = await (
@@ -101,7 +101,7 @@ export const LifetimeDeal = () => {
     return null;
   }
   if (user?.id && user?.tier?.current !== 'FREE' && !user?.isLifetime) {
-    router.replace('/billing');
+    navigate('/billing', { replace: true });
     return null;
   }
   return (

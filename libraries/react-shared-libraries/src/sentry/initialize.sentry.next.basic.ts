@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from '@sentry/react';
 
 export const initializeSentryBasic = (
   environment: string,
@@ -44,7 +44,7 @@ export const initializeSentryBasic = (
   // wrapper lives in our bundle. Its location is recorded so it is not counted as ours.
   let sentryWrapperFrame = '';
   const frameKey = (frame: Sentry.StackFrame) =>
-    `${(frame.filename || '').split('/_next/').pop()}:${frame.lineno}:${frame.colno}`;
+    `${frame.filename}:${frame.lineno}:${frame.colno}`;
 
   const isThirdPartyOnly = (event: Sentry.ErrorEvent) => {
     const values = event.exception?.values || [];
@@ -64,7 +64,7 @@ export const initializeSentryBasic = (
           );
         }
         return callbackFrames.every(
-          (frame) => !frame.filename!.includes('/_next/')
+          (frame) => !frame.filename!.includes('/assets/')
         );
       })
     );
@@ -75,13 +75,13 @@ export const initializeSentryBasic = (
       initialScope: {
         tags: {
           service: 'frontend',
-          component: 'nextjs',
+          component: 'react',
           replaysEnabled: 'true',
         },
         contexts: {
           app: {
             name: 'Omninoise Frontend',
-            version: process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0',
+            version: import.meta.env.NEXT_PUBLIC_VERSION || '0.0.0',
           },
         },
       },
@@ -91,7 +91,6 @@ export const initializeSentryBasic = (
         }),
       ],
       environment: environment || 'development',
-      spotlight: process.env.SENTRY_SPOTLIGHT === '1',
       dsn,
       sendDefaultPii: false,
       ...extension,

@@ -3,8 +3,7 @@
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useParams } from 'react-router';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import useCookie from 'react-use-cookie';
 export const AfterActivate = () => {
@@ -50,7 +49,7 @@ export const AfterActivate = () => {
         <>
           This user is already activated,
           <br />
-          <Link href="/auth/login" className="underline">
+          <Link to="/auth/login" className="underline">
             {t(
               'click_here_to_go_back_to_login',
               'Click here to go back to login'

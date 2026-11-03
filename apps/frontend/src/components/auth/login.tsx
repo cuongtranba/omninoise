@@ -2,7 +2,7 @@
 
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import Link from 'next/link';
+import { Link } from 'react-router';
 import { Button } from '@gitroom/react/form/button';
 import { Input } from '@gitroom/react/form/input';
 import { useMemo, useState } from 'react';
@@ -126,7 +126,7 @@ export function Login() {
                     )}
                   </p>
                   <Link
-                    href="/auth/activate"
+                    to="/auth/activate"
                     className="text-amber-400 underline hover:font-bold text-sm"
                   >
                     {t('resend_activation_email', 'Resend Activation Email')}
@@ -145,13 +145,13 @@ export function Login() {
                 </div>
                 <p className="mt-4 text-sm">
                   {t('don_t_have_an_account', "Don't Have An Account?")}&nbsp;
-                  <Link href="/auth" className="underline cursor-pointer">
+                  <Link to="/auth" className="underline cursor-pointer">
                     {t('sign_up', 'Sign Up')}
                   </Link>
                 </p>
                 <p className="mt-4 text-sm">
                   <Link
-                    href="/auth/forgot"
+                    to="/auth/forgot"
                     className="underline hover:font-bold cursor-pointer"
                   >
                     {t('forgot_password', 'Forgot password')}

@@ -1,10 +1,12 @@
-import { ReactNode } from 'react';
+import { Outlet } from 'react-router';
 import { PreviewWrapper } from '@gitroom/frontend/components/preview/preview.wrapper';
 
-export default async function AppLayout({ children }: { children: ReactNode }) {
+export default function AppLayout() {
   return (
     <div className="bg-newBgColor min-h-screen text-newTextColor">
-      <PreviewWrapper>{children}</PreviewWrapper>
+      <PreviewWrapper>
+        <Outlet />
+      </PreviewWrapper>
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import React, {
   ChangeEvent,
   FC,
+  lazy,
+  Suspense,
   Fragment,
   useCallback,
   useEffect,
@@ -25,7 +27,6 @@ import {
   UploadedMedia,
   useUppyUploader,
 } from '@gitroom/frontend/components/media/new.uploader';
-import dynamic from 'next/dynamic';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { AiImage } from '@gitroom/frontend/components/launches/ai.image';
 import { DropFiles } from '@gitroom/frontend/components/layout/drop.files';
@@ -56,7 +57,7 @@ import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useDebounce } from 'use-debounce';
-const Polonto = dynamic(
+const Polonto = lazy(
   () => import('@gitroom/frontend/components/launches/polonto')
 );
 const showModalEmitter = new EventEmitter();
@@ -876,7 +877,9 @@ export const MultiMediaComponent: FC<{
         title: t('design_media', 'Design Media'),
         size: '80%',
         children: (close) => (
-          <Polonto setMedia={changeMedia} closeModal={close} />
+          <Suspense fallback={null}>
+            <Polonto setMedia={changeMedia} closeModal={close} />
+          </Suspense>
         ),
       });
     }
@@ -1089,12 +1092,14 @@ export const MediaComponent: FC<{
       size: 'calc(100% - 80px)',
       height: 'calc(100% - 80px)',
       children: (close) => (
-        <Polonto
-          width={width}
-          height={height}
-          setMedia={changeMedia}
-          closeModal={close}
-        />
+        <Suspense fallback={null}>
+          <Polonto
+            width={width}
+            height={height}
+            setMedia={changeMedia}
+            closeModal={close}
+          />
+        </Suspense>
       ),
     });
   }, [t]);

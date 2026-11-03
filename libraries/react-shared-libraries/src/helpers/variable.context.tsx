@@ -35,6 +35,9 @@ interface VariableContextInterface {
   googleAdsId?: string;
   googleAdsTrialTracking?: string;
   recaptchaSiteKey?: string;
+  disableRegistration: boolean;
+  datafastWebsiteId: string;
+  plausibleDomain: string;
 }
 declare global {
   interface Window {
@@ -74,6 +77,9 @@ const VariableContext = createContext({
   sentryDsn: '',
   extensionId: '',
   recaptchaSiteKey: '',
+  disableRegistration: false,
+  datafastWebsiteId: '',
+  plausibleDomain: '',
 } as VariableContextInterface);
 export const VariableContextComponent: FC<
   VariableContextInterface & {

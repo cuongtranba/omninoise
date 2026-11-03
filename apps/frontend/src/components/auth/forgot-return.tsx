@@ -1,7 +1,7 @@
 'use client';
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import Link from 'next/link';
+import { Link } from 'react-router';
 import { Button } from '@gitroom/react/form/button';
 import { Input } from '@gitroom/react/form/input';
 import { useMemo, useState } from 'react';
@@ -84,7 +84,7 @@ export function ForgotReturn({ token }: { token: string }) {
                 </Button>
               </div>
               <p className="mt-4 text-sm">
-                <Link href="/auth/login" className="underline cursor-pointer">
+                <Link to="/auth/login" className="underline cursor-pointer">
                   {t('go_back_to_login', 'Go back to login')}
                 </Link>
               </p>
@@ -99,7 +99,7 @@ export function ForgotReturn({ token }: { token: string }) {
               )}
             </div>
             <p className="mt-4 text-sm">
-              <Link href="/auth/login" className="underline cursor-pointer">
+              <Link to="/auth/login" className="underline cursor-pointer">
                 {t('go_back_to_login', 'Go back to login')}
               </Link>
             </p>

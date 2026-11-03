@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from '@sentry/react';
 import { initializeSentryBasic } from '@gitroom/react/sentry/initialize.sentry.next.basic';
 
 export const setSentryUser = (

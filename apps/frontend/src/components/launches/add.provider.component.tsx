@@ -8,7 +8,7 @@ import { FieldValues, FormProvider, useForm } from 'react-hook-form';
 import { Button } from '@gitroom/react/form/button';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { ApiKeyDto } from '@gitroom/nestjs-libraries/dtos/integrations/api.key.dto';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -410,7 +410,7 @@ export const AddProviderComponent: FC<{
   const { update, social, article, onboarding, isMobile } = props;
   const { isGeneral, extensionId } = useVariables();
   const toaster = useToaster();
-  const router = useRouter();
+  const navigate = useNavigate();
   const fetch = useFetch();
   const modal = useModals();
   const getSocialLink = useCallback(
@@ -665,7 +665,7 @@ export const AddProviderComponent: FC<{
               >
                 <CustomVariables
                   identifier={identifier}
-                  gotoUrl={(url: string) => router.push(url)}
+                  gotoUrl={(url: string) => navigate(url)}
                   variables={customFields}
                   onboarding={onboarding}
                 />

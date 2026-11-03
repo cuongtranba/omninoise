@@ -2,7 +2,7 @@
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { HttpStatusCode } from 'axios';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { Redirect } from '@gitroom/frontend/components/layout/redirect';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -28,7 +28,7 @@ export const ContinueIntegration: FC<{
   logged: boolean;
 }> = (props) => {
   const { provider, searchParams, logged } = props;
-  const { push } = useRouter();
+  const navigate = useNavigate();
   const t = useT();
   const fetch = useFetch();
   const { extensionId, backendUrl } = useVariables();
@@ -44,16 +44,16 @@ export const ContinueIntegration: FC<{
       if (returnURL) {
         // If returnURL exists, always redirect to it with the path params
         const params = path.includes('?') ? path.split('?')[1] : '';
-        push(params ? `${returnURL}?${params}` : returnURL);
+        navigate(params ? `${returnURL}?${params}` : returnURL);
       } else if (logged) {
         // If logged in without returnURL, use normal navigation
-        push(path);
+        navigate(path);
       } else {
         // If not logged in without returnURL, show success inline
         setSuccessState({ message: successMessage });
       }
     },
-    [logged, push]
+    [logged, navigate]
   );
   const modifiedParams = useMemo(() => {
     if (provider === 'mewe') {

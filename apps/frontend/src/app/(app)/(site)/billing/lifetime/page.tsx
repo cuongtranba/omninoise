@@ -1,11 +1,12 @@
 import { LifetimeDeal } from '@gitroom/frontend/components/billing/lifetime.deal';
-export const dynamic = 'force-dynamic';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Lifetime deal`,
-  description: '',
-};
-export default async function Page() {
-  return <LifetimeDeal />;
+import { useVariables } from '@gitroom/react/helpers/variable.context';
+
+export default function Page() {
+  const { isGeneral } = useVariables();
+  return (
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Lifetime deal`}</title>
+      <LifetimeDeal />
+    </>
+  );
 }

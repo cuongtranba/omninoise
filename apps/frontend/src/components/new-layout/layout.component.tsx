@@ -1,20 +1,22 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, {
+  lazy,
+  ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
-import { jakartaSans } from '@gitroom/frontend/fonts/plus-jakarta-sans/plus.jakarta.sans.font';
-const ModeComponent = dynamic(
-  () => import('@gitroom/frontend/components/layout/mode.component'),
-  {
-    ssr: false,
-  }
+const ModeComponent = lazy(
+  () => import('@gitroom/frontend/components/layout/mode.component')
 );
 
 import clsx from 'clsx';
-import dynamic from 'next/dynamic';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useLocation, useSearchParams } from 'react-router';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -52,8 +54,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const { backendUrl, billingEnabled, isGeneral } = useVariables();
 
   // Feedback icon component attaches Sentry feedback to a top-bar icon when DSN is present
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const [searchParams] = useSearchParams();
+  const pathname = useLocation().pathname;
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     setMenuOpen(false);
@@ -102,7 +104,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <div
               className={clsx(
                 'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px] mobile:pb-[80px]',
-                jakartaSans.className
+                'font-jakarta'
               )}
             >
               <div>{user?.admin ? <Impersonate /> : <div />}</div>
@@ -173,7 +175,9 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <OrganizationSelector />
                           <InvoicesComponent />
                           <div className="hover:text-newTextColor">
-                            <ModeComponent />
+                            <Suspense fallback={null}>
+                              <ModeComponent />
+                            </Suspense>
                           </div>
                           <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
                           <LanguageComponent />

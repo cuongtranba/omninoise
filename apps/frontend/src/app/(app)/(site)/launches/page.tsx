@@ -1,11 +1,12 @@
-export const dynamic = 'force-dynamic';
 import { LaunchesComponent } from '@gitroom/frontend/components/launches/launches.component';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise Calendar' : 'Gitroom Launches'}`,
-  description: '',
-};
-export default async function Index() {
-  return <LaunchesComponent />;
+import { useVariables } from '@gitroom/react/helpers/variable.context';
+
+export default function Index() {
+  const { isGeneral } = useVariables();
+  return (
+    <>
+      <title>{isGeneral ? 'Omninoise Calendar' : 'Gitroom Launches'}</title>
+      <LaunchesComponent />
+    </>
+  );
 }

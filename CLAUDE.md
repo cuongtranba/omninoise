@@ -13,7 +13,7 @@ We have 3 important folders
 
 - apps/backend - this is where the API code is (NESTJS)
 - apps/orchestrator - this runs the background jobs (NESTJS): a Postgres job queue (`pgonly.jobs`, see `libraries/nestjs-libraries/src/jobs`) with the job handlers in `jobs/` and the services they call in `activities/`
-- apps/frontend - this is the code of the frontend (Next.js, React)
+- apps/frontend - this is the code of the frontend (Vite + React single-page app, react-router)
 - /libraries contains a lot of services shared between backend and orchestrator and frontend components.
 
 We are using only pnpm, don't use any other dependency manager.
@@ -38,7 +38,8 @@ The backend repository is mostly used to write controller, and import files from
 
 For the frontend follow this:
 - Many of the UI components lives in /apps/frontend/src/components/ui
-- Routing is in /apps/frontend/src/app
+- Routing: pages and layouts live in /apps/frontend/src/app, and /apps/frontend/src/router.tsx maps URLs to them (react-router, lazy routes). Auth redirects are client-side in /apps/frontend/src/app/route.guard.tsx.
+- Runtime settings reach the browser through `window.__RUNTIME_CONFIG__`, built from env by /apps/frontend/runtime-config.mjs (served in dev by the Vite config, written by the Docker entrypoint in production) and read with `useVariables()`. Never put a secret in it, and never read `process.env` in frontend code.
 - Components are in /apps/frontend/src/components
 - always use SWR to fetch stuff, and use "useFetch" hook from /libraries/helpers/src/utils/custom.fetch.tsx
 

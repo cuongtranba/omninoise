@@ -1,11 +1,5 @@
-import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { Navigate } from 'react-router';
 
-export const metadata: Metadata = {
-  title: 'Omninoise - Agent',
-  description: '',
-};
-
-export default async function Page() {
-  return redirect('/agents/new');
+export default function Page() {
+  return <Navigate to="/agents/new" replace />;
 }

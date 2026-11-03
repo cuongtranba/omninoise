@@ -1,12 +1,12 @@
 import { MediaLayoutComponent } from '@gitroom/frontend/components/new-layout/layout.media.component';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
 
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Media`,
-  description: '',
-};
-
-export default async function Page() {
-  return <MediaLayoutComponent />;
+export default function Page() {
+  const { isGeneral } = useVariables();
+  return (
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Media`}</title>
+      <MediaLayoutComponent />
+    </>
+  );
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import { StandaloneModal } from '@gitroom/frontend/components/standalone-modal/standalone.modal';
 export default function Modal() {
   return (

@@ -1,25 +1,19 @@
+import { useParams, useSearchParams } from 'react-router';
 import { ContinueIntegration } from '@gitroom/frontend/components/launches/continue.integration';
-import { cookies } from 'next/headers';
+import { useLoggedIn } from '@gitroom/frontend/app/route.guard';
 
-export const dynamic = 'force-dynamic';
-
-export default async function Page(props: {
-  params: Promise<{
-    provider: string;
-  }>;
-  searchParams: Promise<any>;
-}) {
-  const searchParams = await props.searchParams;
-  const params = await props.params;
-
-  const { provider } = params;
-
-  const get = (await cookies()).get('auth');
+export default function Page() {
+  const { provider } = useParams();
+  const [searchParams] = useSearchParams();
+  const logged = useLoggedIn();
+  if (logged === undefined) {
+    return null;
+  }
   return (
     <ContinueIntegration
-      searchParams={searchParams}
-      provider={provider}
-      logged={!!get?.name}
+      searchParams={Object.fromEntries(searchParams)}
+      provider={provider!}
+      logged={logged}
     />
   );
 }

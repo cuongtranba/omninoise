@@ -1,13 +1,13 @@
-import { Metadata } from 'next';
+import { Outlet } from 'react-router';
 import { Agent } from '@gitroom/frontend/components/agents/agent';
-export const metadata: Metadata = {
-  title: 'Omninoise - Agent',
-  description: 'agents',
-};
-export default async function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <Agent>{children}</Agent>;
+
+export default function Layout() {
+  return (
+    <>
+      <title>Omninoise - Agent</title>
+      <Agent>
+        <Outlet />
+      </Agent>
+    </>
+  );
 }

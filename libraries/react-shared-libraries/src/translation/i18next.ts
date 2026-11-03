@@ -20,7 +20,7 @@ i18next
     fallbackNS: defaultNS,
     defaultNS,
     detection: {
-      order: ['cookie', 'header'],
+      order: ['cookie', 'navigator'],
     },
     preload: runsOnServerSide ? languages : [],
   });

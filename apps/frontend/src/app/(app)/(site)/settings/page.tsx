@@ -1,16 +1,12 @@
 import { SettingsPopup } from '@gitroom/frontend/components/layout/settings.component';
-export const dynamic = 'force-dynamic';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Settings`,
-  description: '',
-};
-export default async function Index(props: {
-  searchParams: Promise<{
-    code: string;
-  }>;
-}) {
-  const searchParams = await props.searchParams;
-  return <SettingsPopup />;
+import { useVariables } from '@gitroom/react/helpers/variable.context';
+
+export default function Index() {
+  const { isGeneral } = useVariables();
+  return (
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Settings`}</title>
+      <SettingsPopup />
+    </>
+  );
 }

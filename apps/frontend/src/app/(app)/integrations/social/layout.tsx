@@ -1,13 +1,9 @@
-import { ReactNode } from 'react';
+import { Outlet } from 'react-router';
 
-export default async function IntegrationLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function IntegrationLayout() {
   return (
     <div className="bg-[#0B0A0A] flex flex-1 min-h-screen w-screen">
-      {children}
+      <Outlet />
     </div>
   );
 }

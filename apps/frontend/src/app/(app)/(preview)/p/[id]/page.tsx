@@ -1,10 +1,9 @@
-import { internalFetch } from '@gitroom/helpers/utils/internal.fetch';
+import useSWR from 'swr';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { sanitizePostContent } from '@gitroom/helpers/utils/sanitize.post.content';
-export const dynamic = 'force-dynamic';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
-import Link from 'next/link';
 import { CommentsComponents } from '@gitroom/frontend/components/preview/comments.components';
 import { PreviewCommentsProvider } from '@gitroom/frontend/components/preview/preview.comments.context';
 import { PostContentClient } from '@gitroom/frontend/components/preview/post.content.client';
@@ -12,37 +11,39 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { VideoOrImage } from '@gitroom/react/helpers/video.or.image';
 import { CopyClient } from '@gitroom/frontend/components/preview/copy.client';
-import { getT } from '@gitroom/react/translation/get.translation.service.backend';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { RenderPreviewDateClient } from '@gitroom/frontend/components/preview/render.preview.date.client';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 
 dayjs.extend(utc);
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Preview`,
-  description: '',
+
+const usePreviewPost = (id: string) => {
+  const fetch = useFetch();
+  return useSWR(
+    `/public/posts/${id}`,
+    async (path: string) => await (await fetch(path)).json()
+  );
 };
-export default async function Auth(props: {
-  params: Promise<{
-    id: string;
-  }>;
-  searchParams?: Promise<{
-    share?: string;
-  }>;
-}) {
-  const searchParams = await props.searchParams;
-  const params = await props.params;
 
-  const { id } = params;
+export default function Auth() {
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const { isGeneral } = useVariables();
+  const t = useT();
+  const { data: post, error, isLoading } = usePreviewPost(id!);
 
-  const post = await (await internalFetch(`/public/posts/${id}`)).json();
-  const t = await getT();
-  if (!post.length) {
+  if (isLoading) {
+    return null;
+  }
+  if (error || !post?.length) {
     return (
       <div className="text-newTextColor fixed start-0 top-0 w-full h-full flex justify-center items-center text-[20px]">
+        <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Preview`}</title>
         {t('post_not_found', 'Post not found')}
       </div>
     );
   }
+
   return (
     <PreviewCommentsProvider
       previewId={id}
@@ -50,11 +51,9 @@ export default async function Auth(props: {
       organizationId={post[0].organizationId}
     >
       <div className="mx-auto w-full max-w-[1346px] p-[12px] flex flex-col gap-[8px] text-newTextColor">
+        <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Preview`}</title>
         <div className="flex bg-newBgColorInner rounded-[12px] min-h-[80px] px-[20px] py-[12px] items-center gap-[20px] flex-wrap">
-          <Link
-            href="/"
-            className="flex items-center gap-[10px] text-textColor"
-          >
+          <Link to="/" className="flex items-center gap-[10px] text-textColor">
             <LogoTextComponent />
           </Link>
           <div className="flex-1" />
@@ -65,7 +64,7 @@ export default async function Auth(props: {
                 <RenderPreviewDateClient date={post[0].publishDate} />
               </span>
             </div>
-            {!!searchParams?.share && (
+            {!!searchParams.get('share') && (
               <>
                 <div className="w-[1px] h-[20px] bg-blockSeparator" />
                 <CopyClient />

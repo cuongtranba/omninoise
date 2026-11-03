@@ -10,16 +10,13 @@ export interface Params {
     response: Response
   ) => Promise<boolean>;
 }
-// `next` is the Next.js fetch option, a request that sets it keeps its own cache mode
-export type FetchOptions = RequestInit & { next?: unknown };
-
 export const customFetch = (
   params: Params,
   auth?: string,
   showorg?: string,
   secured: boolean = true
 ) => {
-  return async function newFetch(url: string, options: FetchOptions = {}) {
+  return async function newFetch(url: string, options: RequestInit = {}) {
     const loggedAuth =
       typeof window === 'undefined'
         ? undefined
@@ -73,7 +70,7 @@ export const customFetch = (
           ? { impersonate: authNonSecuredImpersonate }
           : {}),
       },
-      ...(!options.next && options.cache !== 'force-cache'
+      ...(options.cache !== 'force-cache'
         ? { cache: options.cache || 'no-store' }
         : {}),
     });

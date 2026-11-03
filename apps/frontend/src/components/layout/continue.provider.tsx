@@ -1,5 +1,5 @@
 import React, { FC, useCallback, useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { IntegrationContext } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import dayjs from 'dayjs';
@@ -15,10 +15,10 @@ export const Null: FC<{
 export const ContinueProvider: FC = () => {
   const { mutate } = useSWRConfig();
   const fetch = useFetch();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const added = searchParams.get('added');
   const continueId = searchParams.get('continue');
-  const router = useRouter();
+  const navigate = useNavigate();
   const load = useCallback(async (path: string) => {
     const list = (await (await fetch(path)).json()).integrations;
     return list;
@@ -37,7 +37,7 @@ export const ContinueProvider: FC = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete('added');
     url.searchParams.delete('continue');
-    router.push(url.toString());
+    navigate(url.toString());
   }, []);
   const Provider = useMemo(() => {
     if (!added) {

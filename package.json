@@ -78,7 +78,6 @@
     "@postiz/wallets": "^0.0.1",
     "@prisma/client": "6.5.0",
     "@sentry/nestjs": "10.56.0",
-    "@sentry/nextjs": "10.56.0",
     "@sentry/profiling-node": "10.56.0",
     "@sentry/react": "10.56.0",
     "@solana/wallet-adapter-react": "^0.15.35",
@@ -177,8 +176,6 @@
     "multer": "^2.5.0",
     "music-metadata": "^11.15.0",
     "nestjs-real-ip": "^3.0.1",
-    "next": "16.4.2",
-    "next-plausible": "^3.12.0",
     "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^10.2.1",
@@ -200,6 +197,7 @@
     "react-hotkeys-hook": "^5.1.0",
     "react-i18next": "^15.5.2",
     "react-loading": "^2.0.3",
+    "react-router": "7.18.5",
     "react-sortablejs": "^6.1.4",
     "react-tag-autocomplete": "^7.2.0",
     "react-tooltip": "^5.26.2",
@@ -285,7 +283,6 @@
   "pnpm": {
     "overrides": {
       "multer": "^2.5.0",
-      "next": "16.4.2",
       "react": "19.2.4",
       "react-dom": "19.2.4",
       "@types/react": "19.1.8",

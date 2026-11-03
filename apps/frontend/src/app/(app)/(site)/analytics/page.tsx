@@ -1,11 +1,12 @@
-export const dynamic = 'force-dynamic';
-import { Metadata } from 'next';
 import { PlatformAnalytics } from '@gitroom/frontend/components/platform-analytics/platform.analytics';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Analytics`,
-  description: '',
-};
-export default async function Index() {
-  return <PlatformAnalytics />;
+import { useVariables } from '@gitroom/react/helpers/variable.context';
+
+export default function Index() {
+  const { isGeneral } = useVariables();
+  return (
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Analytics`}</title>
+      <PlatformAnalytics />
+    </>
+  );
 }

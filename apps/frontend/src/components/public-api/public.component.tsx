@@ -62,7 +62,7 @@ export type AnyMcpClient = RemoteMcpClient | ChatOnlyMcpClient | McpClient;
 export type McpAuth = 'oauth' | 'apikey';
 
 // Only the self-hosted docker images are built with a version
-export const isSelfHosted = !!process.env.NEXT_PUBLIC_VERSION;
+export const isSelfHosted = !!import.meta.env.NEXT_PUBLIC_VERSION;
 
 // The directory listings behind the "Official connector" tab
 const officialConnectorClients = [

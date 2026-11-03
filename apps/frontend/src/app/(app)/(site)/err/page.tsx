@@ -1,17 +1,16 @@
-import { Metadata } from 'next';
-import { getT } from '@gitroom/react/translation/get.translation.service.backend';
-export const metadata: Metadata = {
-  title: 'Error',
-  description: '',
-};
-export default async function Page() {
-  const t = await getT();
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+
+export default function Page() {
+  const t = useT();
   return (
-    <div>
-      {t(
-        'we_are_experiencing_some_difficulty_try_to_refresh_the_page',
-        'We are experiencing some difficulty, try to refresh the page'
-      )}
-    </div>
+    <>
+      <title>Error</title>
+      <div>
+        {t(
+          'we_are_experiencing_some_difficulty_try_to_refresh_the_page',
+          'We are experiencing some difficulty, try to refresh the page'
+        )}
+      </div>
+    </>
   );
 }

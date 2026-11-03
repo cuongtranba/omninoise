@@ -1,7 +1,7 @@
 'use client';
 
 import { FC, useEffect, useRef, useState } from 'react';
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from '@sentry/react';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
 export const AttachToFeedbackIcon: FC = () => {

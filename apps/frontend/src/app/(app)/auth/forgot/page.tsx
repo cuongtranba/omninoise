@@ -1,11 +1,12 @@
-export const dynamic = 'force-dynamic';
 import { Forgot } from '@gitroom/frontend/components/auth/forgot';
-import { Metadata } from 'next';
-import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
-export const metadata: Metadata = {
-  title: `${isGeneralServerSide() ? 'Omninoise' : 'Gitroom'} Forgot Password`,
-  description: '',
-};
-export default async function Auth() {
-  return <Forgot />;
+import { useVariables } from '@gitroom/react/helpers/variable.context';
+
+export default function Auth() {
+  const { isGeneral } = useVariables();
+  return (
+    <>
+      <title>{`${isGeneral ? 'Omninoise' : 'Gitroom'} Forgot Password`}</title>
+      <Forgot />
+    </>
+  );
 }

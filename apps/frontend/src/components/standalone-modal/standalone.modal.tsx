@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import { FC, useCallback } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { useParams } from 'next/navigation';
+import { useParams } from 'react-router';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import {
   fromUtc,
