@@ -14,7 +14,6 @@
     "dev": "pnpm run --filter ./apps/extension --filter ./apps/orchestrator --filter ./apps/backend --filter ./apps/frontend --parallel dev",
     "dev-backend": "pnpm run --filter ./apps/backend --filter ./apps/frontend --parallel dev",
     "publish-sdk": "pnpm run --filter ./apps/sdk publish",
-    "publish-cli": "pnpm run --filter ./apps/cli publish",
     "dev:stripe": "pnpm dlx concurrently \"stripe listen --forward-to localhost:3000/stripe\" \"pnpm run dev\"",
     "build": "vp run --concurrency-limit 1 --filter ./apps/frontend --filter ./apps/backend --filter ./apps/orchestrator build",
     "build:backend": "rm -rf apps/backend/dist && pnpm --filter ./apps/backend run build",
