@@ -1,0 +1,3228 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "RootController_getRoot",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Root"]
+      }
+    },
+    "/payment/{provider}": {
+      "post": {
+        "operationId": "PaymentController_webhook",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Payment"]
+      }
+    },
+    "/stripe": {
+      "post": {
+        "operationId": "StripeController_stripe",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Stripe"]
+      }
+    },
+    "/auth/can-register": {
+      "get": {
+        "operationId": "AuthController_canRegister",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateOrgUserDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginUserDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/forgot": {
+      "post": {
+        "operationId": "AuthController_forgot",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ForgotPasswordDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/forgot-return": {
+      "post": {
+        "operationId": "AuthController_forgotReturn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotReturnPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/oauth-mobile-callback": {
+      "get": {
+        "operationId": "AuthController_mobileCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/oauth/{provider}": {
+      "get": {
+        "operationId": "AuthController_oauthLink",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/activate": {
+      "post": {
+        "operationId": "AuthController_activate",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/resend-activation": {
+      "post": {
+        "operationId": "AuthController_resendActivation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResendActivationDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/farcaster/signer": {
+      "post": {
+        "operationId": "AuthController_farcasterSigner",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      },
+      "get": {
+        "operationId": "AuthController_farcasterSignerStatus",
+        "parameters": [
+          {
+            "name": "signerUuid",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/oauth/{provider}/redirect": {
+      "post": {
+        "operationId": "AuthController_oauthRedirect",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/auth/oauth/{provider}/exists": {
+      "post": {
+        "operationId": "AuthController_oauthExists",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Auth"]
+      }
+    },
+    "/public/agent": {
+      "post": {
+        "operationId": "PublicController_createAgent",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public"]
+      }
+    },
+    "/public/posts/{id}": {
+      "get": {
+        "operationId": "PublicController_getPreview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public"]
+      }
+    },
+    "/public/posts/{id}/comments": {
+      "get": {
+        "operationId": "PublicController_getComments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public"]
+      },
+      "post": {
+        "operationId": "PublicController_createComment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublicCommentDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public"]
+      }
+    },
+    "/public/t": {
+      "post": {
+        "operationId": "PublicController_trackEvent",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public"]
+      }
+    },
+    "/public/modify-subscription": {
+      "post": {
+        "operationId": "PublicController_modifySubscription",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public"]
+      }
+    },
+    "/public/stream": {
+      "get": {
+        "operationId": "PublicController_streamFile",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public"]
+      }
+    },
+    "/monitor/queue/{name}": {
+      "get": {
+        "operationId": "MonitorController_getMessagesGroup",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Monitor"]
+      }
+    },
+    "/enterprise/create-user": {
+      "post": {
+        "operationId": "EnterpriseController_createUser",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Enterprise"]
+      }
+    },
+    "/enterprise/url": {
+      "post": {
+        "operationId": "EnterpriseController_redirectParams",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Enterprise"]
+      }
+    },
+    "/enterprise/delete-channel": {
+      "post": {
+        "operationId": "EnterpriseController_deleteChannel",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Enterprise"]
+      }
+    },
+    "/integrations": {
+      "get": {
+        "operationId": "NoAuthIntegrationsController_getIntegrations",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      },
+      "delete": {
+        "operationId": "IntegrationsController_deleteChannel",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/social-connect/{integration}": {
+      "post": {
+        "operationId": "NoAuthIntegrationsController_connectSocialMedia",
+        "parameters": [
+          {
+            "name": "integration",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConnectIntegrationDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/public/provider/{id}/connect": {
+      "post": {
+        "operationId": "NoAuthIntegrationsController_saveProviderPage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/extension-refresh": {
+      "post": {
+        "operationId": "NoAuthIntegrationsController_extensionRefreshCookies",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "operationId": "OAuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterClientDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "operationId": "OAuthController_authorize",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth"]
+      },
+      "post": {
+        "operationId": "OAuthAuthorizedController_approveOrDeny",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ApproveOAuthDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/authorize/self-hosted": {
+      "post": {
+        "operationId": "OAuthController_authorizeSelfHosted",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeSelfHostedDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "operationId": "OAuthController_token",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TokenExchangeDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/userinfo": {
+      "get": {
+        "operationId": "OAuthController_userinfo",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth"]
+      },
+      "post": {
+        "operationId": "OAuthController_userinfoPost",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/hubspot/callback": {
+      "get": {
+        "operationId": "OAuthController_hubspotCallback",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth"]
+      }
+    },
+    "/media-widget/upload": {
+      "post": {
+        "operationId": "MediaWidgetController_upload",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media-widget/status": {
+      "get": {
+        "operationId": "MediaWidgetController_status",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/clipping-widget/status": {
+      "get": {
+        "operationId": "ClippingWidgetController_status",
+        "parameters": [
+          {
+            "name": "seen",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Clipping"]
+      }
+    },
+    "/user/chatbase-token": {
+      "get": {
+        "operationId": "UsersController_getChatbaseToken",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/self": {
+      "get": {
+        "operationId": "UsersController_getSelf",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/personal": {
+      "get": {
+        "operationId": "UsersController_getPersonalInformation",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      },
+      "post": {
+        "operationId": "UsersController_changePersonal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserDetailDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/impersonate": {
+      "get": {
+        "operationId": "UsersController_getImpersonate",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      },
+      "post": {
+        "operationId": "UsersController_setImpersonate",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/switch": {
+      "post": {
+        "operationId": "UsersController_switchUser",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/email-notifications": {
+      "get": {
+        "operationId": "UsersController_getEmailNotifications",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      },
+      "post": {
+        "operationId": "UsersController_updateEmailNotifications",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EmailNotificationsDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/timezone": {
+      "post": {
+        "operationId": "UsersController_updateTimezone",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TimezoneDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/api-key/rotate": {
+      "post": {
+        "operationId": "UsersController_rotateApiKey",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/subscription": {
+      "get": {
+        "operationId": "UsersController_getSubscription",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/subscription/tiers": {
+      "get": {
+        "operationId": "UsersController_tiers",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/join-org": {
+      "post": {
+        "operationId": "UsersController_joinOrg",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/organizations": {
+      "get": {
+        "operationId": "UsersController_getOrgs",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/change-org": {
+      "post": {
+        "operationId": "UsersController_changeOrg",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/delete-account-info": {
+      "get": {
+        "operationId": "UsersController_getDeleteAccountInfo",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/delete-account": {
+      "post": {
+        "operationId": "UsersController_deleteAccount",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/logout": {
+      "post": {
+        "operationId": "UsersController_logout",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/user/t": {
+      "post": {
+        "operationId": "UsersController_trackEvent",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["User"]
+      }
+    },
+    "/analytics/overview": {
+      "get": {
+        "operationId": "AnalyticsController_getOverview",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Analytics"]
+      }
+    },
+    "/analytics/{integration}": {
+      "get": {
+        "operationId": "AnalyticsController_getIntegration",
+        "parameters": [
+          {
+            "name": "integration",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Analytics"]
+      }
+    },
+    "/analytics/post/{postId}": {
+      "get": {
+        "operationId": "AnalyticsController_getPostAnalytics",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Analytics"]
+      }
+    },
+    "/integrations/provider/{id}/connect": {
+      "post": {
+        "operationId": "IntegrationsController_saveProviderPage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{identifier}/internal-plugs": {
+      "get": {
+        "operationId": "IntegrationsController_getInternalPlugs",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/customers": {
+      "get": {
+        "operationId": "IntegrationsController_getCustomers",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/customers/{id}": {
+      "put": {
+        "operationId": "IntegrationsController_updateCustomerName",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomerNameDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/group": {
+      "put": {
+        "operationId": "IntegrationsController_updateIntegrationGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/customer-name": {
+      "put": {
+        "operationId": "IntegrationsController_updateOnCustomerName",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/custom-name": {
+      "put": {
+        "operationId": "IntegrationsController_updateCustomName",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IntegrationNameDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/list": {
+      "get": {
+        "operationId": "IntegrationsController_getIntegrationList",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/settings": {
+      "post": {
+        "operationId": "IntegrationsController_updateProviderSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/nickname": {
+      "post": {
+        "operationId": "IntegrationsController_setNickname",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}": {
+      "get": {
+        "operationId": "IntegrationsController_getSingleIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "order",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/social/{integration}": {
+      "get": {
+        "operationId": "IntegrationsController_getIntegrationUrl",
+        "parameters": [
+          {
+            "name": "integration",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "refresh",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "externalUrl",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "redirectUrl",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "onboarding",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/time": {
+      "post": {
+        "operationId": "IntegrationsController_setTime",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IntegrationTimeDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/mentions": {
+      "post": {
+        "operationId": "IntegrationsController_mentions",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationFunctionDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/function": {
+      "post": {
+        "operationId": "IntegrationsController_functionIntegration",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationFunctionDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/disable": {
+      "post": {
+        "operationId": "IntegrationsController_disableChannel",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/enable": {
+      "post": {
+        "operationId": "IntegrationsController_enableChannel",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/plug/list": {
+      "get": {
+        "operationId": "IntegrationsController_getPlugList",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/{id}/plugs": {
+      "get": {
+        "operationId": "IntegrationsController_getPlugsByIntegrationId",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      },
+      "post": {
+        "operationId": "IntegrationsController_postPlugsByIntegrationId",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlugDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/plugs/{id}/activate": {
+      "put": {
+        "operationId": "IntegrationsController_changePlugActivation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/telegram/updates": {
+      "get": {
+        "operationId": "IntegrationsController_getUpdates",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/moltbook/register": {
+      "post": {
+        "operationId": "IntegrationsController_moltbookRegister",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/integrations/moltbook/status": {
+      "get": {
+        "operationId": "IntegrationsController_moltbookStatus",
+        "parameters": [
+          {
+            "name": "apiKey",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Integrations"]
+      }
+    },
+    "/settings/team": {
+      "get": {
+        "operationId": "SettingsController_getTeam",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Settings"]
+      },
+      "post": {
+        "operationId": "SettingsController_inviteTeamMember",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddTeamMemberDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Settings"]
+      }
+    },
+    "/settings/team/add": {
+      "post": {
+        "operationId": "SettingsController_addTeamMember",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminAddTeamMemberDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Settings"]
+      }
+    },
+    "/settings/team/{id}": {
+      "delete": {
+        "operationId": "SettingsController_deleteTeamMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Settings"]
+      }
+    },
+    "/settings/shortlink": {
+      "get": {
+        "operationId": "SettingsController_getShortlinkPreference",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Settings"]
+      },
+      "post": {
+        "operationId": "SettingsController_updateShortlinkPreference",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShortlinkPreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Settings"]
+      }
+    },
+    "/posts/{id}/statistics": {
+      "get": {
+        "operationId": "PostsController_getStatistics",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{id}/missing": {
+      "get": {
+        "operationId": "PostsController_getMissingContent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{id}/release-url": {
+      "get": {
+        "operationId": "PostsController_getReleaseURL",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{id}/release-id": {
+      "put": {
+        "operationId": "PostsController_updateReleaseId",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/should-shortlink": {
+      "post": {
+        "operationId": "PostsController_shouldShortlink",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{id}/comments": {
+      "post": {
+        "operationId": "PostsController_createComment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePublicCommentDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/comments/{commentId}/resolve": {
+      "put": {
+        "operationId": "PostsController_resolveComment",
+        "parameters": [
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResolveCommentDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/tags": {
+      "get": {
+        "operationId": "PostsController_getTags",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      },
+      "post": {
+        "operationId": "PostsController_createTag",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTagDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/tags/{id}": {
+      "put": {
+        "operationId": "PostsController_editTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTagDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      },
+      "delete": {
+        "operationId": "PostsController_deleteTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts": {
+      "get": {
+        "operationId": "PostsController_getPosts",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      },
+      "post": {
+        "operationId": "PostsController_createPost",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/find-slot": {
+      "get": {
+        "operationId": "PostsController_findSlot",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/find-slot/{id}": {
+      "get": {
+        "operationId": "PostsController_findSlotIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/list": {
+      "get": {
+        "operationId": "PostsController_getPostsList",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/old": {
+      "get": {
+        "operationId": "PostsController_oldPosts",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/group/{group}/debug-export": {
+      "get": {
+        "operationId": "PostsController_getPostGroupDebugExport",
+        "parameters": [
+          {
+            "name": "group",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/group/{group}": {
+      "get": {
+        "operationId": "PostsController_getPostsByGroup",
+        "parameters": [
+          {
+            "name": "group",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{id}": {
+      "get": {
+        "operationId": "PostsController_getPost",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/valid": {
+      "post": {
+        "operationId": "PostsController_validatePosts",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/generator/draft": {
+      "post": {
+        "operationId": "PostsController_generatePostsDraft",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGeneratedPostsDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/generator": {
+      "post": {
+        "operationId": "PostsController_generatePosts",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GeneratorDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{group}": {
+      "delete": {
+        "operationId": "PostsController_deletePost",
+        "parameters": [
+          {
+            "name": "group",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/{id}/date": {
+      "put": {
+        "operationId": "PostsController_changeDate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/posts/separate-posts": {
+      "post": {
+        "operationId": "PostsController_separatePosts",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Posts"]
+      }
+    },
+    "/media/{id}": {
+      "delete": {
+        "operationId": "MediaController_deleteMedia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/generate-video": {
+      "post": {
+        "operationId": "MediaController_generateVideo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VideoDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/generate-image": {
+      "post": {
+        "operationId": "MediaController_generateImage",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/generate-image-with-prompt": {
+      "post": {
+        "operationId": "MediaController_generateImageFromText",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/upload-server": {
+      "post": {
+        "operationId": "MediaController_uploadServer",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/save-media": {
+      "post": {
+        "operationId": "MediaController_saveMedia",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/information": {
+      "post": {
+        "operationId": "MediaController_saveMediaInformation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveMediaInformationDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/upload-simple": {
+      "post": {
+        "operationId": "MediaController_uploadSimple",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/{endpoint}": {
+      "post": {
+        "operationId": "MediaController_uploadFile",
+        "parameters": [
+          {
+            "name": "endpoint",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/{id}/status": {
+      "get": {
+        "operationId": "MediaController_getMediaStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media": {
+      "get": {
+        "operationId": "MediaController_getMedia",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/video-options": {
+      "get": {
+        "operationId": "MediaController_getVideos",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/video/function": {
+      "post": {
+        "operationId": "MediaController_videoFunction",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VideoFunctionDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/media/generate-video/{type}/allowed": {
+      "get": {
+        "operationId": "MediaController_generateVideoAllowed",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Media"]
+      }
+    },
+    "/clipping": {
+      "post": {
+        "operationId": "ClippingController_startClipping",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClippingDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Clipping"]
+      },
+      "get": {
+        "operationId": "ClippingController_getClippings",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Clipping"]
+      }
+    },
+    "/clipping/{id}": {
+      "get": {
+        "operationId": "ClippingController_getClipping",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Clipping"]
+      }
+    },
+    "/billing/check/{id}": {
+      "get": {
+        "operationId": "BillingController_checkId",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/check-discount": {
+      "get": {
+        "operationId": "BillingController_checkDiscount",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/apply-discount": {
+      "post": {
+        "operationId": "BillingController_applyDiscount",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/finish-trial": {
+      "post": {
+        "operationId": "BillingController_finishTrial",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/is-trial-finished": {
+      "get": {
+        "operationId": "BillingController_isTrialFinished",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/embedded": {
+      "post": {
+        "operationId": "BillingController_embedded",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BillingSubscribeDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/subscribe": {
+      "post": {
+        "operationId": "BillingController_subscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BillingSubscribeDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/sync": {
+      "post": {
+        "operationId": "BillingController_sync",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BillingSyncDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/portal": {
+      "get": {
+        "operationId": "BillingController_modifyPayment",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/invoices": {
+      "get": {
+        "operationId": "BillingController_getInvoices",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/renewal": {
+      "get": {
+        "operationId": "BillingController_getRenewal",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing": {
+      "get": {
+        "operationId": "BillingController_getCurrentBilling",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/cancel": {
+      "post": {
+        "operationId": "BillingController_cancel",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/prorate": {
+      "post": {
+        "operationId": "BillingController_prorate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BillingSubscribeDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/charges": {
+      "get": {
+        "operationId": "BillingController_getCharges",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/refund-charges": {
+      "post": {
+        "operationId": "BillingController_refundCharges",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/cancel-subscription": {
+      "post": {
+        "operationId": "BillingController_cancelSubscription",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/coupon-info": {
+      "get": {
+        "operationId": "BillingController_couponInfo",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/apply-coupon": {
+      "post": {
+        "operationId": "BillingController_applyCoupon",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminApplyCouponDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/cancel-coupon": {
+      "post": {
+        "operationId": "BillingController_cancelCoupon",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/chatbase-refund/preview": {
+      "get": {
+        "operationId": "BillingController_chatbaseRefundPreview",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/chatbase-refund": {
+      "post": {
+        "operationId": "BillingController_chatbaseRefund",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/billing/add-subscription": {
+      "post": {
+        "operationId": "BillingController_addSubscription",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Billing"]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "NotificationsController_mainPageList",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Notifications"]
+      }
+    },
+    "/notifications/list": {
+      "get": {
+        "operationId": "NotificationsController_notifications",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Notifications"]
+      }
+    },
+    "/copilot/chat": {
+      "post": {
+        "operationId": "CopilotController_chatAgent",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Copilot"]
+      }
+    },
+    "/copilot/agent": {
+      "post": {
+        "operationId": "CopilotController_agent",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Copilot"]
+      }
+    },
+    "/copilot/credits": {
+      "get": {
+        "operationId": "CopilotController_calculateCredits",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Copilot"]
+      }
+    },
+    "/copilot/{thread}/list": {
+      "get": {
+        "operationId": "CopilotController_getMessagesList",
+        "parameters": [
+          {
+            "name": "thread",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Copilot"]
+      }
+    },
+    "/copilot/list": {
+      "get": {
+        "operationId": "CopilotController_getList",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Copilot"]
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "WebhookController_getStatistics",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Webhooks"]
+      },
+      "post": {
+        "operationId": "WebhookController_createAWebhook",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WebhooksDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Webhooks"]
+      },
+      "put": {
+        "operationId": "WebhookController_updateWebhook",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Webhooks"]
+      }
+    },
+    "/webhooks/analytics/preview": {
+      "post": {
+        "operationId": "WebhookController_previewAnalytics",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AnalyticsPreviewDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Webhooks"]
+      }
+    },
+    "/webhooks/{id}": {
+      "delete": {
+        "operationId": "WebhookController_deleteWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Webhooks"]
+      }
+    },
+    "/webhooks/send": {
+      "post": {
+        "operationId": "WebhookController_sendWebhook",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Webhooks"]
+      }
+    },
+    "/signatures": {
+      "get": {
+        "operationId": "SignatureController_getSignatures",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Signatures"]
+      },
+      "post": {
+        "operationId": "SignatureController_createSignature",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignatureDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Signatures"]
+      }
+    },
+    "/signatures/default": {
+      "get": {
+        "operationId": "SignatureController_getDefaultSignature",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Signatures"]
+      }
+    },
+    "/signatures/{id}": {
+      "delete": {
+        "operationId": "SignatureController_deleteSignature",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Signatures"]
+      },
+      "put": {
+        "operationId": "SignatureController_updateSignature",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SignatureDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Signatures"]
+      }
+    },
+    "/autopost": {
+      "get": {
+        "operationId": "AutopostController_getAutoposts",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Autopost"]
+      },
+      "post": {
+        "operationId": "AutopostController_createAutopost",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AutopostDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Autopost"]
+      }
+    },
+    "/autopost/{id}": {
+      "put": {
+        "operationId": "AutopostController_updateAutopost",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AutopostDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Autopost"]
+      },
+      "delete": {
+        "operationId": "AutopostController_deleteAutopost",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Autopost"]
+      }
+    },
+    "/autopost/{id}/active": {
+      "post": {
+        "operationId": "AutopostController_changeActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Autopost"]
+      }
+    },
+    "/autopost/send": {
+      "post": {
+        "operationId": "AutopostController_sendWebhook",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Autopost"]
+      }
+    },
+    "/sets": {
+      "get": {
+        "operationId": "SetsController_getSets",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Sets"]
+      },
+      "post": {
+        "operationId": "SetsController_createASet",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SetsDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Sets"]
+      },
+      "put": {
+        "operationId": "SetsController_updateSet",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateSetsDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Sets"]
+      }
+    },
+    "/sets/{id}": {
+      "delete": {
+        "operationId": "SetsController_deleteSet",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Sets"]
+      }
+    },
+    "/third-party/list": {
+      "get": {
+        "operationId": "ThirdPartyController_getThirdPartyList",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/third-party": {
+      "get": {
+        "operationId": "ThirdPartyController_getSavedThirdParty",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/third-party/{id}": {
+      "delete": {
+        "operationId": "ThirdPartyController_deleteById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/third-party/{id}/submit": {
+      "post": {
+        "operationId": "ThirdPartyController_generate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/third-party/function/{id}/{functionName}": {
+      "post": {
+        "operationId": "ThirdPartyController_callFunction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "functionName",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/third-party/{id}/import": {
+      "post": {
+        "operationId": "ThirdPartyController_importMedia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ImportMediaDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/third-party/{identifier}": {
+      "post": {
+        "operationId": "ThirdPartyController_addApiKey",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Third Party"]
+      }
+    },
+    "/user/oauth-app": {
+      "get": {
+        "operationId": "OAuthAppController_getApp",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth App"]
+      },
+      "post": {
+        "operationId": "OAuthAppController_createApp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateOAuthAppDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["OAuth App"]
+      },
+      "put": {
+        "operationId": "OAuthAppController_updateApp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateOAuthAppDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth App"]
+      },
+      "delete": {
+        "operationId": "OAuthAppController_deleteApp",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["OAuth App"]
+      }
+    },
+    "/user/oauth-app/rotate-secret": {
+      "post": {
+        "operationId": "OAuthAppController_rotateSecret",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["OAuth App"]
+      }
+    },
+    "/user/approved-apps": {
+      "get": {
+        "operationId": "ApprovedAppsController_list",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Approved Apps"]
+      }
+    },
+    "/user/approved-apps/{id}": {
+      "delete": {
+        "operationId": "ApprovedAppsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Approved Apps"]
+      }
+    },
+    "/announcements": {
+      "get": {
+        "operationId": "AnnouncementsController_getAnnouncements",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Announcements"]
+      },
+      "post": {
+        "operationId": "AnnouncementsController_createAnnouncement",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AnnouncementDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Announcements"]
+      }
+    },
+    "/announcements/{id}": {
+      "delete": {
+        "operationId": "AnnouncementsController_deleteAnnouncement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Announcements"]
+      }
+    },
+    "/admin/errors": {
+      "get": {
+        "operationId": "AdminController_listErrors",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "platform",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "email",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "unknownFirst",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/errors/platforms": {
+      "get": {
+        "operationId": "AdminController_listPlatforms",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Admin"]
+      }
+    },
+    "/admin/stats": {
+      "get": {
+        "operationId": "AdminController_getStats",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "unknownOnly",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Admin"]
+      }
+    },
+    "/public/v1/upload": {
+      "post": {
+        "operationId": "PublicIntegrationsController_uploadSimple",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/upload-from-url": {
+      "post": {
+        "operationId": "PublicIntegrationsController_uploadsFromUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UploadDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/find-slot/{id}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_findSlotIntegration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getPosts",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      },
+      "post": {
+        "operationId": "PublicIntegrationsController_createPost",
+        "parameters": [],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts/{id}": {
+      "delete": {
+        "operationId": "PublicIntegrationsController_deletePost",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts/group/{group}": {
+      "delete": {
+        "operationId": "PublicIntegrationsController_deletePostByGroup",
+        "parameters": [
+          {
+            "name": "group",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/is-connected": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getActiveIntegrations",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/media": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getMedia",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/media/{id}/status": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getMediaStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/me": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getMe",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/groups": {
+      "get": {
+        "operationId": "PublicIntegrationsController_listGroups",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/integrations": {
+      "get": {
+        "operationId": "PublicIntegrationsController_listIntegration",
+        "parameters": [
+          {
+            "name": "group",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/social/{integration}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getIntegrationUrl",
+        "parameters": [
+          {
+            "name": "integration",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "refresh",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/users": {
+      "get": {
+        "operationId": "PublicIntegrationsController_listUsers",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/debug/posts/{id}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getPostTimeline",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/debug/account": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getAccountOverview",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/debug/channels": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getChannelHealth",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/debug/activity": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getOrgActivity",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/credits/reset": {
+      "post": {
+        "operationId": "PublicIntegrationsController_resetCredits",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetCreditsDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/notifications": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getNotifications",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/generate-video": {
+      "post": {
+        "operationId": "PublicIntegrationsController_generateVideo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VideoDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/video/function": {
+      "post": {
+        "operationId": "PublicIntegrationsController_videoFunction",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VideoFunctionDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/clipping": {
+      "post": {
+        "operationId": "PublicIntegrationsController_startClipping",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClippingDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      },
+      "get": {
+        "operationId": "PublicIntegrationsController_getClippings",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/clipping/{id}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getClipping",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/integrations/{id}": {
+      "delete": {
+        "operationId": "PublicIntegrationsController_deleteChannel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/integration-settings/{id}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getIntegrationSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts/{id}/missing": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getMissingContent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts/{id}/settings": {
+      "put": {
+        "operationId": "PublicIntegrationsController_updatePostSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdatePostSettingsDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts/{id}/status": {
+      "put": {
+        "operationId": "PublicIntegrationsController_changePostStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePostStatusDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/posts/{id}/release-id": {
+      "put": {
+        "operationId": "PublicIntegrationsController_updateReleaseId",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/analytics/{integration}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getAnalytics",
+        "parameters": [
+          {
+            "name": "integration",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/analytics/post/{postId}": {
+      "get": {
+        "operationId": "PublicIntegrationsController_getPostAnalytics",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    },
+    "/public/v1/integration-trigger/{id}": {
+      "post": {
+        "operationId": "PublicIntegrationsController_triggerIntegrationTool",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "tags": ["Public API"]
+      }
+    }
+  },
+  "info": {
+    "title": "Omninoise Swagger file",
+    "description": "API description",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "CreateOrgUserDto": { "type": "object", "properties": {} },
+      "LoginUserDto": { "type": "object", "properties": {} },
+      "ForgotPasswordDto": { "type": "object", "properties": {} },
+      "ForgotReturnPasswordDto": { "type": "object", "properties": {} },
+      "ResendActivationDto": { "type": "object", "properties": {} },
+      "CreatePublicCommentDto": { "type": "object", "properties": {} },
+      "ConnectIntegrationDto": { "type": "object", "properties": {} },
+      "RegisterClientDto": { "type": "object", "properties": {} },
+      "AuthorizeSelfHostedDto": { "type": "object", "properties": {} },
+      "TokenExchangeDto": { "type": "object", "properties": {} },
+      "UserDetailDto": { "type": "object", "properties": {} },
+      "EmailNotificationsDto": { "type": "object", "properties": {} },
+      "TimezoneDto": { "type": "object", "properties": {} },
+      "CustomerNameDto": { "type": "object", "properties": {} },
+      "IntegrationNameDto": { "type": "object", "properties": {} },
+      "IntegrationTimeDto": { "type": "object", "properties": {} },
+      "IntegrationFunctionDto": { "type": "object", "properties": {} },
+      "PlugDto": { "type": "object", "properties": {} },
+      "AddTeamMemberDto": { "type": "object", "properties": {} },
+      "AdminAddTeamMemberDto": { "type": "object", "properties": {} },
+      "ShortlinkPreferenceDto": { "type": "object", "properties": {} },
+      "ResolveCommentDto": { "type": "object", "properties": {} },
+      "CreateTagDto": { "type": "object", "properties": {} },
+      "CreateGeneratedPostsDto": { "type": "object", "properties": {} },
+      "GeneratorDto": { "type": "object", "properties": {} },
+      "VideoDto": { "type": "object", "properties": {} },
+      "SaveMediaInformationDto": { "type": "object", "properties": {} },
+      "VideoFunctionDto": { "type": "object", "properties": {} },
+      "ClippingDto": { "type": "object", "properties": {} },
+      "BillingSubscribeDto": { "type": "object", "properties": {} },
+      "BillingSyncDto": { "type": "object", "properties": {} },
+      "AdminApplyCouponDto": { "type": "object", "properties": {} },
+      "WebhooksDto": { "type": "object", "properties": {} },
+      "UpdateDto": { "type": "object", "properties": {} },
+      "AnalyticsPreviewDto": { "type": "object", "properties": {} },
+      "SignatureDto": { "type": "object", "properties": {} },
+      "AutopostDto": { "type": "object", "properties": {} },
+      "SetsDto": { "type": "object", "properties": {} },
+      "UpdateSetsDto": { "type": "object", "properties": {} },
+      "ImportMediaDto": { "type": "object", "properties": {} },
+      "CreateOAuthAppDto": { "type": "object", "properties": {} },
+      "UpdateOAuthAppDto": { "type": "object", "properties": {} },
+      "ApproveOAuthDto": { "type": "object", "properties": {} },
+      "AnnouncementDto": { "type": "object", "properties": {} },
+      "UploadDto": { "type": "object", "properties": {} },
+      "ResetCreditsDto": { "type": "object", "properties": {} },
+      "UpdatePostSettingsDto": { "type": "object", "properties": {} },
+      "ChangePostStatusDto": { "type": "object", "properties": {} }
+    }
+  }
+}
