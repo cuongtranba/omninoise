@@ -1,5 +1,7 @@
-This project is Postiz, a tool to schedule social media and chat posts to 28+ channels.
-You can add posts to the calendar, they will be added into a workflow and posted at the right time.
+This project is Omninoise, a self-hosted fork of Postiz (the README calls it omninoise): a tool to schedule social media and chat posts to 28+ channels.
+This repository is PUBLIC. It holds only the application: backend, orchestrator, frontend, shared libraries and the deployment files in `deploy/`.
+Agent skills, the `omninoise` CLI, the video/carousel studio, voice tooling and channel content are NOT part of this repo. They live in the private ops repo `cuongtranba/omninoise-ops` (see its ADR 0037); do not add them here.
+You can add posts to the calendar, they will be added into the job queue and posted at the right time.
 You can find things like:
 - Schedule posts
 - Calendar view
@@ -9,7 +11,7 @@ You can find things like:
 
 This project is a monorepo with a root only package.json of dependencies.
 Made with PNPM.
-We have 3 important folders
+We have 4 important folders
 
 - apps/backend - this is where the API code is (NESTJS)
 - apps/orchestrator - this runs the background jobs (NESTJS): a Postgres job queue (`pgonly.jobs`, see `libraries/nestjs-libraries/src/jobs`) with the job handlers in `jobs/` and the services they call in `activities/`
@@ -33,8 +35,8 @@ DTO >> Controller >> Service >> Repository (no shortcuts)
 In some cases we will have
 DTO >> Controller >> Manager >> Service >> Repository.
 
-Most of the server logic should be inside of libs/server.
-The backend repository is mostly used to write controller, and import files from libs.server.
+Most of the server logic should be inside of libraries/nestjs-libraries.
+The backend repository is mostly used to write controller, and import files from libraries/nestjs-libraries.
 
 For the frontend follow this:
 - Many of the UI components lives in /apps/frontend/src/components/ui
@@ -72,8 +74,8 @@ const useCommunity = () => {
 - Avoid as much as possible creating new files with pure logic of algorithms, it's usually wrong
 - When you write code, make sure that what you add looks like something similar somewhere else in the code, don't make weird patterns
 - When you finished running, run another agents that matches the new code with the existing system code, to see that it looks similar and is not a weird pattern.
-- Workflows files can never be changed if they are already in origin/main, because changing a workflow will fail all its activities, instead create a new workflow with the version, and everywhere the workflow being called, change it to the new workflow version.
-- Workflows activities parameters cannot be changed, as it will break the workflow, if we need to change the parameters, if we need to change the parameters, we need to create a new activity with the new parameters, and then create a new workflow that uses the new activity.
+- Background work runs on the Postgres job queue (`pgonly.jobs`; queue code in `libraries/nestjs-libraries/src/jobs`, handlers in `apps/orchestrator/src/jobs`, the services they call in `apps/orchestrator/src/activities`). Jobs are persisted rows, so the payload of a job that is already queued outlives the deploy that enqueued it. A handler is registered by its `kind` string (`worker.register('post.publish', ...)`), and a row whose kind has no handler fails and is retried. Therefore never rename or remove a registered `kind`, and never change the shape of its payload in a way that breaks rows already in the table (remove a field, rename it, change its type, make an optional field required): add new fields as optional and read them defensively, or register a new `kind` and enqueue that one from every place that enqueues the old one. Keep the old handler until its queued jobs are gone.
+- Activity methods in `apps/orchestrator/src/activities` take a single object of ids (see the comment in `clipping.activity.ts`), so a field can be added to that object without a new activity. Do not change the existing positional or required parameters of an activity that a registered job calls; add an optional field or create a new activity.
 - Code must always be generic, there can't be a way that a specific logic, let's say facebook or instagram, appear in a file that use a generic logic, instead, we need to edit the interface of the provider, add another function, and then generically call it from the generic code, and then implement the specific logic in the provider implementation. we can't have something like if(facebookProvider) {} inside a non facebook provider file.
 - Before adding a field to a shared repository/service `select` or changing a shared method's return shape, grep for all its consumers (frontend, public API, MCP/agent tools, orchestrator, webhooks) and confirm the change is intended for each.
 - Exposing a stored field to a new external surface (public API, MCP, webhooks) is a data-exposure decision — ask first, and check what existing production rows hold for that column before shipping it.
