@@ -138,7 +138,26 @@ interface StoreState {
   setChars: (id: string, chars: number) => void;
   chars: Record<string, number>;
   setComments: (comments: boolean | 'no-media') => void;
+  // the post as it was when the user first touched the editor
+  baseline?: string;
+  markBaseline: () => void;
+  hasChanges: () => boolean;
 }
+
+// what the user can change in the editor, to compare the post with its baseline
+const snapshot = (state: StoreState) =>
+  JSON.stringify({
+    date: state.date,
+    channelDates: state.channelDates,
+    tags: state.tags,
+    repeater: state.repeater,
+    global: state.global,
+    internal: state.internal.map((p) => [p.integration.id, p.integrationValue]),
+    settings: state.selectedIntegrations.map((p) => [
+      p.integration.id,
+      p.ref?.current?.getValues?.().settings,
+    ]),
+  });
 
 const initialState = {
   editor: undefined as undefined,
@@ -162,9 +181,10 @@ const initialState = {
   global: [] as Values[],
   internal: [] as Internal[],
   chars: {},
+  baseline: undefined as string | undefined,
 };
 
-export const useLaunchStore = create<StoreState>()((set) => ({
+export const useLaunchStore = create<StoreState>()((set, get) => ({
   ...initialState,
   setCurrent: (current: string) =>
     set((state) => ({
@@ -654,6 +674,25 @@ export const useLaunchStore = create<StoreState>()((set) => ({
     set((state) => ({
       comments,
     })),
+  // taken before the first change, so what the editor normalizes while it
+  // loads does not count as a change
+  markBaseline: () => {
+    if (get().baseline === undefined) {
+      set({ baseline: snapshot(get()) });
+    }
+  },
+  hasChanges: () => {
+    const state = get();
+    if (state.baseline === undefined) {
+      return false;
+    }
+    try {
+      return state.baseline !== snapshot(state);
+    } catch (e) {
+      // can't tell, better to ask
+      return true;
+    }
+  },
   setGlobalDelay: (index: number, minutes: number) =>
     set((state) => ({
       global: state.global.map((item, i) =>
