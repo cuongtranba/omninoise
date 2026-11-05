@@ -5,6 +5,7 @@ import React, {
   Fragment,
   memo,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -63,6 +64,8 @@ import {
 } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { ChevronUpIcon } from '@gitroom/frontend/components/ui/icons';
+import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
+import { useNavigate } from 'react-router';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -163,6 +166,22 @@ const DayNowLine: FC<{ now: dayjs.Dayjs; className?: string }> = ({
   </div>
 );
 
+// Keeps the open post in the url, `#post=<group>`, so the link opens it again
+const PostLink: FC<{ group: string }> = ({ group }) => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const hash = `#post=${group}`;
+    navigate({ search: window.location.search, hash }, { replace: true });
+    return () => {
+      // the url already moved on, e.g. to another page
+      if (window.location.hash === hash) {
+        navigate({ search: window.location.search }, { replace: true });
+      }
+    };
+  }, [group, navigate]);
+  return null;
+};
+
 // Shared hook for post actions (edit, delete, statistics)
 const usePostActions = (onMutate?: () => void) => {
   const t = useT();
@@ -187,7 +206,7 @@ const usePostActions = (onMutate?: () => void) => {
       if (!data?.posts?.length) {
         toaster.show(t('post_not_found', 'Post not found'), 'warning');
         mutate();
-        return;
+        return false;
       }
       const date = !isDuplicate
         ? null
@@ -202,13 +221,17 @@ const usePostActions = (onMutate?: () => void) => {
         removeLayout: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        // a duplicate is a new post, it always asks
+        askClose: isDuplicate
+          ? true
+          : () => useLaunchStore.getState().hasChanges(),
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',
         },
         children: (
           <ExistingData value={data}>
+            {!isDuplicate && <PostLink group={post.group} />}
             <AddEditModal
               {...(isDuplicate
                 ? {
@@ -242,6 +265,7 @@ const usePostActions = (onMutate?: () => void) => {
         size: '80%',
         title: ``,
       });
+      return true;
     },
     [integrations, fetch, modal, mutate, toaster, t]
   );
@@ -764,6 +788,31 @@ export const ListView = () => {
 
 export const Calendar = () => {
   const { display } = useCalendar();
+  const { editPost } = usePostActions();
+  const navigate = useNavigate();
+
+  // a link to a post, `#post=<group>`, opens it
+  useEffect(() => {
+    const openFromHash = async () => {
+      const group = new URLSearchParams(window.location.hash.slice(1)).get(
+        'post'
+      );
+      if (!group) {
+        return;
+      }
+      // a missing post drops the link
+      if (!(await editPost({ group })())) {
+        navigate({ search: window.location.search }, { replace: true });
+      }
+    };
+
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => {
+      window.removeEventListener('hashchange', openFromHash);
+    };
+  }, []);
+
   return (
     <>
       {display === 'list' ? (

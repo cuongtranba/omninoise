@@ -110,6 +110,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     setHide,
     channelDates,
     setChannelDate,
+    markBaseline,
+    hasChanges,
   } = useLaunchStore(
     useShallow((state) => ({
       hide: state.hide,
@@ -128,6 +130,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       setSelectedIntegrations: state.setSelectedIntegrations,
       locked: state.locked,
       activateExitButton: state.activateExitButton,
+      markBaseline: state.markBaseline,
+      hasChanges: state.hasChanges,
     }))
   );
   // the other channels of an existing post show and move only their own date
@@ -213,21 +217,25 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       return;
     }
 
+    // an existing post that was not changed has nothing to lose, no need to ask
     if (
-      await deleteDialog(
+      (!existingData.integration || hasChanges()) &&
+      !(await deleteDialog(
         t(
           'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
           'Are you sure you want to close this modal? (all data will be lost)'
         ),
         t('yes_close_it', 'Yes, close it!')
-      )
+      ))
     ) {
-      if (customClose) {
-        customClose();
-        return;
-      }
-      modal.closeAll();
+      return;
     }
+
+    if (customClose) {
+      customClose();
+      return;
+    }
+    modal.closeAll();
   }, [activateExitButton, dummy]);
 
   const deletePost = useCallback(async () => {
@@ -902,7 +910,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   );
 
   return (
-    <div className="w-full h-full flex-1 p-[40px] mobile:p-0 mobile:h-auto mobile:min-h-full flex relative">
+    <div
+      className="w-full h-full flex-1 p-[40px] mobile:p-0 mobile:h-auto mobile:min-h-full flex relative"
+      onPointerDownCapture={markBaseline}
+      onKeyDownCapture={markBaseline}
+      onDragEnterCapture={markBaseline}
+    >
       <div className="flex flex-1 min-w-0 bg-newBgColorInner rounded-[20px] mobile:rounded-none flex-col">
         <MobileTopBar
           onBack={askClose}

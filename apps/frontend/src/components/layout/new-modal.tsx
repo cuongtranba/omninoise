@@ -25,7 +25,8 @@ interface OpenModalInterface {
   closeOnEscape?: boolean;
   withCloseButton?: boolean;
   destructive?: boolean;
-  askClose?: boolean;
+  // a function decides on every close whether to ask, e.g. only with unsaved changes
+  askClose?: boolean | (() => boolean);
   onClose?: () => void;
   children: ReactNode | ((close: () => void) => ReactNode);
   classNames?: {
@@ -104,7 +105,9 @@ export const Component: FC<{
 }> = memo(({ isLast, modal, closeModal, zIndex }) => {
   const decision = useDecisionModal();
   const closeModalFunction = useCallback(async () => {
-    if (modal.askClose) {
+    if (
+      typeof modal.askClose === 'function' ? modal.askClose() : modal.askClose
+    ) {
       const open = await decision.open();
       if (!open) {
         return;
