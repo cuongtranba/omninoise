@@ -7,7 +7,7 @@ import { Button } from '@gitroom/react/form/button';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { getTimezone } from '@gitroom/frontend/components/layout/set.timezone';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 
 const useApprovedApps = () => {
   const fetch = useFetch();
@@ -106,9 +106,7 @@ export const ApprovedAppsComponent: FC = () => {
                     )}
                     <div className="text-customColor18 text-[12px]">
                       {t('authorized_on', 'Authorized on')}{' '}
-                      {new Date(app.createdAt).toLocaleDateString(undefined, {
-                        timeZone: getTimezone(),
-                      })}
+                      {formatDate(app.createdAt, 'date')}
                     </div>
                   </div>
                 </div>

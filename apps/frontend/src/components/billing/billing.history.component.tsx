@@ -7,7 +7,10 @@ import { capitalize } from 'lodash';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Select } from '@gitroom/react/form/select';
-import { fromUtc } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  fromUtc,
+} from '@gitroom/frontend/components/layout/set.timezone';
 
 interface Invoice {
   id: string;
@@ -56,8 +59,8 @@ const formatAmount = (amount: number, currency: string) => {
   );
 };
 
-const formatDate = (unix: number | null) =>
-  unix ? fromUtc(unix * 1000).format('D MMM, YYYY') : '';
+const formatUnixDate = (unix: number | null) =>
+  unix ? formatDate(fromUtc(unix * 1000), 'mediumDate') : '';
 
 const ActionLink: FC<{
   href: string;
@@ -123,8 +126,8 @@ export const BillingHistory: FC<{ modal?: boolean }> = ({ modal }) => {
                 ? t('billing_monthly', 'Monthly')
                 : '',
           amountLabel: formatAmount(invoice.amount, invoice.currency),
-          purchaseDate: formatDate(invoice.created),
-          endDate: formatDate(invoice.periodEnd),
+          purchaseDate: formatUnixDate(invoice.created),
+          endDate: formatUnixDate(invoice.periodEnd),
           statusInfo: statuses[invoice.status] || statuses.void,
         })),
     [data, statuses, t]

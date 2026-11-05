@@ -64,6 +64,7 @@ import {
 import { useHasScroll } from '@gitroom/frontend/components/ui/is.scroll.hook';
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import dayjs from 'dayjs';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { useClickOutside } from '@mantine/hooks';
 import {
@@ -467,9 +468,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               `${integrations.find((i) => i.id === p.integration)?.name} ${t(
                 'republish_at',
                 'at'
-              )} ${(channelDates[p.integration] || date).format(
-                'DD/MM/YYYY HH:mm'
-              )}`
+              )} ${formatDate(channelDates[p.integration] || date, 'dateTime')}`
           )
           .join(', ');
         const isRecurring =

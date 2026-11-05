@@ -46,7 +46,6 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import { groupBy, sortBy } from 'lodash';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { extend } from 'dayjs';
-import { isUSCitizen } from './helpers/isuscitizen.utils';
 import { StatisticsModal } from '@gitroom/frontend/components/launches/statistics';
 import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missing-release.modal';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -58,6 +57,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import {
+  formatDate,
   fromUtc,
   newDayjs,
 } from '@gitroom/frontend/components/layout/set.timezone';
@@ -83,13 +83,9 @@ i18next.on('languageChanged', () => {
 // Initial setup
 updateDayjsLocale();
 
-const convertTimeFormatBasedOnLocality = (time: number) => {
-  if (isUSCitizen()) {
-    return `${time === 12 ? 12 : time % 12}:00 ${time >= 12 ? 'PM' : 'AM'}`;
-  } else {
-    return `${time}:00`;
-  }
-};
+// a fixed day, so the label of an hour doesn't depend on today's clock changes
+const convertTimeFormatBasedOnLocality = (time: number) =>
+  formatDate(newDayjs('2000-01-01').hour(time), 'time');
 
 export const hours = Array.from(
   {
@@ -126,7 +122,7 @@ const WeekNowLine: FC<{ days: dayjs.Dayjs[] }> = ({ days }) => {
       >
         <div className="absolute end-0 -translate-y-1/2" style={{ top }}>
           {/* same format as the hour labels */}
-          <NowTime time={now.format(isUSCitizen() ? 'h:mm A' : 'H:mm')} />
+          <NowTime time={formatDate(now, 'time')} />
         </div>
       </div>
       {/* a piece per day, so nothing shows through the gaps of the sticky header */}
@@ -162,7 +158,7 @@ const DayNowLine: FC<{ now: dayjs.Dayjs; className?: string }> = ({
     )}
   >
     {/* same format as the slot labels */}
-    <NowTime time={now.format(isUSCitizen() ? 'hh:mm A' : 'LT')} />
+    <NowTime time={formatDate(now, 'time')} />
     <div className="flex-1 h-[3px] bg-newTableTextFocused" />
   </div>
 );
@@ -503,9 +499,7 @@ export const DayView = () => {
               />
             )}
             <div className="text-center text-[14px] min-h-[21px] shrink-0">
-              {slotDate(startDate, option[0].time).format(
-                isUSCitizen() ? 'hh:mm A' : 'LT'
-              )}
+              {formatDate(slotDate(startDate, option[0].time), 'time')}
             </div>
             <div
               key={option[0].time}
@@ -537,7 +531,7 @@ export const WeekView = () => {
       const day = weekStart.add(i, 'day');
       days.push({
         name: day.format('dddd'),
-        day: day.format('L'),
+        day: formatDate(day, 'date'),
         date: day,
       });
     }
@@ -549,28 +543,30 @@ export const WeekView = () => {
       <div className="flex-1 relative">
         <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] tablet:[grid-template-columns:72px_repeat(7,_minmax(100px,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
-          {localizedDays.map((day, index) => (
-            <div
-              key={day.name}
-              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
-            >
-              <div className="text-[14px] font-[500] text-newTableText">
-                {day.name}
-              </div>
+          {localizedDays.map((day, index) => {
+            const isToday = day.date.isSame(newDayjs(), 'day');
+            return (
               <div
-                className={clsx(
-                  'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
-                  day.day === newDayjs().format('L') &&
-                    'text-newTableTextFocused'
-                )}
+                key={day.name}
+                className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
               >
-                {day.day === newDayjs().format('L') && (
-                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
-                )}
-                {day.day}
+                <div className="text-[14px] font-[500] text-newTableText">
+                  {day.name}
+                </div>
+                <div
+                  className={clsx(
+                    'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
+                    isToday && 'text-newTableTextFocused'
+                  )}
+                >
+                  {isToday && (
+                    <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
+                  )}
+                  {day.day}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {hours.map((hour) => (
             <Fragment key={hour}>
               <div className="p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText">
@@ -734,9 +730,7 @@ export const ListView = () => {
         {groupedPosts.map(([dateKey, datePosts]) => (
           <Fragment key={dateKey}>
             <div className="text-center text-[14px] min-h-[21px] text-textColor font-[500] mt-[10px]">
-              {newDayjs(dateKey).format(
-                isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY'
-              )}
+              {formatDate(newDayjs(dateKey), 'longDate')}
             </div>
             <div className="flex flex-col gap-[10px] mb-[20px] px-[10px]">
               {datePosts.map((post) => (
@@ -879,7 +873,7 @@ export const CalendarColumn: FC<{
                         'This post was already published. Republishing will publish it again to'
                       )}{' '}
                       {post.integration?.name} {t('republish_at', 'at')}{' '}
-                      {getDate.format('DD/MM/YYYY HH:mm')}.
+                      {formatDate(getDate, 'dateTime')}.
                       {(!!item.interval || !!post.intervalInDays) && (
                         <div className="mt-[10px]">
                           {t(
@@ -1467,9 +1461,7 @@ const CalendarItem: FC<{
         </div>
         {showTime && (
           <div className="text-textColor/50 text-[12px] whitespace-nowrap flex items-center">
-            {fromUtc(post.publishDate).format(
-              isUSCitizen() ? 'hh:mm A' : 'HH:mm'
-            )}
+            {formatDate(fromUtc(post.publishDate), 'time')}
           </div>
         )}
       </div>

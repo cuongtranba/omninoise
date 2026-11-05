@@ -1,5 +1,6 @@
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Textarea } from '@gitroom/react/form/textarea';
@@ -267,7 +268,7 @@ export const CommentComponent: FC<{
   }, []);
   return (
     <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 bg-sixth p-[16px] pt-0">
-      <TopTitle title={`Comments for ${date.format('DD/MM/YYYY HH:mm')}`} />
+      <TopTitle title={`Comments for ${formatDate(date, 'dateTime')}`} />
       <button
         onClick={closeAll}
         className="outline-none absolute end-[20px] top-[15px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"

@@ -14,6 +14,7 @@ import { sortBy } from 'lodash';
 import { usePreventWindowUnload } from '@gitroom/react/helpers/use.prevent.window.unload';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
+  formatDate,
   fromUtc,
   newDayjs,
 } from '@gitroom/frontend/components/layout/set.timezone';
@@ -105,9 +106,10 @@ export const TimeTable: FC<{
     return sortBy(
       currentTimes.map(({ time }) => ({
         value: time,
-        formatted: fromUtc(
-          dayjs.utc().startOf('day').add(time, 'minutes')
-        ).format('HH:mm'),
+        formatted: formatDate(
+          fromUtc(dayjs.utc().startOf('day').add(time, 'minutes')),
+          'time'
+        ),
       })),
       (p) => p.value
     );

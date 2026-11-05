@@ -7,6 +7,7 @@ import { Button } from '@gitroom/react/form/button';
 import { isUSCitizen } from './isuscitizen.utils';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
+  formatDate,
   newDayjs,
   toPickerDate,
 } from '@gitroom/frontend/components/layout/set.timezone';
@@ -109,7 +110,7 @@ export const DatePickerPanel: FC<{
             {t('date', 'Date')}
           </div>
           <div className="flex-1 h-[52px] px-[16px] flex items-center rounded-[10px] border border-newColColor bg-newBgColorInner text-[14px]">
-            {date.format('ddd, D MMMM')}
+            {formatDate(date, 'longDate')}
           </div>
         </div>
         <div className="bg-newSettings rounded-[12px] px-[16px] py-[12px] mb-[24px]">
@@ -297,10 +298,10 @@ export const DatePicker: FC<{
         <CalendarIcon />
       </div>
       <div className="cursor-pointer mobile:hidden">
-        {date.format(isUSCitizen() ? 'MM/DD/YYYY hh:mm A' : 'DD/MM/YYYY HH:mm')}
+        {formatDate(date, 'dateTime')}
       </div>
       <div className="cursor-pointer hidden mobile:block truncate">
-        {date.format(isUSCitizen() ? 'MMM D, h:mm A' : 'D MMM, HH:mm')}
+        {formatDate(date, 'shortDateTime')}
       </div>
       {open && (
         <div
