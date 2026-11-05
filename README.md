@@ -56,26 +56,33 @@ The `pgonly` schema is not managed by Prisma; the apps create it on boot.
 
 ## Run locally
 
-Requirements: Node 22.18+ (`.node-version`), pnpm 10 (`packageManager` in `package.json`), Docker.
+Requirements: Node 26.13.0 (`.node-version`), pnpm 10 (`packageManager` in
+`package.json`), Docker.
+
+Tasks run with [Vite+](https://viteplus.dev) (`vp`), which `pnpm install` adds
+as a dev dependency. The commands below call `vp` directly, which needs the
+global CLI (`curl -fsSL https://vite.plus | bash`); without it, prefix them with
+`pnpm exec`. Dependencies are still installed with pnpm.
 
 ```bash
 pnpm install                  # also generates the Prisma client
-pnpm run dev:docker           # Postgres 17 on :5432, pgAdmin on :8085
+vp run dev:docker             # Postgres 17 on :5432, pgAdmin on :8085
 cp .env.example .env          # then edit, see Configuration
-pnpm run prisma-db-push       # apply the Prisma schema
-pnpm run dev                  # orchestrator, backend, frontend and extension
+vp run prisma-db-push         # apply the Prisma schema
+vp run dev                    # orchestrator, backend, frontend and extension
 ```
 
 Open http://localhost:4200. For the dev database started above, set
 `DATABASE_URL="postgresql://postiz-local:postiz-local-pwd@localhost:5432/postiz-db-local"`.
 
-`pnpm run dev-backend` starts only the backend and frontend, so no jobs run and
-nothing gets published.
+`vp run dev-backend` starts only the backend and frontend, so no jobs run and
+nothing gets published. `vp run dev:backend`, `vp run dev:frontend` and
+`vp run dev:orchestrator` start one app.
 
 ## Configuration
 
-Settings are read from `.env` at the repository root. `.env.example` lists every
-option, including the per-platform app keys.
+Settings are read from `.env` at the repository root. `.env.example` lists the
+options, including the per-platform app keys and the job-worker settings.
 
 | Variable | Needed | Purpose |
 | --- | --- | --- |
@@ -85,25 +92,31 @@ option, including the per-platform app keys.
 | `NEXT_PUBLIC_BACKEND_URL` | yes | Public URL of the API. |
 | `BACKEND_INTERNAL_URL` | yes | Checked at backend start. The frontend no longer reads it (it was for the Next.js server). |
 | `STORAGE_PROVIDER` | optional | `local` (default, with `UPLOAD_DIRECTORY`) or `cloudflare` (with the `CLOUDFLARE_*` keys). |
-| `RUN_CRON` | production | `true` enables the hourly sweep that catches missed posts. |
+| `RUN_CRON` | production | Any non-empty value (production sets `true`) enables the hourly sweep that catches missed posts. |
 | `DISABLE_REGISTRATION` | optional | `true` closes sign-up. |
-| `WORKER_CONCURRENCY_DIVIDER` | optional | Divides each provider queue's concurrency. |
-| `EXCLUDE_QUEUE` | optional | Queues this worker should not run. |
+| `WORKER_CONCURRENCY_DIVIDER` | optional | Number of worker servers sharing each queue; divides each provider queue's concurrency. |
+| `EXCLUDE_QUEUE` | optional | Comma-separated queues this worker should not run (e.g. `reddit,x`). |
+| `ORCHESTRATOR_PORT` | optional | Orchestrator port, `3002` by default. |
 
 ## Test, lint and build
 
 The toolchain is [Vite+](https://viteplus.dev) (`vp`): Oxlint, Oxfmt and Vitest,
-configured in the root `vite.config.ts`.
+configured in the root `vite.config.ts`. Run these from the repository root.
 
 ```bash
-pnpm test          # Vitest specs against Postgres 17
-pnpm run check     # lint (Oxlint) and format check (Oxfmt), as CI runs it
-pnpm run lint      # lint only
-pnpm run fmt       # format the repository
-pnpm run build     # frontend, backend and orchestrator
+vp test            # Vitest specs against Postgres 17
+vp check           # lint (Oxlint) and format check (Oxfmt), as CI runs it
+vp lint            # lint only
+vp fmt             # format the repository
+vp run build       # frontend, backend and orchestrator
 ```
 
-`pnpm test` uses `TEST_DATABASE_URL` (falling back to `DATABASE_URL`).
+Use `vp run build`, not `vp build`: `vp build` is the built-in Vite build and
+skips the repository's `build` script. CI and the `Dockerfile` have no global
+`vp`, so they call the same scripts through pnpm (CI: `pnpm run check`,
+`pnpm run build`, `pnpm test`; `Dockerfile`: `pnpm run build`).
+
+`vp test` uses `TEST_DATABASE_URL` (falling back to `DATABASE_URL`).
 One spec runs `prisma db push`, so point it at a disposable database.
 
 ## Deploy
