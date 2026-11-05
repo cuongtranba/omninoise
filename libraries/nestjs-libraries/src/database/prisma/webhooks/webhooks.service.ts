@@ -205,7 +205,7 @@ export class WebhooksService {
             // webhook.url is validated at save time, but DNS can change
             // between then and now - pin resolution like every other
             // user-influenced outbound request.
-            await fetch(webhook.url, {
+            const res = await fetch(webhook.url, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -216,13 +216,26 @@ export class WebhooksService {
               // Blocks SSRF to internal IPs.
               dispatcher: getSsrfSafeDispatcher(),
             });
+            if (!res.ok) {
+              console.error(
+                'post webhook rejected',
+                webhook.id,
+                type,
+                res.status
+              );
+            }
           } catch (e) {
-            /**empty**/
+            console.error(
+              'post webhook failed',
+              webhook.id,
+              type,
+              (e as Error).message
+            );
           }
         })
       );
     } catch (err) {
-      /**empty**/
+      console.error('post webhooks failed', type, (err as Error).message);
     }
   }
 
