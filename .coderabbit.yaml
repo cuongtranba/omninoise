@@ -99,8 +99,9 @@ reviews:
       enabled: true
     detekt:
       enabled: true
+    # Lint is Oxlint (the `oxc` tool below), configured in vite.config.ts.
     eslint:
-      enabled: true
+      enabled: false
     flake8:
       enabled: true
     rubocop:

@@ -82,9 +82,7 @@ nothing gets published. `vp run dev:backend`, `vp run dev:frontend` and
 ## Configuration
 
 Settings are read from `.env` at the repository root. `.env.example` lists the
-options, including the per-platform app keys. The job-worker settings in the
-table below (`RUN_CRON`, `WORKER_CONCURRENCY_DIVIDER`, `EXCLUDE_QUEUE`) and
-`JOB_WORKER_SHUTDOWN_GRACE_MS` are not in it.
+options, including the per-platform app keys and the job-worker settings.
 
 | Variable | Needed | Purpose |
 | --- | --- | --- |
