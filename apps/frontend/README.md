@@ -9,9 +9,15 @@ The Omninoise UI: a React single-page app built with [Vite+](https://viteplus.de
   which `useVariables()` reads. Settings change without a rebuild: the dev server
   serves it, and the Docker entrypoint writes `dist/runtime-config.js` at start.
 
+From `apps/frontend` (or `vp run dev:frontend` / `vp run build:frontend` from the
+repository root):
+
 ```bash
-pnpm --filter postiz-frontend dev     # http://localhost:4200, reads ../../.env
-pnpm --filter postiz-frontend build   # type check, then dist/
+vp run dev     # http://localhost:4200, reads ../../.env
+vp run build   # type check, then dist/
 ```
+
+Use `vp run build`, not `vp build`: the built-in `vp build` skips the type check
+in the `build` script.
 
 In production nginx serves `dist/` and falls back to `index.html` for app URLs.

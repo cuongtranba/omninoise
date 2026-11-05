@@ -9,8 +9,8 @@ You can find things like:
 - Team management
 - Media library
 
-This project is a monorepo with a root only package.json of dependencies.
-Made with PNPM.
+This project is a monorepo: the root package.json holds the dependencies and the tasks, and each app in apps/ has a small package.json with its own scripts (dev/build, publish for apps/sdk); libraries/ has none.
+Made with PNPM; tasks run with Vite+ (`vp`).
 We have 4 important folders
 
 - apps/backend - this is where the API code is (NESTJS)
@@ -60,9 +60,9 @@ const useCommunity = () => {
   };
 }
 
-- The toolchain is Vite+ (`vp`): Oxlint for lint, Oxfmt for format, Vitest for tests. Lint, format and test only from the root, where `vite.config.ts` holds their config: `pnpm lint`, `pnpm fmt`, `pnpm check` (lint + format check, what CI runs), `pnpm test`.
+- The toolchain is Vite+ (`vp`): Oxlint for lint, Oxfmt for format, Vitest for tests. Lint, format and test only from the root, where `vite.config.ts` holds their config: `vp lint`, `vp fmt`, `vp check` (lint + format check, what CI runs), `vp test`. Run package.json scripts with `vp run <script>` (e.g. `vp run dev`, `vp run build`, `vp run prisma-db-push`); `vp build` and `vp dev` are Vite's built-ins and skip the scripts. Without the global `vp` CLI, prefix with `pnpm exec`.
 - Never use `// @ts-ignore`, `// @ts-expect-error` or `// @ts-nocheck`, and don't swap them for `as any` or `as unknown as`. Fix the type instead. Lint enforces this (`typescript/ban-ts-comment`).
-- Use only pnpm.
+- Use only pnpm to install and add dependencies (`pnpm install`, `pnpm add`), not `vp install`/`vp add`.
 - Never use RAW SQL queries, always use Prisma.
 - The system is in production with many users, if you want to change something, you need to be sure that you are not breaking anything for existing users and a migration might be needed
 - Whenever you generate a PR, PR description, or similar, **always** follow the PR Template (.github/PULL_REQUEST_TEMPLATE.md)
