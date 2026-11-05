@@ -7,7 +7,10 @@ import {
   StarsList,
 } from '@gitroom/frontend/components/analytics/stars.and.forks.interface';
 import dayjs from 'dayjs';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  newDayjs,
+} from '@gitroom/frontend/components/layout/set.timezone';
 export const Chart: FC<{
   list: StarsList[] | ForksList[];
 }> = (props) => {
@@ -49,7 +52,7 @@ export const Chart: FC<{
         },
       },
       data: {
-        labels: list.map((row) => newDayjs(row.date).format('DD/MM/YYYY')),
+        labels: list.map((row) => formatDate(newDayjs(row.date), 'date')),
         datasets: [
           {
             borderColor: '#fff',

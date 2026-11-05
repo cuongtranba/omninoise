@@ -12,7 +12,10 @@ import {
 import { modeEmitter } from '@gitroom/frontend/components/layout/mode.component';
 import useCookie from 'react-use-cookie';
 import { Button } from '@gitroom/react/form/button';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  newDayjs,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
@@ -211,7 +214,7 @@ const PriceBreakdown: FC = () => {
   const dueToday = checkout?.total?.total?.amount || '$0.00';
   const nextBillingTotal = recurring?.dueNext?.total?.amount;
   const nextBillingDate = recurring?.trial?.trialEnd
-    ? newDayjs(recurring.trial.trialEnd * 1000).format('MMMM D, YYYY')
+    ? formatDate(newDayjs(recurring.trial.trialEnd * 1000), 'mediumDate')
     : null;
   const billingInterval =
     recurring?.interval === 'month'
@@ -360,11 +363,11 @@ const AppliedCouponDisplay: FC<{
 
     if (expiresAt && typeof expiresAt === 'number') {
       const date = new Date(expiresAt * 1000);
-      return newDayjs(date).format('MMMM D, YYYY');
+      return formatDate(newDayjs(date), 'mediumDate');
     }
 
     if (expiresAt && typeof expiresAt === 'string') {
-      return newDayjs(expiresAt).format('MMMM D, YYYY');
+      return formatDate(newDayjs(expiresAt), 'mediumDate');
     }
 
     return null;
@@ -619,9 +622,10 @@ const SubmitBar: FC<{ loading: boolean }> = ({ loading }) => {
             {t('billing_ending', 'ending')}{' '}
             <br className="hidden mobile:block" />
             <span className="text-textColor font-[600]">
-              {newDayjs(
-                checkout.checkout.recurring?.trial?.trialEnd * 1000
-              ).format('MMMM D, YYYY')}{' '}
+              {formatDate(
+                newDayjs(checkout.checkout.recurring?.trial?.trialEnd * 1000),
+                'mediumDate'
+              )}{' '}
               —{' '}
             </span>
             <span className="text-textColor font-[600]">

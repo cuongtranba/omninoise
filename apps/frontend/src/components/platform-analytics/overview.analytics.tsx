@@ -1,6 +1,6 @@
 import { FC, useCallback } from 'react';
 import useSWR from 'swr';
-import dayjs from 'dayjs';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
@@ -218,7 +218,7 @@ const TopPosts: FC<{ posts: OverviewData['topPosts'] }> = ({ posts }) => {
               </div>
               <div className="flex flex-wrap items-center gap-[6px] text-[12px]">
                 <span className="opacity-60">
-                  {dayjs(post.publishDate).format('YYYY-MM-DD HH:mm')}
+                  {formatDate(post.publishDate, 'dateTime')}
                 </span>
                 {chips.map(([key, value]) => (
                   <span

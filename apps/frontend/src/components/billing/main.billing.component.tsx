@@ -26,7 +26,10 @@ import { useTrack } from '@gitroom/react/helpers/use.track';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { FinishTrial } from '@gitroom/frontend/components/billing/finish.trial';
-import { fromUtc } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  fromUtc,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
@@ -184,7 +187,7 @@ const BillingCycle: FC<{
                   )
                 : t('billing_renews_on', 'Your plan renews on')}{' '}
               <bdi className="font-[600] text-newTextColor">
-                {fromUtc(renewal.renewsAt * 1000).format('D MMM, YYYY')}
+                {formatDate(fromUtc(renewal.renewsAt * 1000), 'mediumDate')}
               </bdi>
               {'. '}
             </>
@@ -829,7 +832,7 @@ export const MainBillingComponent: FC<{
       return {
         label: subscription?.cancelAt
           ? t('billing_downgrade_on', 'Downgrade on {{date}}', {
-              date: fromUtc(subscription.cancelAt).format('D MMM, YYYY'),
+              date: formatDate(fromUtc(subscription.cancelAt), 'mediumDate'),
             })
           : t('cancel_subscription_1', 'Cancel subscription'),
         onClick: moveToCheckout('FREE'),
@@ -912,7 +915,7 @@ export const MainBillingComponent: FC<{
               'Your subscription will be canceled at'
             )}{' '}
             <bdi className="font-[600]">
-              {fromUtc(subscription.cancelAt).format('D MMM, YYYY')}
+              {formatDate(fromUtc(subscription.cancelAt), 'mediumDate')}
             </bdi>
             {'. '}
             {t(

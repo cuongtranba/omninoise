@@ -5,6 +5,10 @@ import DrawChart from 'chart.js/auto';
 import { TotalList } from '@gitroom/frontend/components/analytics/stars.and.forks.interface';
 import { chunk } from 'lodash';
 import useCookie from 'react-use-cookie';
+import {
+  formatDate,
+  newDayjs,
+} from '@gitroom/frontend/components/layout/set.timezone';
 
 // A merged point follows the metric: summed, averaged (rates) or the latest
 // value (counts such as followers)
@@ -27,6 +31,14 @@ function mergeDataPoints(
     };
   });
 }
+
+// the days are 'YYYY-MM-DD' (a merged point is 'first - last'), they are
+// calendar days: read in the user's timezone, so the day doesn't shift
+const dayLabel = (days: string) =>
+  days
+    .split(' - ')
+    .map((day) => formatDate(newDayjs(day), 'date') || day)
+    .join(' - ');
 
 export const ChartSocial: FC<{
   data: TotalList[];
@@ -137,7 +149,7 @@ export const ChartSocial: FC<{
         },
       },
       data: {
-        labels: list.map((row) => row.date),
+        labels: list.map((row) => dayLabel(row.date)),
         datasets: [
           {
             borderColor: colors.border,

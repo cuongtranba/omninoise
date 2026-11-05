@@ -11,7 +11,10 @@ import { SelectCustomer } from '@gitroom/frontend/components/launches/select.cus
 import { SelectChannels } from '@gitroom/frontend/components/launches/select.channels';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  newDayjs,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { BottomSheet } from '@gitroom/frontend/components/ui/bottom.sheet.component';
 import { FilterIcon } from '@gitroom/frontend/components/ui/icons';
 
@@ -62,11 +65,11 @@ export const Filters = () => {
 
     switch (calendar.display) {
       case 'day':
-        return startDate.format(short ? 'ddd (L)' : 'dddd (L)');
+        return `${formatDate(startDate, short ? 'weekdayShort' : 'weekday')} (${formatDate(startDate, 'date')})`;
       case 'week':
-        return `${startDate.format('L')} - ${endDate.format('L')}`;
+        return `${formatDate(startDate, 'date')} - ${formatDate(endDate, 'date')}`;
       case 'month':
-        return startDate.format('MMMM YYYY');
+        return formatDate(startDate, 'monthYear');
       default:
         return '';
     }

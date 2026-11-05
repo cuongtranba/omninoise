@@ -152,7 +152,7 @@ export const StarsAndForks: FC<StarsAndForksInterface> = (props) => {
                   date={
                     p === 0 ? props.trending.last : props.trending.predictions
                   }
-                  format="dddd"
+                  format="weekday"
                 />
               </div>
               <div
@@ -165,7 +165,7 @@ export const StarsAndForks: FC<StarsAndForksInterface> = (props) => {
                   date={
                     p === 0 ? props.trending.last : props.trending.predictions
                   }
-                  format="DD MMM YYYY"
+                  format="mediumDate"
                 />
               </div>
               <div>
@@ -181,7 +181,7 @@ export const StarsAndForks: FC<StarsAndForksInterface> = (props) => {
                   date={
                     p === 0 ? props.trending.last : props.trending.predictions
                   }
-                  format="HH:mm"
+                  format="time"
                 />
               </div>
             </div>

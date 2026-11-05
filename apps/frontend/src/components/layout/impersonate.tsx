@@ -1,4 +1,5 @@
 import { Input } from '@gitroom/react/form/input';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { ChangeEventHandler, FC, useCallback, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -470,7 +471,7 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
                     </div>
                   </td>
                   <td className="p-[8px]">
-                    {new Date(charge.created * 1000).toLocaleDateString()}
+                    {formatDate(charge.created * 1000, 'date')}
                   </td>
                   <td className="p-[8px]">
                     ${(charge.amount / 100).toFixed(2)}{' '}

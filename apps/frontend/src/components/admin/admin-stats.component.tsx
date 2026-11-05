@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Button } from '@gitroom/react/form/button';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 
 interface PerSocial {
@@ -166,8 +167,7 @@ export const AdminStatsComponent: FC = () => {
         <div className="text-[20px] font-[600]">Admin Stats</div>
         {data && (
           <div className="text-[13px] opacity-70">
-            {new Date(data.from).toLocaleDateString()} —{' '}
-            {new Date(data.to).toLocaleDateString()}
+            {formatDate(data.from, 'date')} — {formatDate(data.to, 'date')}
           </div>
         )}
       </div>

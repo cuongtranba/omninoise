@@ -5,6 +5,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Button } from '@gitroom/react/form/button';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import { useSWRConfig } from 'swr';
 import clsx from 'clsx';
@@ -194,7 +195,10 @@ export const ImportDebugPostModal: FC<{ close: () => void }> = ({ close }) => {
                 <span className="font-[500]">
                   {t('original_date', 'Original Date')}:
                 </span>{' '}
-                {new Date(parsed._debug.originalPublishDate).toLocaleString()}
+                {formatDate(
+                  parsed._debug.originalPublishDate,
+                  'dateTimeSeconds'
+                )}
               </div>
             </div>
           </div>

@@ -2,6 +2,10 @@
 import dayjs, { ConfigType, Dayjs, PluginFunc } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import {
+  browserLocale,
+  isUSCitizen,
+} from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
 // the plugin below wraps methods of these, so they are registered first
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
@@ -350,3 +354,80 @@ export const toPickerDate = (date: Dayjs) =>
     date.minute(),
     date.second()
   );
+
+const DATE = { day: '2-digit', month: '2-digit', year: 'numeric' } as const;
+const TIME = { hour: 'numeric', minute: '2-digit' } as const;
+
+// Numeric presets follow the browser's locale (their order and separators),
+// the others write month and weekday names in the language of the app
+const PRESETS = {
+  date: { browser: true, options: DATE },
+  time: { browser: true, options: TIME },
+  dateTime: { browser: true, options: { ...DATE, ...TIME } },
+  dateTimeSeconds: {
+    browser: true,
+    options: { ...DATE, ...TIME, second: '2-digit' },
+  },
+  longDate: {
+    browser: false,
+    options: {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    },
+  },
+  mediumDate: {
+    browser: false,
+    options: { day: 'numeric', month: 'short', year: 'numeric' },
+  },
+  mediumDateTime: {
+    browser: false,
+    options: { day: 'numeric', month: 'short', year: 'numeric', ...TIME },
+  },
+  shortDateTime: {
+    browser: false,
+    options: { day: 'numeric', month: 'short', ...TIME },
+  },
+  monthYear: { browser: false, options: { month: 'long', year: 'numeric' } },
+  weekday: { browser: false, options: { weekday: 'long' } },
+  weekdayShort: { browser: false, options: { weekday: 'short' } },
+} satisfies Record<
+  string,
+  { browser: boolean; options: Intl.DateTimeFormatOptions }
+>;
+
+export type DatePreset = keyof typeof PRESETS;
+
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+const dateFormatter = (preset: DatePreset) => {
+  const { browser, options } = PRESETS[preset];
+  const locale = browser ? browserLocale() : dayjs.locale();
+  const timeZone = getTimezone();
+  // the 12h/24h setting only matters to the presets that show a time
+  const hour12 = 'hour' in options ? isUSCitizen() : undefined;
+  const key = [locale, preset, timeZone, hour12].join('|');
+  let format = dateFormatters.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, {
+      ...options,
+      timeZone,
+      // a 24h clock keeps its leading zero (02:30), like HH:mm did
+      ...(hour12 === false
+        ? { hour: '2-digit', hourCycle: 'h23' }
+        : { hour12 }),
+    });
+    dateFormatters.set(key, format);
+  }
+  return format;
+};
+
+// Shows a date for the user: in their timezone (Settings), numbers in the
+// browser's locale and names in the app's language, 12h/24h from the
+// Date Metrics setting. It formats the real instant, so a date from any dayjs
+// (zoned, UTC or local) shows the same moment, and a string without an offset
+// is a wall clock in the user's timezone, as with newDayjs.
+export const formatDate = (date: ConfigType, preset: DatePreset) => {
+  const instant = newDayjs(date).valueOf();
+  return isNaN(instant) ? '' : dateFormatter(preset).format(instant);
+};

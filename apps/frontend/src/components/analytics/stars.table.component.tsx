@@ -237,7 +237,7 @@ export const StarsTableComponent = () => {
                 <tr key={p.date}>
                   <td>{p.login}</td>
                   <td>
-                    <UtcToLocalDateRender date={p.date} format="DD/MM/YYYY" />
+                    <UtcToLocalDateRender date={p.date} format="date" />
                   </td>
                   <td>{p.totalStars}</td>
                   <td>{p.totalForks}</td>

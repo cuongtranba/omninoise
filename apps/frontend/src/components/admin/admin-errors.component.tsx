@@ -8,6 +8,7 @@ import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Button } from '@gitroom/react/form/button';
+import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 
 interface ErrorRow {
@@ -94,7 +95,7 @@ const ErrorDetailsModal: FC<{ row: ErrorRow }> = ({ row }) => {
         </div>
         <div>
           <div className="opacity-60">Created</div>
-          <div>{new Date(row.createdAt).toLocaleString()}</div>
+          <div>{formatDate(row.createdAt, 'dateTimeSeconds')}</div>
         </div>
         <div>
           <div className="opacity-60">Organization</div>
@@ -356,7 +357,7 @@ export const AdminErrorsComponent: FC = () => {
                 className="grid grid-cols-[170px_120px_220px_1fr_220px] gap-[12px] px-[12px] py-[10px] text-[13px] border-b border-newTableBorder last:border-b-0 items-start"
               >
                 <div className="opacity-90">
-                  {new Date(row.createdAt).toLocaleString()}
+                  {formatDate(row.createdAt, 'dateTimeSeconds')}
                 </div>
                 <div>
                   <span

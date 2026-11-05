@@ -4,7 +4,10 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  newDayjs,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { useClickAway } from '@uidotdev/usehooks';
 import ReactLoading from '@gitroom/frontend/components/layout/loading';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -40,7 +43,7 @@ export const ShowNotification: FC<{
   const { notification, newNotification } = props;
   const createdAt = newDayjs(notification.createdAt);
   const isWithin24h = newDayjs().diff(createdAt, 'hour') < 24;
-  const fullDate = createdAt.format('MMM D, YYYY h:mm A');
+  const fullDate = formatDate(createdAt, 'mediumDateTime');
   return (
     <div className="flex gap-[12px] px-[16px] py-[14px] border-b border-newTableBorder last:border-b-0">
       <div className="flex-1 min-w-0 flex flex-col gap-[4px]">
