@@ -10,6 +10,10 @@ import {
   Min,
   Max,
   ValidateNested,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JSONSchema } from 'class-validator-jsonschema';
@@ -68,6 +72,63 @@ export class TikTokLocation {
   address?: string;
 }
 
+export const TIKTOK_BRANDED_CONTENT_PRIVATE_MESSAGE =
+  'Branded content visibility cannot be set to private.';
+export const TIKTOK_DISCLOSURE_MISSING_MESSAGE =
+  'You need to indicate if your content promotes yourself, a third party, or both.';
+
+// TikTok ignores every setting but the title on an UPLOAD (inbox draft), so the
+// rules below never apply to it.
+const isDirectPost = (settings: TikTokDto) =>
+  settings.content_posting_method !== 'UPLOAD';
+
+// TikTok's Content Sharing Guidelines: branded content cannot be private.
+@ValidatorConstraint({ name: 'TikTokBrandedContentNotPrivate', async: false })
+export class TikTokBrandedContentNotPrivateConstraint implements ValidatorConstraintInterface {
+  validate(_value: unknown, args: ValidationArguments): boolean {
+    const settings = args.object as TikTokDto;
+    return !(
+      isDirectPost(settings) &&
+      settings.brand_content_toggle === true &&
+      settings.privacy_level === 'SELF_ONLY'
+    );
+  }
+
+  defaultMessage(): string {
+    return TIKTOK_BRANDED_CONTENT_PRIVATE_MESSAGE;
+  }
+}
+
+// Turning the commercial content disclosure on means saying what it promotes.
+@ValidatorConstraint({ name: 'TikTokDisclosureNeedsChoice', async: false })
+export class TikTokDisclosureNeedsChoiceConstraint implements ValidatorConstraintInterface {
+  validate(_value: unknown, args: ValidationArguments): boolean {
+    const settings = args.object as TikTokDto;
+    return !(
+      isDirectPost(settings) &&
+      settings.disclose === true &&
+      !settings.brand_organic_toggle &&
+      !settings.brand_content_toggle
+    );
+  }
+
+  defaultMessage(): string {
+    return TIKTOK_DISCLOSURE_MISSING_MESSAGE;
+  }
+}
+
+// A reason that is not empty is the message of the failure.
+@ValidatorConstraint({ name: 'TikTokNotBlocked', async: false })
+export class TikTokNotBlockedConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return !value;
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return String(args.value);
+  }
+}
+
 // TikTok only honors most of these settings on a DIRECT_POST. With
 // content_posting_method=UPLOAD the media lands in the user's TikTok inbox as a
 // draft, and TikTok's inbox/upload endpoints accept nothing but the title /
@@ -87,6 +148,10 @@ export class TikTokDto {
   })
   title: string;
 
+  // The dashboard has no default: the creator picks one of the options TikTok
+  // returns for them. The provider still falls back to PUBLIC_TO_EVERYONE for a
+  // caller that sends none.
+  @ValidateIf(isDirectPost)
   @IsIn([
     'PUBLIC_TO_EVERYONE',
     'MUTUAL_FOLLOW_FRIENDS',
@@ -94,6 +159,7 @@ export class TikTokDto {
     'SELF_ONLY',
   ])
   @IsString()
+  @Validate(TikTokBrandedContentNotPrivateConstraint)
   @JSONSchema({
     description:
       'Applied only when content_posting_method=DIRECT_POST. Ignored by TikTok on UPLOAD.',
@@ -155,6 +221,23 @@ export class TikTokDto {
       'Applied only when content_posting_method=DIRECT_POST. Ignored by TikTok on UPLOAD.',
   })
   brand_organic_toggle: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @Validate(TikTokDisclosureNeedsChoiceConstraint)
+  @JSONSchema({
+    description:
+      'Commercial content disclosure switch of the dashboard. When true, brand_organic_toggle or brand_content_toggle must be true too. API callers can leave it out and set the two toggles directly.',
+  })
+  disclose?: boolean;
+
+  @IsOptional()
+  @Validate(TikTokNotBlockedConstraint)
+  @JSONSchema({
+    description:
+      'Set by the dashboard when TikTok will not take this post (the creator cannot post right now, or the video is longer than allowed). Always leave it out.',
+  })
+  post_blocked_reason?: string;
 
   @Type(() => TikTokMusic)
   @ValidateNested()

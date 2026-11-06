@@ -236,6 +236,15 @@ export class PostActivity {
     return [reanchorInterval(root), ...comments];
   }
 
+  // The extra line a platform wants the user to read once a post is published
+  async publishedNotice(integration: Integration): Promise<string> {
+    return (
+      this._integrationManager.getSocialIntegration(
+        integration.providerIdentifier
+      ).publishedNotice || ''
+    );
+  }
+
   async isCommentable(integration: Integration) {
     const getIntegration = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier

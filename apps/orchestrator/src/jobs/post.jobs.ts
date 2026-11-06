@@ -1134,6 +1134,9 @@ export class PostJobs {
       updated = true;
 
       if (i === 0) {
+        const notice = await this._act
+          .publishedNotice(post.integration)
+          .catch(() => '');
         // send notification on a successful post
         await this.notify(
           post.integration.organizationId,
@@ -1142,7 +1145,7 @@ export class PostJobs {
           )}`,
           `Your post has been published on ${capitalize(
             post.integration.providerIdentifier
-          )} at ${result.releaseURL}`,
+          )} at ${result.releaseURL}${notice ? `. ${notice}` : ''}`,
           true,
           true
         );

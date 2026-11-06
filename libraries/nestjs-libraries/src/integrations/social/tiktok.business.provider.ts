@@ -39,6 +39,8 @@ export class TiktokBusinessProvider
   identifier = 'tiktok-business';
   name = 'TikTok';
   isBetweenSteps = false;
+  publishedNotice =
+    'TikTok may take a few minutes to process your post before it shows on your profile.';
   convertToJPEG = true;
   scopes = [
     'user.info.basic',

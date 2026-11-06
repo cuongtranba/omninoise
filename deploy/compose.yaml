@@ -47,6 +47,8 @@ services:
       TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET}
       THREADS_APP_ID: ${THREADS_APP_ID}
       THREADS_APP_SECRET: ${THREADS_APP_SECRET}
+      # Comma-separated provider identifiers hidden from the add-channel screen.
+      HIDDEN_PROVIDERS: ${HIDDEN_PROVIDERS:-}
 
     volumes:
       - postiz-config:/config/
