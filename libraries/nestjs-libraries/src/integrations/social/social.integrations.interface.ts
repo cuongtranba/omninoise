@@ -189,6 +189,7 @@ export interface SocialProvider
   analyticsDays?: number[]; // Date windows analytics can serve
   analyticsPreviousPeriod?: boolean; // analytics honours the offset
   refreshWait?: boolean;
+  publishedNotice?: string; // added to the "published" notification of the platform
   convertToJPEG?: boolean;
   stripLinks?: () => boolean;
   refreshCron?: boolean;

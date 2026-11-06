@@ -22,6 +22,7 @@ import { createReadStream } from 'fs';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
+import { DashboardFunction } from '@gitroom/nestjs-libraries/integrations/dashboard.function.decorator';
 
 @Rules(
   [
@@ -46,6 +47,8 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
   ];
   override maxConcurrentJob = 10000;
   analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
+  publishedNotice =
+    'TikTok may take a few minutes to process your post before it shows on your profile.';
   dto = TikTokDto;
   editor = 'normal' as const;
   maxLength() {
@@ -415,6 +418,51 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       expiresIn: dayjs().add(23, 'hours').unix() - dayjs().unix(),
       picture: avatar_url,
       username: username,
+    };
+  }
+
+  // What TikTok says this creator may do right now. The post settings panel
+  // reads it every time it is shown (TikTok's Content Sharing Guidelines require
+  // the composer to follow it), so it is a dashboard function: callable from the
+  // dashboard, not from the public API or the AI agent.
+  @DashboardFunction()
+  async creatorInfo(accessToken: string) {
+    const body = await (
+      await fetch(
+        'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      )
+    ).json();
+
+    const code: string = body?.error?.code || '';
+    const handleError = this.handleErrors(JSON.stringify(body));
+    if (handleError?.type === 'refresh-token') {
+      throw new RefreshToken(
+        this.identifier,
+        JSON.stringify(body),
+        '{}',
+        handleError.value
+      );
+    }
+
+    const data = body?.data || {};
+    return {
+      // anything but "ok" (spam_risk_too_many_posts, reached_active_user_cap...)
+      // means TikTok will not take a post from this creator at the moment
+      canPost: code === 'ok' && !!data.privacy_level_options,
+      nickname: (data.creator_nickname as string) || '',
+      privacyLevelOptions: (data.privacy_level_options as string[]) || [],
+      commentDisabled: !!data.comment_disabled,
+      duetDisabled: !!data.duet_disabled,
+      stitchDisabled: !!data.stitch_disabled,
+      maxVideoPostDurationSec:
+        (data.max_video_post_duration_sec as number) || 0,
     };
   }
 
