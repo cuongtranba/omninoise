@@ -52,6 +52,12 @@ const DDL = [
     after => INTERVAL '180 days',
     if_not_exists => true
   )`,
+  // The first collection (2026-11-07) also stored window totals as the value
+  // of their last day. They all fell on that day; the daily values of that day
+  // are read again by the next collections, which re-read the last 7 days.
+  `DELETE FROM pgonly.channel_metrics
+    WHERE day = DATE '2026-11-07' AND kind = 'day'
+      AND fetched_at < TIMESTAMPTZ '2026-11-08 00:00:00+00'`,
 ];
 
 export type ChannelMetricKind = 'day' | 'total';
@@ -144,9 +150,14 @@ export class AnalyticsHistoryRepository {
       { metric: string; day: string; value: number }
     >();
     for (const item of data) {
-      // A derived metric is a figure for the whole window, not for a day; the
-      // history derives it again from the stored days
-      if (!item.key || !analyticsMetrics[item.key] || item.derived) {
+      // A derived metric or a window total is a figure for the whole window,
+      // not for a day; it cannot be split into the days of the history
+      if (
+        !item.key ||
+        !analyticsMetrics[item.key] ||
+        item.derived ||
+        item.window
+      ) {
         continue;
       }
       for (const point of item.data) {

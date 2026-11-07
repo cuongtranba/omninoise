@@ -774,6 +774,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         label: capitalize(d.name),
         key: keys[d.name],
         percentageChange: 0,
+        ...(d.total_value ? { window: true } : {}),
         data: d.total_value
           ? [{ total: d.total_value.value, date: day }]
           : d.values.map((v: any) => ({
@@ -789,6 +790,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         label: 'Clicks',
         key: 'clicks',
         percentageChange: 0,
+        window: true,
         data: [
           {
             total: String(
