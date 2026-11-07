@@ -57,6 +57,7 @@ export class TiktokBusinessProvider
   }
 
   analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
+  analyticsSnapshot = true;
   private baseUrl = 'https://business-api.tiktok.com/open_api/v1.3';
 
   // The TikTok developer portal only accepts redirect URLs that end with "/"

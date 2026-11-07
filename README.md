@@ -52,6 +52,11 @@ Everything is stored in one Postgres database:
 - **Key-value cache and rate limits** are the unlogged tables `pgonly.kv_store`
   and `pgonly.throttle_hits` (`libraries/nestjs-libraries/src/redis`,
   `libraries/nestjs-libraries/src/throttler`).
+- **Analytics history** is `pgonly.channel_metrics`, a TimescaleDB hypertable
+  with one row per channel, metric and day
+  (`libraries/nestjs-libraries/src/database/prisma/analytics`). The
+  `analytics.collect.sweep` job, seeded when `RUN_CRON` is set, queues a
+  collection per channel every day at 02:00 UTC.
 
 The `pgonly` schema is not managed by Prisma; the apps create it on boot.
 

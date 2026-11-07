@@ -3,7 +3,10 @@ import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
 import { socialIntegrationList } from '@gitroom/nestjs-libraries/integrations/integration.manager';
-import { MISSING_POSTS_KEY } from '@gitroom/orchestrator/jobs/system.jobs';
+import {
+  ANALYTICS_SWEEP_KEY,
+  MISSING_POSTS_KEY,
+} from '@gitroom/orchestrator/jobs/system.jobs';
 import { analyticsWebhookRunAt } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { PostActivity } from '@gitroom/orchestrator/activities/post.activity';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
@@ -28,6 +31,7 @@ export class JobSeeder {
   async seed() {
     const counts = {
       missingPosts: 0,
+      analyticsSweep: 0,
       posts: 0,
       refresh: 0,
       autoposts: 0,
@@ -35,7 +39,8 @@ export class JobSeeder {
       streaks: 0,
     };
 
-    // RUN_CRON gates the hourly sweep, as it gated the cron workflow
+    // RUN_CRON gates the hourly sweep, as it gated the cron workflow, and the
+    // daily analytics sweep
     if (process.env.RUN_CRON) {
       const res = await this._queue.enqueue(
         MISSING_POSTS_KEY,
@@ -43,6 +48,13 @@ export class JobSeeder {
         { dedupeKey: MISSING_POSTS_KEY, mode: 'keep' }
       );
       counts.missingPosts = res.created ? 1 : 0;
+
+      const analytics = await this._queue.enqueue(
+        ANALYTICS_SWEEP_KEY,
+        {},
+        { dedupeKey: ANALYTICS_SWEEP_KEY, mode: 'keep' }
+      );
+      counts.analyticsSweep = analytics.created ? 1 : 0;
     }
 
     // QUEUE root posts (the sweep's two-day window: older ones were given up)
@@ -183,6 +195,7 @@ export class JobSeeder {
 
     console.log(
       `Job seeding done (new jobs): ${counts.missingPosts} missing-posts sweep, ` +
+        `${counts.analyticsSweep} analytics sweep, ` +
         `${counts.posts} posts, ${counts.refresh} token refreshes, ` +
         `${counts.autoposts} autoposts, ${counts.analyticsWebhooks} analytics webhooks, ` +
         `${counts.streaks} streaks`

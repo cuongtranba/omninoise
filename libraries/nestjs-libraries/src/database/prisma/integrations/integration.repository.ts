@@ -633,6 +633,25 @@ export class IntegrationRepository {
     });
   }
 
+  // The channels of every organization that can be read now. Only what the
+  // analytics collection needs: an integration row holds credentials.
+  getAnalyticsChannels() {
+    return this._integration.model.integration.findMany({
+      where: {
+        deletedAt: null,
+        disabled: false,
+        inBetweenSteps: false,
+        refreshNeeded: false,
+        type: 'social',
+      },
+      select: {
+        id: true,
+        organizationId: true,
+        providerIdentifier: true,
+      },
+    });
+  }
+
   private async latestPostsFor(
     org: string,
     state: 'PUBLISHED' | 'ERROR',

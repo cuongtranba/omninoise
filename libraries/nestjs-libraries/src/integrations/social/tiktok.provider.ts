@@ -46,6 +46,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
   ];
   override maxConcurrentJob = 10000;
   analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
+  analyticsSnapshot = true;
   dto = TikTokDto;
   editor = 'normal' as const;
   maxLength() {

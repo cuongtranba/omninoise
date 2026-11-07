@@ -181,6 +181,10 @@ export class IntegrationService {
     return this._integrationRepository.getIntegrationsList(org);
   }
 
+  getAnalyticsChannels() {
+    return this._integrationRepository.getAnalyticsChannels();
+  }
+
   // The channels of the organization the way the dashboard shows them, with
   // what each platform allows on them
   async getIntegrationsListForDisplay(org: string) {

@@ -188,6 +188,7 @@ export interface SocialProvider
   identifier: string;
   analyticsDays?: number[]; // Date windows analytics can serve
   analyticsPreviousPeriod?: boolean; // analytics honours the offset
+  analyticsSnapshot?: boolean; // analytics returns current running totals dated today, not daily values
   refreshWait?: boolean;
   convertToJPEG?: boolean;
   stripLinks?: () => boolean;
