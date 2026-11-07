@@ -464,37 +464,6 @@ export class AnalyticsHistoryService {
       }));
   }
 
-  // The latest stored reading of each post, as its metric values: the one at
-  // the default age when it is stored, else the oldest age that is. Posts with
-  // nothing stored are not in the map.
-  async latestPostMetrics(organizationId: string, postIds: string[]) {
-    const readings = await this._analyticsHistoryRepository.getPostMetrics(
-      organizationId,
-      postIds
-    );
-    // The default age beats every other one
-    const rank = (age: number) =>
-      age === analyticsPostDefaultAge ? Infinity : age;
-    const ages = new Map<string, number>();
-    for (const reading of readings) {
-      const age = ages.get(reading.post_id);
-      if (age === undefined || rank(reading.age_days) > rank(age)) {
-        ages.set(reading.post_id, reading.age_days);
-      }
-    }
-
-    const metrics = new Map<string, Record<string, number>>();
-    for (const reading of readings) {
-      if (ages.get(reading.post_id) === reading.age_days) {
-        metrics.set(reading.post_id, {
-          ...metrics.get(reading.post_id),
-          [reading.metric]: reading.value,
-        });
-      }
-    }
-    return metrics;
-  }
-
   // What the posts published in the range have in common with the ones that
   // did best: the posts are ranked at one age after publishing (see
   // postEngagementScore) from their stored readings, and the median of that

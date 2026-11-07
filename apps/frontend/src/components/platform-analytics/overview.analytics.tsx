@@ -401,7 +401,20 @@ const InsightPosts: FC<{ title: string; posts: InsightPost[] }> = ({
 const InsightsAnalytics: FC<{ date: number }> = ({ date }) => {
   const t = useT();
   const timezone = getTimezone();
-  const { data } = useInsightsAnalytics(date, timezone);
+  const { data, isLoading, error } = useInsightsAnalytics(date, timezone);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-[32px]">
+        <LoadingComponent />
+      </div>
+    );
+  }
+
+  // A failed read is not "no posts": the rest of the page stays as it is
+  if (error) {
+    return null;
+  }
 
   if (!data || !(data.posts >= MIN_INSIGHT_POSTS)) {
     return (

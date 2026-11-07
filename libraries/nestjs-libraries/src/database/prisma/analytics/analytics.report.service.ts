@@ -207,7 +207,13 @@ export class AnalyticsReportService {
                 to: to.format('YYYY-MM-DD'),
                 integrations: options.integrationIds,
               })
-              .catch(() => undefined),
+              .catch((err) => {
+                console.error(
+                  'analytics report insights failed',
+                  (err as Error).message
+                );
+                return undefined;
+              }),
           }
         : {}),
     };
@@ -361,9 +367,7 @@ export class AnalyticsReportService {
     };
   }
 
-  // The posts of the window that did best, by engagements. A post whose
-  // totals were stored (see AnalyticsHistoryService.collectPost) is not asked
-  // of the platform again.
+  // The posts of the window that did best, by engagements
   private async topPosts(
     orgId: string,
     integrationIds: string[],
@@ -381,32 +385,21 @@ export class AnalyticsReportService {
       .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())
       .slice(0, TOP_POSTS_MAX);
 
-    const stored = await this._analyticsHistoryService
-      .latestPostMetrics(
-        orgId,
-        posts.map((post) => post.id)
-      )
-      .catch(() => new Map<string, Record<string, number>>());
-
     const withMetrics = await this.inBatches(posts, async (post) => {
       try {
-        let metrics = stored.get(post.id);
-        const source = metrics ? ('history' as const) : ('live' as const);
-        if (!metrics) {
-          const data = await this._postsService.checkPostAnalytics(
-            orgId,
-            post.id,
-            days
-          );
-          if (!Array.isArray(data) || !data.length) {
-            return undefined;
-          }
+        const data = await this._postsService.checkPostAnalytics(
+          orgId,
+          post.id,
+          days
+        );
+        if (!Array.isArray(data) || !data.length) {
+          return undefined;
+        }
 
-          metrics = {};
-          for (const item of data) {
-            metrics[item.key ?? item.label] =
-              this._integrationService.analyticsTotal(item);
-          }
+        const metrics: Record<string, number> = {};
+        for (const item of data) {
+          metrics[item.key ?? item.label] =
+            this._integrationService.analyticsTotal(item);
         }
 
         return {
@@ -416,7 +409,6 @@ export class AnalyticsReportService {
           releaseURL: post.releaseURL,
           integration: post.integration,
           metrics,
-          source,
         };
       } catch (err) {
         return undefined;
