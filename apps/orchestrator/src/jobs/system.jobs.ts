@@ -3,9 +3,12 @@ import { PostActivity } from '@gitroom/orchestrator/activities/post.activity';
 import { AutopostActivity } from '@gitroom/orchestrator/activities/autopost.activity';
 import { AnalyticsWebhookActivity } from '@gitroom/orchestrator/activities/analytics.webhook.activity';
 import { analyticsWebhookRunAt } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
+import { AnalyticsCollectActivity } from '@gitroom/orchestrator/activities/analytics.collect.activity';
 import { IntegrationsActivity } from '@gitroom/orchestrator/activities/integrations.activity';
 import { EmailActivity } from '@gitroom/orchestrator/activities/email.activity';
 import { JobWorker } from '@gitroom/nestjs-libraries/jobs/job.worker';
+import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
 import { Job, JobOutcome } from '@gitroom/nestjs-libraries/jobs/job.types';
 import {
   deleteDigestItems,
@@ -16,6 +19,23 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 export const MISSING_POSTS_KEY = 'system.missingPosts';
+export const ANALYTICS_SWEEP_KEY = 'analytics.collect.sweep';
+
+// The daily analytics sweep starts at this UTC hour, after the platforms have
+// closed the previous day.
+const ANALYTICS_SWEEP_HOUR = 2;
+
+const utcDay = (date: Date) => date.toISOString().slice(0, 10);
+
+const nextAnalyticsSweep = (from: Date) =>
+  new Date(
+    Date.UTC(
+      from.getUTCFullYear(),
+      from.getUTCMonth(),
+      from.getUTCDate() + 1,
+      ANALYTICS_SWEEP_HOUR
+    )
+  );
 
 /**
  * The jobs that run for as long as the app does. Each one
@@ -29,12 +49,18 @@ export class SystemJobs {
     private _autopost: AutopostActivity,
     private _analyticsWebhook: AnalyticsWebhookActivity,
     private _integrations: IntegrationsActivity,
-    private _email: EmailActivity
+    private _email: EmailActivity,
+    private _analyticsCollect: AnalyticsCollectActivity,
+    private _queue: JobQueueService
   ) {}
 
   register(worker: JobWorker) {
     worker
       .register(MISSING_POSTS_KEY, (job) => this.missingPosts(job))
+      .register(ANALYTICS_SWEEP_KEY, () => this.analyticsSweep())
+      .register('analytics.collect.channel', (job) =>
+        this.analyticsCollectChannel(job)
+      )
       .register('autopost', (job) => this.autopost(job))
       .register('analytics.webhook', (job) => this.analyticsWebhook(job))
       .register('integration.refresh', (job) => this.refresh(job))
@@ -60,6 +86,64 @@ export class SystemJobs {
           },
         },
       ],
+    };
+  }
+
+  // QUEUE one collection per channel, on the queue of its provider so the
+  // provider's concurrency limit applies, then wait for tomorrow's sweep
+  private async analyticsSweep(): Promise<JobOutcome> {
+    const day = utcDay(new Date());
+    let queued = 0;
+    try {
+      for (const channel of await this._analyticsCollect.listChannels()) {
+        try {
+          const res = await this._queue.enqueue(
+            'analytics.collect.channel',
+            {
+              organizationId: channel.organizationId,
+              integrationId: channel.id,
+            },
+            {
+              queue: providerQueue(channel.providerIdentifier),
+              dedupeKey: `analytics.collect.channel:${channel.id}:${day}`,
+              mode: 'keep',
+              organizationId: channel.organizationId,
+            }
+          );
+          queued += res.created ? 1 : 0;
+        } catch (err) {
+          console.error('analytics sweep failed', (err as Error).message);
+        }
+      }
+    } catch (err) {
+      console.error('analytics sweep failed', (err as Error).message);
+    }
+    return {
+      result: { queued },
+      next: [
+        {
+          kind: ANALYTICS_SWEEP_KEY,
+          opts: {
+            dedupeKey: ANALYTICS_SWEEP_KEY,
+            mode: 'keep',
+            runAt: nextAnalyticsSweep(new Date()),
+          },
+        },
+      ],
+    };
+  }
+
+  // A database error throws, so the worker retries it; a platform error is
+  // already answered with no analytics by checkAnalytics
+  private async analyticsCollectChannel(
+    job: Job<{ organizationId: string; integrationId: string }>
+  ): Promise<JobOutcome> {
+    const { organizationId, integrationId } = job.payload;
+    return {
+      result: await this._analyticsCollect.collectChannel({
+        organizationId,
+        integrationId,
+      }),
     };
   }
 

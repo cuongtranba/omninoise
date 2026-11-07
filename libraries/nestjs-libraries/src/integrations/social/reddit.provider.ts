@@ -62,6 +62,7 @@ export class RedditProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = false;
   scopes = ['read', 'identity', 'submit', 'flair'];
   analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
+  analyticsSnapshot = true;
   editor = 'normal' as const;
   dto = RedditSettingsDto;
 

@@ -39,6 +39,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = false;
   scopes = ['write:statuses', 'profile', 'write:media'];
   analyticsDays = [7, 30]; // Snapshot of current totals, the window is ignored
+  analyticsSnapshot = true;
   editor = 'normal' as const;
   maxLength() {
     return 500;
