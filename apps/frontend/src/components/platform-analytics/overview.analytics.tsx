@@ -1,6 +1,9 @@
 import { FC, useCallback } from 'react';
 import useSWR from 'swr';
-import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  formatDate,
+  getTimezone,
+} from '@gitroom/frontend/components/layout/set.timezone';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
@@ -48,6 +51,36 @@ interface OverviewData {
   }>;
 }
 
+interface InsightGroup {
+  posts: number;
+  median: number;
+}
+
+interface InsightPost {
+  id: string;
+  integration: OverviewIntegration;
+  publishDate: string;
+  content: string;
+  value: number;
+  releaseURL: string | null;
+}
+
+interface InsightsData {
+  age: number;
+  posts: number;
+  median: number | null;
+  byWeekdayHour: Array<InsightGroup & { weekday: number; hour: number }>;
+  byFormat: Array<InsightGroup & { format: 'video' | 'image' | 'text' }>;
+  byChannel: Array<InsightGroup & { integration: OverviewIntegration }>;
+  byLength: Array<InsightGroup & { length: 'short' | 'medium' | 'long' }>;
+  top: InsightPost[];
+  bottom: InsightPost[];
+}
+
+// The insights compare nothing below this many posts
+const MIN_INSIGHT_POSTS = 3;
+const BEST_SLOTS = 5;
+
 const kpiKeys = [
   'followers',
   'impressions',
@@ -75,6 +108,29 @@ const useOverviewAnalytics = (date: number) => {
   }, [date]);
 
   return useSWR<OverviewData>(`/analytics-overview-${date}`, load, {
+    refreshInterval: 0,
+    refreshWhenHidden: false,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
+    refreshWhenOffline: false,
+    revalidateOnMount: true,
+  });
+};
+
+const useInsightsAnalytics = (date: number, timezone: string) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    const day = (daysAgo: number) =>
+      new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+    return (
+      await fetch(
+        `/analytics/insights?from=${day(date - 1)}&to=${day(0)}&timezone=${encodeURIComponent(timezone)}`
+      )
+    ).json();
+  }, [date, timezone]);
+
+  return useSWR<InsightsData>(`/analytics-insights-${date}-${timezone}`, load, {
     refreshInterval: 0,
     refreshWhenHidden: false,
     revalidateOnFocus: false,
@@ -248,6 +304,207 @@ const TopPosts: FC<{ posts: OverviewData['topPosts'] }> = ({ posts }) => {
   );
 };
 
+// A row per group with a bar as long as its median compared with the best one
+const InsightBars: FC<{
+  title: string;
+  rows: Array<{
+    key: string;
+    label: string;
+    avatar?: OverviewIntegration;
+    group: InsightGroup;
+  }>;
+}> = ({ title, rows }) => {
+  const t = useT();
+  const best = Math.max(...rows.map((row) => row.group.median), 0);
+  return (
+    <div className="flex flex-col gap-[12px] bg-newTableHeader border border-newTableBorder rounded-[12px] px-[16px] py-[14px]">
+      <h4 className="text-[15px] font-medium text-newTableText">{title}</h4>
+      {rows.map((row) => (
+        <div key={row.key} className="flex flex-col gap-[4px]">
+          <div className="flex items-center justify-between gap-[8px] text-[14px]">
+            <span className="flex items-center gap-[8px] min-w-0">
+              {!!row.avatar && <ChannelAvatar integration={row.avatar} />}
+              <span className="truncate">{row.label}</span>
+            </span>
+            <span className="whitespace-nowrap">
+              {formatAnalyticsValue(row.group.median, 'number')}
+              <span className="opacity-60 text-[12px]">
+                {' · '}
+                {t('analytics_insights_posts', '{{count}} posts', {
+                  count: row.group.posts,
+                })}
+              </span>
+            </span>
+          </div>
+          <div className="h-[6px] rounded-full bg-newBgColorInner">
+            <div
+              className="h-full rounded-full bg-brand"
+              style={{
+                width: `${best ? Math.max(4, (row.group.median / best) * 100) : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const InsightPosts: FC<{ title: string; posts: InsightPost[] }> = ({
+  title,
+  posts,
+}) => {
+  const t = useT();
+  return (
+    <div className="flex flex-col gap-[10px]">
+      <h4 className="text-[15px] font-medium text-newTableText">{title}</h4>
+      {posts.map((post) => (
+        <div
+          key={post.id}
+          className="flex items-center gap-[12px] bg-newTableHeader border border-newTableBorder rounded-[12px] px-[16px] py-[12px]"
+        >
+          <ChannelAvatar integration={post.integration} />
+          <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
+            <div className="truncate text-[14px] text-newTableText">
+              {post.content ||
+                t('analytics_post_without_text', 'Post without text')}
+            </div>
+            <div className="flex flex-wrap items-center gap-[6px] text-[12px]">
+              <span className="opacity-60">
+                {formatDate(post.publishDate, 'dateTime')}
+              </span>
+              <span className="rounded-[6px] bg-newBgColorInner border border-newTableBorder px-[8px] py-[2px]">
+                {getAnalyticsMetricName(t, {
+                  key: 'engagements',
+                  label: 'Engagements',
+                })}
+                : {formatAnalyticsValue(post.value, 'number')}
+              </span>
+            </div>
+          </div>
+          {!!post.releaseURL && (
+            <a
+              href={post.releaseURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[14px] font-medium text-brand hover:underline whitespace-nowrap"
+            >
+              {t('analytics_open_post', 'Open post')}
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const InsightsAnalytics: FC<{ date: number }> = ({ date }) => {
+  const t = useT();
+  const timezone = getTimezone();
+  const { data } = useInsightsAnalytics(date, timezone);
+
+  if (!data || !(data.posts >= MIN_INSIGHT_POSTS)) {
+    return (
+      <div className="flex flex-col gap-[12px]">
+        <h3 className="text-[16px] font-[500]">
+          {t('analytics_insights', 'Insights')}
+        </h3>
+        <div className="flex flex-col items-center justify-center py-[32px] px-[24px] bg-newTableHeader border border-newTableBorder rounded-[12px]">
+          <p className="text-[15px] text-newTableText text-center">
+            {t(
+              'analytics_insights_empty',
+              'Not enough published posts to compare yet, insights appear once your posts have been read a week after they were published'
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sunday is 0, 2023-01-01 was a Sunday
+  const weekday = (day: number) =>
+    new Intl.DateTimeFormat(undefined, {
+      weekday: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2023, 0, 1 + day)));
+  const formats = {
+    video: t('analytics_insights_format_video', 'Video'),
+    image: t('analytics_insights_format_image', 'Image'),
+    text: t('analytics_insights_format_text', 'Text only'),
+  };
+  const lengths = {
+    short: t('analytics_insights_length_short', 'Short'),
+    medium: t('analytics_insights_length_medium', 'Medium'),
+    long: t('analytics_insights_length_long', 'Long'),
+  };
+
+  return (
+    <div className="flex flex-col gap-[12px]">
+      <div className="flex flex-col gap-[2px]">
+        <h3 className="text-[16px] font-[500]">
+          {t('analytics_insights', 'Insights')}
+        </h3>
+        <span className="text-[13px] opacity-60">
+          {t(
+            'analytics_insights_subtitle',
+            'Median engagements of {{count}} posts, {{age}} days after they were published',
+            { count: data.posts, age: data.age }
+          )}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[16px]">
+        {!!data.byWeekdayHour.length && (
+          <InsightBars
+            title={t('analytics_insights_best_times', 'Best times to post')}
+            rows={data.byWeekdayHour.slice(0, BEST_SLOTS).map((slot) => ({
+              key: `${slot.weekday}-${slot.hour}`,
+              label: `${weekday(slot.weekday)} ${String(slot.hour).padStart(2, '0')}:00`,
+              group: slot,
+            }))}
+          />
+        )}
+        <InsightBars
+          title={t('analytics_insights_formats', 'Formats')}
+          rows={data.byFormat.map((row) => ({
+            key: row.format,
+            label: formats[row.format],
+            group: row,
+          }))}
+        />
+        <InsightBars
+          title={t('analytics_insights_channels', 'Channels')}
+          rows={data.byChannel.map((row) => ({
+            key: row.integration.id,
+            label: row.integration.name,
+            avatar: row.integration,
+            group: row,
+          }))}
+        />
+        <InsightBars
+          title={t('analytics_insights_lengths', 'Length of text')}
+          rows={data.byLength.map((row) => ({
+            key: row.length,
+            label: lengths[row.length],
+            group: row,
+          }))}
+        />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[16px]">
+        <InsightPosts
+          title={t('analytics_insights_best_posts', 'Best posts')}
+          posts={data.top}
+        />
+        {!!data.bottom.length && (
+          <InsightPosts
+            title={t('analytics_insights_worst_posts', 'Weakest posts')}
+            posts={data.bottom}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const OverviewAnalytics: FC<{ date: number }> = ({ date }) => {
   const t = useT();
   const { data, isLoading } = useOverviewAnalytics(date);
@@ -305,6 +562,7 @@ export const OverviewAnalytics: FC<{ date: number }> = ({ date }) => {
           <TopPosts posts={data.topPosts} />
         </div>
       )}
+      <InsightsAnalytics date={date} />
     </div>
   );
 };

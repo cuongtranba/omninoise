@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import striptags from 'striptags';
 import { chunk } from 'lodash';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import {
   AnalyticsHistoryService,
   ChannelHistoryMetric,
+  postExcerpt,
 } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
@@ -15,12 +15,17 @@ import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/soc
 import {
   analyticsGrainFor,
   analyticsMetrics,
+  postEngagementScore,
   AnalyticsCategory,
 } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 
 dayjs.extend(utc);
 
-export type AnalyticsReportSection = 'channels' | 'summary' | 'topPosts';
+export type AnalyticsReportSection =
+  | 'channels'
+  | 'summary'
+  | 'topPosts'
+  | 'insights';
 
 export interface AnalyticsReportOptions {
   integrationIds?: string[];
@@ -193,6 +198,18 @@ export class AnalyticsReportService {
             ),
           }
         : {}),
+      // What the posts of the window have in common (see postInsights)
+      ...(sections.includes('insights')
+        ? {
+            insights: await this._analyticsHistoryService
+              .postInsights(orgId, {
+                from: from.format('YYYY-MM-DD'),
+                to: to.format('YYYY-MM-DD'),
+                integrations: options.integrationIds,
+              })
+              .catch(() => undefined),
+          }
+        : {}),
     };
   }
 
@@ -344,7 +361,9 @@ export class AnalyticsReportService {
     };
   }
 
-  // The posts of the window that did best, by engagements
+  // The posts of the window that did best, by engagements. A post whose
+  // totals were stored (see AnalyticsHistoryService.collectPost) is not asked
+  // of the platform again.
   private async topPosts(
     orgId: string,
     integrationIds: string[],
@@ -362,46 +381,54 @@ export class AnalyticsReportService {
       .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())
       .slice(0, TOP_POSTS_MAX);
 
+    const stored = await this._analyticsHistoryService
+      .latestPostMetrics(
+        orgId,
+        posts.map((post) => post.id)
+      )
+      .catch(() => new Map<string, Record<string, number>>());
+
     const withMetrics = await this.inBatches(posts, async (post) => {
       try {
-        const data = await this._postsService.checkPostAnalytics(
-          orgId,
-          post.id,
-          days
-        );
-        if (!Array.isArray(data) || !data.length) {
-          return undefined;
-        }
+        let metrics = stored.get(post.id);
+        const source = metrics ? ('history' as const) : ('live' as const);
+        if (!metrics) {
+          const data = await this._postsService.checkPostAnalytics(
+            orgId,
+            post.id,
+            days
+          );
+          if (!Array.isArray(data) || !data.length) {
+            return undefined;
+          }
 
-        const metrics: Record<string, number> = {};
-        for (const item of data) {
-          metrics[item.key ?? item.label] =
-            this._integrationService.analyticsTotal(item);
+          metrics = {};
+          for (const item of data) {
+            metrics[item.key ?? item.label] =
+              this._integrationService.analyticsTotal(item);
+          }
         }
 
         return {
           id: post.id,
-          content: striptags(post.content)
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 280),
+          content: postExcerpt(post.content),
           publishDate: post.publishDate,
           releaseURL: post.releaseURL,
           integration: post.integration,
           metrics,
+          source,
         };
       } catch (err) {
         return undefined;
       }
     });
 
-    const score = (metrics: Record<string, number>) =>
-      metrics.engagements ??
-      (metrics.likes ?? 0) + (metrics.comments ?? 0) + (metrics.shares ?? 0);
-
     return withMetrics
       .filter((p) => !!p)
-      .sort((a, b) => score(b!.metrics) - score(a!.metrics))
+      .sort(
+        (a, b) =>
+          postEngagementScore(b!.metrics) - postEngagementScore(a!.metrics)
+      )
       .slice(0, limit);
   }
 

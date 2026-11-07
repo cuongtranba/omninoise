@@ -175,7 +175,8 @@ beforeAll(async () => {
     new AnalyticsHistoryService(
       new AnalyticsHistoryRepository(),
       integrations,
-      manager
+      manager,
+      posts
     )
   );
 });

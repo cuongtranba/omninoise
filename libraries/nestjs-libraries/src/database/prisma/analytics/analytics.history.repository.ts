@@ -52,6 +52,47 @@ const DDL = [
     after => INTERVAL '180 days',
     if_not_exists => true
   )`,
+  // One row per post, metric and age: the lifetime reading of the post
+  // `age_days` days after it was published, taken on `captured_on`. A
+  // hypertable cannot have a unique key without its time column, so the key
+  // holds captured_on too (it is the publish day plus the age, so reading the
+  // same age again is the same row).
+  `CREATE TABLE IF NOT EXISTS pgonly.post_metrics (
+    organization_id text NOT NULL,
+    integration_id text NOT NULL,
+    post_id text NOT NULL,
+    metric text NOT NULL,
+    age_days int NOT NULL,
+    captured_on date NOT NULL,
+    value double precision NOT NULL,
+    fetched_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (post_id, metric, age_days, captured_on)
+  )`,
+  `SELECT create_hypertable(
+    'pgonly.post_metrics',
+    by_range('captured_on', INTERVAL '3 months'),
+    if_not_exists => true
+  )`,
+  `CREATE INDEX IF NOT EXISTS post_metrics_org_captured_on_idx
+    ON pgonly.post_metrics (organization_id, captured_on DESC)`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM timescaledb_information.hypertable_columnstore_settings
+      WHERE hypertable = 'pgonly.post_metrics'::regclass
+        AND segmentby IS NOT NULL
+    ) THEN
+      ALTER TABLE pgonly.post_metrics SET (
+        timescaledb.enable_columnstore,
+        timescaledb.segmentby = 'integration_id',
+        timescaledb.orderby = 'captured_on'
+      );
+    END IF;
+  END $$`,
+  `CALL add_columnstore_policy(
+    'pgonly.post_metrics',
+    after => INTERVAL '180 days',
+    if_not_exists => true
+  )`,
 ];
 
 export type ChannelMetricKind = 'day' | 'total';
@@ -103,6 +144,20 @@ const isDay = (value: string) => {
 const toValue = (total: string | null | undefined) =>
   total == null || String(total).trim() === '' ? NaN : Number(total);
 
+// Only the metrics of the catalogue are stored; a derived metric is a figure
+// computed from the others, not a reading of the platform
+const isStorable = (item: AnalyticsData) =>
+  !!item.key && !!analyticsMetrics[item.key] && !item.derived;
+
+// What the stored readings of a post say about one metric at one age
+export interface PostMetricReading {
+  post_id: string;
+  metric: string;
+  age_days: number;
+  captured_on: string; // YYYY-MM-DD
+  value: number;
+}
+
 @Injectable()
 export class AnalyticsHistoryRepository {
   private ready?: Promise<void>;
@@ -146,7 +201,7 @@ export class AnalyticsHistoryRepository {
     for (const item of data) {
       // A derived metric is a figure for the whole window, not for a day; the
       // history derives it again from the stored days
-      if (!item.key || !analyticsMetrics[item.key] || item.derived) {
+      if (!isStorable(item) || !item.key) {
         continue;
       }
       for (const point of item.data) {
@@ -258,5 +313,94 @@ export class AnalyticsHistoryRepository {
       [organizationId, integrationId]
     );
     return rows[0]?.day ?? undefined;
+  }
+
+  /**
+   * Stores the reading of a post: the last point of each metric in the
+   * catalogue, the post's lifetime totals at `ageDays` days after it was
+   * published, read on `capturedOn`. Reading the same age again replaces the
+   * earlier values. Returns how many metrics were stored.
+   */
+  async savePostMetrics(
+    organizationId: string,
+    integrationId: string,
+    postId: string,
+    ageDays: number,
+    capturedOn: string,
+    data: AnalyticsData[]
+  ) {
+    const readings = new Map<string, number>();
+    for (const item of data) {
+      if (!isStorable(item) || !item.key) {
+        continue;
+      }
+      // The platform lists the post's totals by date, the latest is the reading
+      for (const point of [...item.data].reverse()) {
+        const value = toValue(point.total);
+        if (Number.isFinite(value)) {
+          readings.set(item.key, value);
+          break;
+        }
+      }
+    }
+
+    if (readings.size === 0 || !isDay(capturedOn)) {
+      return 0;
+    }
+
+    await (
+      await this.pool()
+    ).query(
+      `INSERT INTO pgonly.post_metrics
+        (organization_id, integration_id, post_id, age_days, captured_on, metric, value)
+      SELECT $1, $2, $3, $4, $5::date, metric, value
+      FROM unnest($6::text[], $7::double precision[]) AS t(metric, value)
+      ON CONFLICT (post_id, metric, age_days, captured_on) DO UPDATE SET
+        value = EXCLUDED.value,
+        fetched_at = now(),
+        organization_id = EXCLUDED.organization_id,
+        integration_id = EXCLUDED.integration_id`,
+      [
+        organizationId,
+        integrationId,
+        postId,
+        ageDays,
+        capturedOn,
+        [...readings.keys()],
+        [...readings.values()],
+      ]
+    );
+    return readings.size;
+  }
+
+  // The stored readings of the posts, at one age or at every age. The
+  // organization is always filtered: a post id alone must never read another
+  // organization's rows.
+  async getPostMetrics(
+    organizationId: string,
+    postIds: string[],
+    options: { age?: number; metrics?: string[] } = {}
+  ) {
+    if (postIds.length === 0) {
+      return [];
+    }
+
+    const { rows } = await (
+      await this.pool()
+    ).query<PostMetricReading>(
+      `SELECT post_id, metric, age_days, captured_on::text AS captured_on, value
+      FROM pgonly.post_metrics
+      WHERE organization_id = $1 AND post_id = ANY($2::text[])
+        AND ($3::int IS NULL OR age_days = $3::int)
+        AND ($4::text[] IS NULL OR metric = ANY($4::text[]))
+      ORDER BY post_id, age_days, metric`,
+      [
+        organizationId,
+        postIds,
+        options.age ?? null,
+        options.metrics?.length ? options.metrics : null,
+      ]
+    );
+    return rows;
   }
 }

@@ -40,7 +40,8 @@ const service = new AnalyticsHistoryService(
     new RefreshIntegrationService(manager, undefined!, queue),
     queue
   ),
-  manager
+  manager,
+  undefined!
 );
 
 let orgId: string;

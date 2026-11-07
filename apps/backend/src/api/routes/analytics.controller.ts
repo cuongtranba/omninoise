@@ -6,6 +6,7 @@ import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/in
 import { AnalyticsReportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.report.service';
 import { AnalyticsHistoryService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { AnalyticsHistoryDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.history.dto';
+import { AnalyticsInsightsDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.insights.dto';
 import { AnalyticsOverviewDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.overview.dto';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 
@@ -25,6 +26,15 @@ export class AnalyticsController {
     @Query() query: AnalyticsOverviewDto
   ) {
     return this._analyticsReportService.overview(org.id, query.date);
+  }
+
+  // Before '/:integration', which would take 'insights' for a channel id
+  @Get('/insights')
+  getInsights(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: AnalyticsInsightsDto
+  ) {
+    return this._analyticsHistoryService.postInsights(org.id, query);
   }
 
   @Get('/:integration')
@@ -47,6 +57,14 @@ export class AnalyticsController {
       integration,
       query
     );
+  }
+
+  @Get('/post/:postId/history')
+  getPostHistory(
+    @GetOrgFromRequest() org: Organization,
+    @Param('postId') postId: string
+  ) {
+    return this._analyticsHistoryService.postHistory(org.id, postId);
   }
 
   @Get('/post/:postId')

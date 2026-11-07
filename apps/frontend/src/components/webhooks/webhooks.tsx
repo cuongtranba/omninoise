@@ -160,6 +160,7 @@ export const Webhooks: FC = () => {
     </div>
   );
 };
+// The sections a new report has; the insights are opt-in
 const sectionKeys = ['channels', 'summary', 'topPosts'];
 const details = object().shape({
   name: string().required(),
@@ -509,6 +510,12 @@ export const AddOrEditWebhook: FC<{
                     checked={sections.includes('topPosts')}
                     onChange={toggleListItem('sections', 'topPosts')}
                     label={t('webhook_section_top_posts', 'Top posts')}
+                  />
+                  <Checkbox
+                    disableForm={true}
+                    checked={sections.includes('insights')}
+                    onChange={toggleListItem('sections', 'insights')}
+                    label={t('webhook_section_insights', 'Post insights')}
                   />
                 </div>
                 {sections.includes('topPosts') && (

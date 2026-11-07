@@ -61,6 +61,9 @@ export class SystemJobs {
       .register('analytics.collect.channel', (job) =>
         this.analyticsCollectChannel(job)
       )
+      .register('analytics.collect.post', (job) =>
+        this.analyticsCollectPost(job)
+      )
       .register('autopost', (job) => this.autopost(job))
       .register('analytics.webhook', (job) => this.analyticsWebhook(job))
       .register('integration.refresh', (job) => this.refresh(job))
@@ -89,11 +92,13 @@ export class SystemJobs {
     };
   }
 
-  // QUEUE one collection per channel, on the queue of its provider so the
-  // provider's concurrency limit applies, then wait for tomorrow's sweep
+  // QUEUE one collection per channel, and one per post that reached one of
+  // the ages it is read at, on the queue of its provider so the provider's
+  // concurrency limit applies, then wait for tomorrow's sweep
   private async analyticsSweep(): Promise<JobOutcome> {
     const day = utcDay(new Date());
     let queued = 0;
+    let queuedPosts = 0;
     try {
       for (const channel of await this._analyticsCollect.listChannels()) {
         try {
@@ -118,8 +123,29 @@ export class SystemJobs {
     } catch (err) {
       console.error('analytics sweep failed', (err as Error).message);
     }
+    try {
+      for (const post of await this._analyticsCollect.listPosts()) {
+        try {
+          const res = await this._queue.enqueue(
+            'analytics.collect.post',
+            { organizationId: post.organizationId, postId: post.id },
+            {
+              queue: providerQueue(post.providerIdentifier),
+              dedupeKey: `analytics.collect.post:${post.id}:${post.age}`,
+              mode: 'keep',
+              organizationId: post.organizationId,
+            }
+          );
+          queuedPosts += res.created ? 1 : 0;
+        } catch (err) {
+          console.error('analytics sweep failed', (err as Error).message);
+        }
+      }
+    } catch (err) {
+      console.error('analytics sweep failed', (err as Error).message);
+    }
     return {
-      result: { queued },
+      result: { queued, queuedPosts },
       next: [
         {
           kind: ANALYTICS_SWEEP_KEY,
@@ -143,6 +169,20 @@ export class SystemJobs {
       result: await this._analyticsCollect.collectChannel({
         organizationId,
         integrationId,
+      }),
+    };
+  }
+
+  // A database error throws, so the worker retries it; a platform error is
+  // already answered with no analytics by checkPostAnalytics
+  private async analyticsCollectPost(
+    job: Job<{ organizationId: string; postId: string }>
+  ): Promise<JobOutcome> {
+    const { organizationId, postId } = job.payload;
+    return {
+      result: await this._analyticsCollect.collectPost({
+        organizationId,
+        postId,
       }),
     };
   }

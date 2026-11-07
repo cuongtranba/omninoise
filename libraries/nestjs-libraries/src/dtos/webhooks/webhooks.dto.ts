@@ -60,8 +60,8 @@ export class WebhooksDto {
 
   @IsOptional()
   @IsArray()
-  @IsIn(['channels', 'summary', 'topPosts'], { each: true })
-  sections?: ('channels' | 'summary' | 'topPosts')[];
+  @IsIn(['channels', 'summary', 'topPosts', 'insights'], { each: true })
+  sections?: ('channels' | 'summary' | 'topPosts' | 'insights')[];
 
   @IsOptional()
   @IsInt()
@@ -122,8 +122,8 @@ export class UpdateDto {
 
   @IsOptional()
   @IsArray()
-  @IsIn(['channels', 'summary', 'topPosts'], { each: true })
-  sections?: ('channels' | 'summary' | 'topPosts')[];
+  @IsIn(['channels', 'summary', 'topPosts', 'insights'], { each: true })
+  sections?: ('channels' | 'summary' | 'topPosts' | 'insights')[];
 
   @IsOptional()
   @IsInt()
@@ -150,8 +150,8 @@ export class AnalyticsPreviewDto {
 
   @IsOptional()
   @IsArray()
-  @IsIn(['channels', 'summary', 'topPosts'], { each: true })
-  sections?: ('channels' | 'summary' | 'topPosts')[];
+  @IsIn(['channels', 'summary', 'topPosts', 'insights'], { each: true })
+  sections?: ('channels' | 'summary' | 'topPosts' | 'insights')[];
 
   @IsOptional()
   @IsInt()
