@@ -117,3 +117,11 @@ export const analyticsMetrics: Record<string, AnalyticsMetric> = {
 };
 
 export const analyticsMetricKeys = Object.keys(analyticsMetrics);
+
+// The size of a point of a stored series
+export const analyticsGrains = ['day', 'week', 'month'] as const;
+export type AnalyticsGrain = (typeof analyticsGrains)[number];
+
+// The grain that keeps a chart of that many days readable
+export const analyticsGrainFor = (days: number): AnalyticsGrain =>
+  days > 180 ? 'month' : days > 90 ? 'week' : 'day';

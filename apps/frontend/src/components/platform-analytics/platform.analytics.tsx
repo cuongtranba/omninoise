@@ -43,6 +43,8 @@ const useAnalyticsIntegrations = () => {
   });
 };
 
+const longDays = [180, 365];
+
 export const PlatformAnalytics = () => {
   const t = useT();
   const navigate = useNavigate();
@@ -69,13 +71,17 @@ export const PlatformAnalytics = () => {
       7: t('7_days', '7 Days'),
       30: t('30_days', '30 Days'),
       90: t('90_days', '90 Days'),
+      180: t('180_days', '180 Days'),
+      365: t('365_days', '365 Days'),
     };
+    // The windows above what the platform serves come from the stored history
     const days = currentIntegration
-      ? currentIntegration.analyticsDays || []
-      : [7, 30, 90];
-    return days
-      .filter((day: number) => !!labels[day])
-      .map((day: number) => ({ key: day, value: labels[day] }));
+      ? [...(currentIntegration.analyticsDays || []), ...longDays]
+      : [7, 30, 90, ...longDays];
+    return [...new Set<number>(days)]
+      .sort((a, b) => a - b)
+      .filter((day) => !!labels[day])
+      .map((day) => ({ key: day, value: labels[day] }));
   }, [currentIntegration, t]);
   const keys = useMemo(() => {
     if (options.find((p: { key: number }) => p.key === key)) {
@@ -83,6 +89,15 @@ export const PlatformAnalytics = () => {
     }
     return options[0]?.key;
   }, [key, options]);
+
+  // Longer than every window the platform serves: read from the stored history
+  const history = useMemo(
+    () =>
+      !!currentIntegration &&
+      !!keys &&
+      keys > Math.max(0, ...(currentIntegration.analyticsDays || [])),
+    [currentIntegration, keys]
+  );
 
   if (isLoading) {
     return (
@@ -283,7 +298,11 @@ export const PlatformAnalytics = () => {
                 <OverviewAnalytics date={keys} />
               )}
               {!!keys && !!currentIntegration && !refresh && (
-                <RenderAnalytics integration={currentIntegration} date={keys} />
+                <RenderAnalytics
+                  integration={currentIntegration}
+                  date={keys}
+                  history={history}
+                />
               )}
             </div>
           </div>

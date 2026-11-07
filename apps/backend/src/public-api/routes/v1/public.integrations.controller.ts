@@ -53,6 +53,8 @@ import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/us
 import { SuperAdminGuard } from '@gitroom/backend/services/auth/super.admin.guard';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { AnalyticsHistoryDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.history.dto';
+import { AnalyticsHistoryService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
 import { ResetCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/reset.credits.dto';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -71,7 +73,8 @@ export class PublicIntegrationsController {
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
     private _clippingService: ClippingService,
-    private _subscriptionService: SubscriptionService
+    private _subscriptionService: SubscriptionService,
+    private _analyticsHistoryService: AnalyticsHistoryService
   ) {}
 
   @Post('/upload')
@@ -603,6 +606,20 @@ export class PublicIntegrationsController {
   ) {
     Sentry.metrics.count('public_api-request', 1);
     return this._integrationService.checkAnalytics(org, integration, date);
+  }
+
+  @Get('/analytics/:integration/history')
+  async getAnalyticsHistory(
+    @GetOrgFromRequest() org: Organization,
+    @Param('integration') integration: string,
+    @Query() query: AnalyticsHistoryDto
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    return this._analyticsHistoryService.channelHistory(
+      org.id,
+      integration,
+      query
+    );
   }
 
   @Get('/analytics/post/:postId')

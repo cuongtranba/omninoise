@@ -1083,6 +1083,7 @@ export class IntegrationService {
         category: catalog.category,
         format: catalog.format,
         aggregate: catalog.aggregate,
+        derived: true,
         data: [
           { total: String(total), date: dayjs.utc().format('YYYY-MM-DD') },
         ],

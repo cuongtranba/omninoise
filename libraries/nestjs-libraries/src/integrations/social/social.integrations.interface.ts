@@ -79,6 +79,7 @@ export interface AnalyticsData {
   aggregate?: 'sum' | 'average' | 'last'; // How the points make the total
   average?: boolean; // Legacy way to say aggregate average
   previousTotal?: number;
+  derived?: boolean; // Computed from the other metrics, not read from the platform
 }
 
 export type GenerateAuthUrlResponse = {

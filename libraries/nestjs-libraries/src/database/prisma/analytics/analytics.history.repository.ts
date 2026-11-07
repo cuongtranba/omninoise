@@ -4,7 +4,10 @@ import {
   getPgPool,
 } from '@gitroom/nestjs-libraries/pg/pg.pool';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
-import { analyticsMetrics } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
+import {
+  analyticsMetrics,
+  AnalyticsGrain,
+} from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 
 // One row per channel, metric and day: a TimescaleDB hypertable in `pgonly`,
 // because `prisma db push` drops the tables it does not know in `public`.
@@ -52,6 +55,39 @@ const DDL = [
 ];
 
 export type ChannelMetricKind = 'day' | 'total';
+
+// What the days of a metric add up to: their sum, average and latest reading
+export interface ChannelMetricStats {
+  metric: string;
+  kind: ChannelMetricKind;
+  sum: number;
+  avg: number;
+  last: number;
+  count: number;
+}
+
+export interface ChannelMetricBucket extends ChannelMetricStats {
+  bucket: string; // First day of the bucket, YYYY-MM-DD
+}
+
+export interface ChannelMetricRange {
+  from: string; // YYYY-MM-DD, inclusive
+  to: string; // YYYY-MM-DD, inclusive
+}
+
+const STATS = `sum(value) AS sum, avg(value) AS avg, last(value, day) AS last, count(*)::int AS count`;
+
+// Both the organization and the channel are always filtered: a channel id
+// alone must never read another organization's rows
+const IN_RANGE = `organization_id = $1 AND integration_id = $2
+  AND day BETWEEN $3::date AND $4::date
+  AND ($5::text[] IS NULL OR metric = ANY($5::text[]))`;
+
+const BUCKET_SIZE: Record<AnalyticsGrain, string> = {
+  day: '1 day',
+  week: '1 week',
+  month: '1 month',
+};
 
 const DAY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -108,7 +144,9 @@ export class AnalyticsHistoryRepository {
       { metric: string; day: string; value: number }
     >();
     for (const item of data) {
-      if (!item.key || !analyticsMetrics[item.key]) {
+      // A derived metric is a figure for the whole window, not for a day; the
+      // history derives it again from the stored days
+      if (!item.key || !analyticsMetrics[item.key] || item.derived) {
         continue;
       }
       for (const point of item.data) {
@@ -152,5 +190,73 @@ export class AnalyticsHistoryRepository {
       ]
     );
     return rows.length;
+  }
+
+  // The stored days of a channel in buckets of `grain` (weeks start on Monday,
+  // months on the 1st). A bucket is named by its first day, which can be
+  // before the start of the range.
+  async getSeries(
+    organizationId: string,
+    integrationId: string,
+    range: ChannelMetricRange,
+    grain: AnalyticsGrain,
+    metrics?: string[]
+  ) {
+    const { rows } = await (
+      await this.pool()
+    ).query<ChannelMetricBucket>(
+      `SELECT metric, kind, time_bucket($6::interval, day)::text AS bucket, ${STATS}
+      FROM pgonly.channel_metrics
+      WHERE ${IN_RANGE}
+      GROUP BY metric, kind, 3
+      ORDER BY 3, metric`,
+      [
+        organizationId,
+        integrationId,
+        range.from,
+        range.to,
+        metrics?.length ? metrics : null,
+        BUCKET_SIZE[grain],
+      ]
+    );
+    return rows;
+  }
+
+  // The stored days of a channel over the whole range
+  async getTotals(
+    organizationId: string,
+    integrationId: string,
+    range: ChannelMetricRange,
+    metrics?: string[]
+  ) {
+    const { rows } = await (
+      await this.pool()
+    ).query<ChannelMetricStats>(
+      `SELECT metric, kind, ${STATS}
+      FROM pgonly.channel_metrics
+      WHERE ${IN_RANGE}
+      GROUP BY metric, kind
+      ORDER BY metric`,
+      [
+        organizationId,
+        integrationId,
+        range.from,
+        range.to,
+        metrics?.length ? metrics : null,
+      ]
+    );
+    return rows;
+  }
+
+  // The first day stored for the channel, undefined when nothing is stored
+  async getOldestDay(organizationId: string, integrationId: string) {
+    const { rows } = await (
+      await this.pool()
+    ).query<{ day: string | null }>(
+      `SELECT min(day)::text AS day FROM pgonly.channel_metrics
+      WHERE organization_id = $1 AND integration_id = $2`,
+      [organizationId, integrationId]
+    );
+    return rows[0]?.day ?? undefined;
   }
 }

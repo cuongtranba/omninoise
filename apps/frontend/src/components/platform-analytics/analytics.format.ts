@@ -18,6 +18,7 @@ export interface AnalyticsDataItem {
   aggregate?: AnalyticsAggregate;
   average?: boolean;
   previousTotal?: number;
+  total?: number; // The total over the range, when the backend computed it
 }
 
 export const categoryOrder: AnalyticsCategory[] = [
@@ -95,5 +96,5 @@ export const aggregateAnalytics = (item: AnalyticsDataItem) => {
 export const formatAnalyticsItem = (item: AnalyticsDataItem) => {
   // legacy items with `average` render as a percentage
   const format = item.format || (item.average ? 'percent' : 'number');
-  return formatAnalyticsValue(aggregateAnalytics(item), format);
+  return formatAnalyticsValue(item.total ?? aggregateAnalytics(item), format);
 };

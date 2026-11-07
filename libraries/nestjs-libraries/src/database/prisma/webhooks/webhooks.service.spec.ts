@@ -16,7 +16,7 @@ const repo = new PrismaRepository<keyof PrismaService>(prisma);
 const webhooks = new WebhooksService(
   new WebhooksRepository(repo, repo),
   new JobQueueService(),
-  new AnalyticsReportService(undefined!, undefined!, undefined!)
+  new AnalyticsReportService(undefined!, undefined!, undefined!, undefined!)
 );
 
 type Received = { path?: string; event?: string; body: string };

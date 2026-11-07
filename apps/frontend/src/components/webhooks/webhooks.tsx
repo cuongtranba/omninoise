@@ -173,7 +173,7 @@ const details = object().shape({
     then: (schema) => schema.oneOf(['daily', 'weekly', 'monthly']).required(),
     otherwise: (schema) => schema.nullable(),
   }),
-  lookbackDays: number().oneOf([1, 7, 30, 90]),
+  lookbackDays: number().oneOf([1, 7, 30, 90, 180, 365]),
   metrics: array(string().required()),
   sections: array(string().required()).when('type', {
     is: 'analytics.report',
@@ -477,6 +477,12 @@ export const AddOrEditWebhook: FC<{
                   </option>
                   <option value={90}>
                     {t('webhook_lookback_90', 'Last 90 days')}
+                  </option>
+                  <option value={180}>
+                    {t('webhook_lookback_180', 'Last 180 days')}
+                  </option>
+                  <option value={365}>
+                    {t('webhook_lookback_365', 'Last 365 days')}
                   </option>
                 </Select>
                 <div className="flex flex-col gap-[6px] mb-[16px]">
