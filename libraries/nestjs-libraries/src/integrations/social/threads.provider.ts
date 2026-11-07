@@ -9,6 +9,7 @@ import {
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   BadBody,
   SocialAbstract,
@@ -18,6 +19,8 @@ import { Plug } from '@gitroom/helpers/decorators/plug.decorator';
 import { Integration } from '@prisma/client';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+
+dayjs.extend(utc);
 
 export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   identifier = 'threads';
@@ -738,20 +741,10 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     const until = untilDay.unix();
     const since = untilDay.subtract(date, 'day').unix();
     const base = `https://graph.threads.net/v1.0/${id}/threads_insights`;
+    const day = untilDay.format('YYYY-MM-DD');
 
-    const { data, ...all } = await (
-      await fetch(
-        `${base}?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}&period=day&since=${since}&until=${until}`
-      )
-    ).json();
-
-    // Not part of the call above, so a failure here can't hide those metrics
-    const [clicks, followers] = await Promise.all([
-      fetch(
-        `${base}?metric=clicks&access_token=${accessToken}&period=day&since=${since}&until=${until}`
-      )
-        .then((res) => res.json())
-        .catch(() => ({}) as { data?: any[] }),
+    const [analytics, followers] = await Promise.all([
+      this.insights(base, accessToken, since, until, day),
       // Only the current count exists, so no previous window has one
       offset
         ? Promise.resolve({} as { data?: any[] })
@@ -760,8 +753,44 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
             .catch(() => ({}) as { data?: any[] }),
     ]);
 
-    // A single total for the window, dated at its end
-    const day = untilDay.format('YYYY-MM-DD');
+    const followersCount = followers?.data?.find(
+      (d: any) => d.name === 'followers_count'
+    )?.total_value?.value;
+    if (followersCount !== undefined) {
+      analytics.push({
+        label: 'Followers',
+        key: 'followers',
+        percentageChange: 0,
+        data: [{ total: String(followersCount), date: day }],
+      });
+    }
+
+    return analytics;
+  }
+
+  // The insights of [since, until]: the metrics served per day, and the ones
+  // served as a single total of the window, read as one point dated `day` and
+  // flagged as the total of a window
+  private async insights(
+    base: string,
+    accessToken: string,
+    since: number,
+    until: number,
+    day: string
+  ): Promise<AnalyticsData[]> {
+    const { data, ...all } = await (
+      await fetch(
+        `${base}?metric=views,likes,replies,reposts,quotes&access_token=${accessToken}&period=day&since=${since}&until=${until}`
+      )
+    ).json();
+
+    // Not part of the call above, so a failure here can't hide those metrics
+    const clicks = await fetch(
+      `${base}?metric=clicks&access_token=${accessToken}&period=day&since=${since}&until=${until}`
+    )
+      .then((res) => res.json())
+      .catch(() => ({}) as { data?: any[] });
+
     const keys: Record<string, string> = {
       views: 'profile_views',
       likes: 'likes',
@@ -805,19 +834,24 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       });
     }
 
-    const followersCount = followers?.data?.find(
-      (d: any) => d.name === 'followers_count'
-    )?.total_value?.value;
-    if (followersCount !== undefined) {
-      analytics.push({
-        label: 'Followers',
-        key: 'followers',
-        percentageChange: 0,
-        data: [{ total: String(followersCount), date: day }],
-      });
-    }
-
     return analytics;
+  }
+
+  // The window totals of `analytics` for the single closed UTC day `day`
+  async analyticsDay(
+    id: string,
+    accessToken: string,
+    day: string
+  ): Promise<AnalyticsData[]> {
+    const since = dayjs.utc(day).startOf('day');
+    const until = since.add(1, 'day');
+    const base = `https://graph.threads.net/v1.0/${id}/threads_insights`;
+
+    return (
+      await this.insights(base, accessToken, since.unix(), until.unix(), day)
+    )
+      .filter((item) => item.window)
+      .map((item) => ({ ...item, window: false }));
   }
 
   @Plug({

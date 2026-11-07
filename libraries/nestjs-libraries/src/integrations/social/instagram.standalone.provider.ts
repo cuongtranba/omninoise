@@ -271,6 +271,15 @@ export class InstagramStandaloneProvider
     );
   }
 
+  async analyticsDay(id: string, accessToken: string, day: string) {
+    return instagramProvider.analyticsDay(
+      id,
+      accessToken,
+      day,
+      'graph.instagram.com'
+    );
+  }
+
   async postAnalytics(
     integrationId: string,
     accessToken: string,

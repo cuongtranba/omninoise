@@ -9,6 +9,7 @@ import {
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   BadBody,
   Disconnect,
@@ -22,6 +23,8 @@ import { META_GRAPH_API_VERSION } from '@gitroom/nestjs-libraries/integrations/s
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 import { DashboardFunction } from '@gitroom/nestjs-libraries/integrations/dashboard.function.decorator';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+
+dayjs.extend(utc);
 
 @Rules(
   "Instagram should have at least one attachment, if it's a story, it can have only one picture"
@@ -1254,19 +1257,8 @@ export class InstagramProvider
       await fetch(`${base}/insights?metric=follower_count,reach&${window}`)
     ).json();
 
-    const { data: data2, ...all2 } = await (
-      await fetch(
-        `${base}/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&${window}`
-      )
-    ).json();
-
-    const [engaged, reposts, followers] = await Promise.all([
-      this.optionalInsights(
-        `${base}/insights?metric_type=total_value&metric=accounts_engaged,total_interactions,profile_links_taps&${window}`
-      ),
-      this.optionalInsights(
-        `${base}/insights?metric_type=total_value&metric=reposts&${window}`
-      ),
+    const [totals, followers] = await Promise.all([
+      this.totalValues(base, window, untilDay.format('YYYY-MM-DD')),
       // Only the current count exists, so no previous window has one
       offset
         ? Promise.resolve(null)
@@ -1288,23 +1280,7 @@ export class InstagramProvider
       })) || [])
     );
 
-    // A single total for the window, dated at its end
-    analytics.push(
-      ...[...data2, ...engaged, ...reposts]
-        .filter((d: any) => d.total_value?.value !== undefined)
-        .map((d: any) => ({
-          label: this.setTitle(d.name),
-          key: this.setKey(d.name),
-          percentageChange: 0,
-          window: true,
-          data: [
-            {
-              total: d.total_value.value,
-              date: untilDay.format('YYYY-MM-DD'),
-            },
-          ],
-        }))
-    );
+    analytics.push(...totals);
 
     if (followers?.followers_count !== undefined) {
       analytics.push({
@@ -1321,6 +1297,58 @@ export class InstagramProvider
     }
 
     return analytics;
+  }
+
+  // The metrics Instagram only serves as one total for [since, until], read as
+  // one point dated `day` and flagged as the total of a window
+  private async totalValues(
+    base: string,
+    window: string,
+    day: string
+  ): Promise<AnalyticsData[]> {
+    const { data } = await (
+      await fetch(
+        `${base}/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&${window}`
+      )
+    ).json();
+
+    const [engaged, reposts] = await Promise.all([
+      this.optionalInsights(
+        `${base}/insights?metric_type=total_value&metric=accounts_engaged,total_interactions,profile_links_taps&${window}`
+      ),
+      this.optionalInsights(
+        `${base}/insights?metric_type=total_value&metric=reposts&${window}`
+      ),
+    ]);
+
+    return [...data, ...engaged, ...reposts]
+      .filter((d: any) => d.total_value?.value !== undefined)
+      .map((d: any) => ({
+        label: this.setTitle(d.name),
+        key: this.setKey(d.name),
+        percentageChange: 0,
+        window: true,
+        data: [{ total: d.total_value.value, date: day }],
+      }));
+  }
+
+  // The window totals of `analytics` for the single closed UTC day `day`
+  async analyticsDay(
+    id: string,
+    token: string,
+    day: string,
+    type = 'graph.facebook.com'
+  ): Promise<AnalyticsData[]> {
+    const [accessToken] = token.split('___');
+    const since = dayjs.utc(day).startOf('day');
+    const until = since.add(1, 'day');
+    const base = `https://${type}/${META_GRAPH_API_VERSION}/${id}`;
+    const window = `access_token=${accessToken}&period=day&since=${since.unix()}&until=${until.unix()}`;
+
+    return (await this.totalValues(base, window, day)).map((item) => ({
+      ...item,
+      window: false,
+    }));
   }
 
   music(accessToken: string, data: { q: string }) {

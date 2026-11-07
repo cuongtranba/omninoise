@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
 import { execFileSync } from 'node:child_process';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   PrismaRepository,
   PrismaService,
@@ -15,15 +16,57 @@ import { NotificationsRepository } from '@gitroom/nestjs-libraries/database/pris
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
+import { BlueskyProvider } from '@gitroom/nestjs-libraries/integrations/social/bluesky.provider';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { getPgPool } from '@gitroom/nestjs-libraries/pg/pg.pool';
 
+dayjs.extend(utc);
+
+// A platform that serves some metrics only as the total of a day: each day's
+// value is its day of the month times the revision, so a day that is read again
+// after the platform revised it differs from the stored one. Days older than
+// `servedDays` give nothing.
+class FakeProvider extends BlueskyProvider {
+  revision = 1;
+  servedDays = Infinity;
+
+  override async analytics() {
+    return [];
+  }
+
+  override async analyticsDay(id: string, accessToken: string, day: string) {
+    if (
+      dayjs.utc().startOf('day').diff(dayjs.utc(day), 'day') > this.servedDays
+    ) {
+      return [];
+    }
+    return [
+      {
+        key: 'likes',
+        label: 'Likes',
+        percentageChange: 0,
+        data: [
+          { total: String(Number(day.slice(8)) * this.revision), date: day },
+        ],
+      },
+    ];
+  }
+}
+
+const provider = new FakeProvider();
+
+class FakeManager extends IntegrationManager {
+  override getSocialIntegration() {
+    return provider;
+  }
+}
+
 const prisma = new PrismaService();
 const repo = new PrismaRepository<keyof PrismaService>(prisma);
 const queue = new JobQueueService();
-const manager = new IntegrationManager();
+const manager = new FakeManager();
 const history = new AnalyticsHistoryRepository();
 const service = new AnalyticsHistoryService(
   history,
@@ -46,6 +89,7 @@ const service = new AnalyticsHistoryService(
 
 let orgId: string;
 let integrationId: string;
+let dailyId: string;
 
 const metric = (key: string, data: AnalyticsData['data']): AnalyticsData => ({
   key,
@@ -82,12 +126,25 @@ beforeAll(async () => {
       },
     })
   ).id;
+  dailyId = (
+    await prisma.integration.create({
+      data: {
+        organizationId: orgId,
+        internalId: 'daily-channel',
+        name: 'daily-channel',
+        providerIdentifier: 'bluesky',
+        type: 'social',
+        token: 'token',
+        tokenExpiration: dayjs().add(1, 'day').toDate(),
+      },
+    })
+  ).id;
 });
 
 afterAll(async () => {
   await getPgPool().query(
-    `DELETE FROM pgonly.channel_metrics WHERE integration_id = $1`,
-    [integrationId]
+    `DELETE FROM pgonly.channel_metrics WHERE integration_id = ANY($1::text[])`,
+    [[integrationId, dailyId]]
   );
   await prisma.integration.deleteMany({ where: { organizationId: orgId } });
   await prisma.organization.delete({ where: { id: orgId } });
@@ -194,4 +251,52 @@ test('the engagement rate of a week is its engagements over its impressions, not
     total: 1,
     data: [{ date: '2026-04-06', total: '1' }],
   });
+});
+
+test('totals served per day are stored for each closed day, the latest two revised and a stopped backfill resumed', async () => {
+  const today = dayjs.utc().startOf('day');
+  const likes = async () =>
+    (
+      await service.channelHistory(orgId, dailyId, {
+        from: today.subtract(30, 'day').format('YYYY-MM-DD'),
+        to: today.format('YYYY-MM-DD'),
+        metrics: ['likes'],
+      })
+    )[0].data;
+  // The days stored, oldest first, with the revision each was read at
+  const expected = (revision: (daysAgo: number) => number | undefined) =>
+    Array.from({ length: 30 }, (_, i) => 30 - i).flatMap((daysAgo) => {
+      const day = today.subtract(daysAgo, 'day');
+      const read = revision(daysAgo);
+      return read === undefined
+        ? []
+        : [
+            {
+              date: day.format('YYYY-MM-DD'),
+              total: String(Number(day.format('DD')) * read),
+            },
+          ];
+    });
+
+  // The platform serves only the last 10 days for now: the backfill stops there
+  provider.servedDays = 10;
+  await service.collectChannel({
+    organizationId: orgId,
+    integrationId: dailyId,
+  });
+  expect(await likes()).toEqual(
+    expected((daysAgo) => (daysAgo <= 10 ? 1 : undefined))
+  );
+
+  // It serves every day again and revised them all: the latest two are read
+  // again, the stored ones are not, and the backfill goes on where it stopped
+  provider.servedDays = Infinity;
+  provider.revision = 2;
+  await service.collectChannel({
+    organizationId: orgId,
+    integrationId: dailyId,
+  });
+  expect(await likes()).toEqual(
+    expected((daysAgo) => (daysAgo <= 2 || daysAgo > 10 ? 2 : 1))
+  );
 });
