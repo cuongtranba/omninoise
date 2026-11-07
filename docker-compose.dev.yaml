@@ -3,10 +3,19 @@
 
 services:
   postiz-postgres:
-    # ref: https://hub.docker.com/_/postgres
-    image: postgres:17-alpine # 17.0
+    # ref: https://hub.docker.com/r/timescale/timescaledb (Postgres 17 + TimescaleDB)
+    image: timescale/timescaledb:2.30.2-pg17
     container_name: postiz-postgres
     restart: always
+    # Preloads the extension on a volume created by the old postgres:17-alpine image too
+    command:
+      [
+        'postgres',
+        '-c',
+        'shared_preload_libraries=timescaledb',
+        '-c',
+        'timescaledb.telemetry_level=off',
+      ]
     environment:
       POSTGRES_PASSWORD: postiz-local-pwd
       POSTGRES_USER: postiz-local

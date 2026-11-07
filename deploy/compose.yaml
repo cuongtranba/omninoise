@@ -57,8 +57,20 @@ services:
         condition: service_healthy
 
   postiz-postgres:
-    image: postgres:17-alpine
+    # Postgres 17 on Alpine with TimescaleDB, so the existing data volume and its
+    # collations carry over. Restoring a dump needs the steps in README.md (Database).
+    image: timescale/timescaledb:2.30.2-pg17
     restart: always
+    # The image enables the extension only in the config it writes for a new data
+    # volume, so an existing volume gets the preload from here.
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=timescaledb",
+        "-c",
+        "timescaledb.telemetry_level=off",
+      ]
 
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
