@@ -50,7 +50,7 @@ export class WebhooksDto {
   schedule?: 'daily' | 'weekly' | 'monthly';
 
   @IsOptional()
-  @IsIn([1, 7, 30, 90])
+  @IsIn([1, 7, 30, 90, 180, 365])
   lookbackDays?: number;
 
   @IsOptional()
@@ -112,7 +112,7 @@ export class UpdateDto {
   schedule?: 'daily' | 'weekly' | 'monthly';
 
   @IsOptional()
-  @IsIn([1, 7, 30, 90])
+  @IsIn([1, 7, 30, 90, 180, 365])
   lookbackDays?: number;
 
   @IsOptional()
@@ -140,7 +140,7 @@ export class AnalyticsPreviewDto {
   integrations?: WebhooksIntegrationDto[];
 
   @IsOptional()
-  @IsIn([1, 7, 30, 90])
+  @IsIn([1, 7, 30, 90, 180, 365])
   lookbackDays?: number;
 
   @IsOptional()

@@ -4,6 +4,8 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { ApiTags } from '@nestjs/swagger';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { AnalyticsReportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.report.service';
+import { AnalyticsHistoryService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
+import { AnalyticsHistoryDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.history.dto';
 import { AnalyticsOverviewDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.overview.dto';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 
@@ -13,7 +15,8 @@ export class AnalyticsController {
   constructor(
     private _integrationService: IntegrationService,
     private _postsService: PostsService,
-    private _analyticsReportService: AnalyticsReportService
+    private _analyticsReportService: AnalyticsReportService,
+    private _analyticsHistoryService: AnalyticsHistoryService
   ) {}
 
   @Get('/overview')
@@ -31,6 +34,19 @@ export class AnalyticsController {
     @Query('date') date: string
   ) {
     return this._integrationService.checkAnalytics(org, integration, date);
+  }
+
+  @Get('/:integration/history')
+  getIntegrationHistory(
+    @GetOrgFromRequest() org: Organization,
+    @Param('integration') integration: string,
+    @Query() query: AnalyticsHistoryDto
+  ) {
+    return this._analyticsHistoryService.channelHistory(
+      org.id,
+      integration,
+      query
+    );
   }
 
   @Get('/post/:postId')

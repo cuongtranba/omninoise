@@ -85,3 +85,22 @@ test('saving a channel metric day again keeps one row with the newer value, and 
   expect(await history.hasMetrics(integrationId)).toBe(true);
   expect(await history.hasMetrics(unique('none'))).toBe(false);
 });
+
+test('history saved for one organization is not read by another one with the same channel id', async () => {
+  const integrationId = unique('tenant');
+  const range = { from: '2026-04-01', to: '2026-04-30' };
+  await history.saveMetrics('org-a', integrationId, 'day', [
+    metric('impressions', [{ total: '5', date: '2026-04-10' }]),
+  ]);
+
+  expect(
+    await history.getSeries('org-b', integrationId, range, 'week')
+  ).toEqual([]);
+  expect(await history.getTotals('org-b', integrationId, range)).toEqual([]);
+  expect(await history.getOldestDay('org-b', integrationId)).toBeUndefined();
+  expect(
+    (await history.getTotals('org-a', integrationId, range)).map(
+      (row) => row.sum
+    )
+  ).toEqual([5]);
+});

@@ -5,10 +5,15 @@ import striptags from 'striptags';
 import { chunk } from 'lodash';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
+import {
+  AnalyticsHistoryService,
+  ChannelHistoryMetric,
+} from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import {
+  analyticsGrainFor,
   analyticsMetrics,
   AnalyticsCategory,
 } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
@@ -58,7 +63,8 @@ export class AnalyticsReportService {
   constructor(
     private _integrationService: IntegrationService,
     private _integrationManager: IntegrationManager,
-    private _postsService: PostsService
+    private _postsService: PostsService,
+    private _analyticsHistoryService: AnalyticsHistoryService
   ) {}
 
   // The report of the overview page, cached for an hour per organization
@@ -103,6 +109,27 @@ export class AnalyticsReportService {
     const loaded = (
       await this.inBatches(integrations, async (p) => {
         try {
+          const integration = {
+            id: p.id,
+            name: p.customName || p.name,
+            providerIdentifier: p.providerIdentifier,
+            picture: p.picture,
+          };
+          const stored = await this.storedMetrics(
+            orgId,
+            p.id,
+            p.providerIdentifier,
+            days
+          );
+          if (stored) {
+            return {
+              days,
+              source: 'history' as const,
+              integration,
+              metrics: stored,
+            };
+          }
+
           const channelDays = this.channelDays(p.providerIdentifier, days);
           const data = await this._integrationService.checkAnalytics(
             { id: orgId },
@@ -111,12 +138,8 @@ export class AnalyticsReportService {
           );
           return {
             days: channelDays,
-            integration: {
-              id: p.id,
-              name: p.customName || p.name,
-              providerIdentifier: p.providerIdentifier,
-              picture: p.picture,
-            },
+            source: 'live' as const,
+            integration,
             metrics: data.map((item) => this.reportMetric(item)),
           };
         } catch (err) {
@@ -128,6 +151,7 @@ export class AnalyticsReportService {
     const channels = loaded.map((p) => ({
       integration: p!.integration,
       days: p!.days,
+      source: p!.source,
       metrics: p!.metrics.filter(
         (m) => !keys || (m.key && keys.includes(m.key))
       ),
@@ -183,6 +207,56 @@ export class AnalyticsReportService {
     ].sort((a, b) => a - b);
 
     return supported.filter((p) => p <= days).pop() ?? supported[0] ?? days;
+  }
+
+  // The stored history of a channel, for a window that is longer than every
+  // one its platform serves, when the history reaches back to its start.
+  // Undefined otherwise: the platform is read live.
+  private async storedMetrics(
+    orgId: string,
+    integrationId: string,
+    providerIdentifier: string,
+    days: number
+  ): Promise<ReportMetric[] | undefined> {
+    const served =
+      this._integrationManager.getSocialIntegration(
+        providerIdentifier
+      )?.analyticsDays;
+    if (!served?.length || days <= Math.max(...served)) {
+      return undefined;
+    }
+
+    const to = dayjs.utc();
+    const from = to.subtract(days - 1, 'day');
+    if (
+      !(await this._analyticsHistoryService.reaches(
+        orgId,
+        integrationId,
+        from.format('YYYY-MM-DD')
+      ))
+    ) {
+      return undefined;
+    }
+
+    const history = await this._analyticsHistoryService
+      .channelHistory(orgId, integrationId, {
+        from: from.format('YYYY-MM-DD'),
+        to: to.format('YYYY-MM-DD'),
+        grain: analyticsGrainFor(days),
+      })
+      .catch((): ChannelHistoryMetric[] => []);
+    return history.length
+      ? history.map((m) => ({
+          key: m.key,
+          label: m.label,
+          category: m.category,
+          format: m.format,
+          total: m.total,
+          previousTotal: m.previousTotal,
+          percentageChange: m.percentageChange,
+          data: m.data,
+        }))
+      : undefined;
   }
 
   private reportMetric(item: AnalyticsData): ReportMetric {

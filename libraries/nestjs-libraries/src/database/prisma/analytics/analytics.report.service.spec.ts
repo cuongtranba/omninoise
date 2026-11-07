@@ -8,6 +8,8 @@ import {
   PrismaRepository,
   PrismaService,
 } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
+import { AnalyticsHistoryRepository } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.repository';
+import { AnalyticsHistoryService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { AnalyticsReportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.report.service';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
@@ -166,7 +168,16 @@ beforeAll(async () => {
     queue,
     refresh
   );
-  report = new AnalyticsReportService(integrations, manager, posts);
+  report = new AnalyticsReportService(
+    integrations,
+    manager,
+    posts,
+    new AnalyticsHistoryService(
+      new AnalyticsHistoryRepository(),
+      integrations,
+      manager
+    )
+  );
 });
 
 afterAll(async () => {

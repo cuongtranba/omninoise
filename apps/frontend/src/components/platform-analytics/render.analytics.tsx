@@ -5,6 +5,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { ChartSocial } from '@gitroom/frontend/components/analytics/chart-social';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { analyticsGrainFor } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 import {
   AnalyticsDataItem,
   categoryOrder,
@@ -184,14 +185,52 @@ const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
   );
 };
 
-const useIntegrationAnalytics = (integrationId: string, date: number) => {
+const useIntegrationAnalytics = (
+  integrationId: string,
+  date: number,
+  enabled: boolean
+) => {
   const fetch = useFetch();
   const load = useCallback(async () => {
     return (await fetch(`/analytics/${integrationId}?date=${date}`)).json();
   }, [integrationId, date]);
 
   return useSWR<AnalyticsDataItem[]>(
-    `/analytics-${integrationId}-${date}`,
+    enabled ? `/analytics-${integrationId}-${date}` : null,
+    load,
+    {
+      refreshInterval: 0,
+      refreshWhenHidden: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateIfStale: false,
+      refreshWhenOffline: false,
+      revalidateOnMount: true,
+    }
+  );
+};
+
+// The stored days of the channel for the `date` days up to today, in the
+// points that keep the chart readable
+const useIntegrationHistory = (
+  integrationId: string,
+  date: number,
+  enabled: boolean
+) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    const from = new Date(Date.now() - (date - 1) * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    return (
+      await fetch(
+        `/analytics/${integrationId}/history?from=${from}&grain=${analyticsGrainFor(date)}`
+      )
+    ).json();
+  }, [integrationId, date]);
+
+  return useSWR<AnalyticsDataItem[]>(
+    enabled ? `/analytics-history-${integrationId}-${date}` : null,
     load,
     {
       refreshInterval: 0,
@@ -208,11 +247,14 @@ const useIntegrationAnalytics = (integrationId: string, date: number) => {
 export const RenderAnalytics: FC<{
   integration: Integration;
   date: number;
+  history?: boolean;
 }> = (props) => {
-  const { integration, date } = props;
+  const { integration, date, history } = props;
   const fetch = useFetch();
   const t = useT();
-  const { data, isLoading } = useIntegrationAnalytics(integration.id, date);
+  const live = useIntegrationAnalytics(integration.id, date, !history);
+  const stored = useIntegrationHistory(integration.id, date, !!history);
+  const { data, isLoading } = history ? stored : live;
 
   const refreshChannel = useCallback(
     (
@@ -266,9 +308,19 @@ export const RenderAnalytics: FC<{
 
   return (
     <div className="flex flex-col gap-[24px]">
-      {data?.length === 0 && (
+      {data?.length === 0 && !history && (
         <div className="grid grid-cols-1">
           <EmptyState onRefresh={refreshChannel(integration as any)} />
+        </div>
+      )}
+      {data?.length === 0 && !!history && (
+        <div className="flex flex-col items-center justify-center py-[48px] px-[24px] bg-newTableHeader border border-newTableBorder rounded-[12px]">
+          <p className="text-[15px] text-newTableText text-center">
+            {t(
+              'analytics_history_empty',
+              'No history stored for this channel yet, it builds up every day'
+            )}
+          </p>
         </div>
       )}
       {sections.map((section) => (
