@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import striptags from 'striptags';
 import { chunk } from 'lodash';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import {
   AnalyticsHistoryService,
   ChannelHistoryMetric,
+  postExcerpt,
 } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
@@ -15,12 +15,17 @@ import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/soc
 import {
   analyticsGrainFor,
   analyticsMetrics,
+  postEngagementScore,
   AnalyticsCategory,
 } from '@gitroom/nestjs-libraries/integrations/social/analytics.metrics';
 
 dayjs.extend(utc);
 
-export type AnalyticsReportSection = 'channels' | 'summary' | 'topPosts';
+export type AnalyticsReportSection =
+  | 'channels'
+  | 'summary'
+  | 'topPosts'
+  | 'insights';
 
 export interface AnalyticsReportOptions {
   integrationIds?: string[];
@@ -191,6 +196,24 @@ export class AnalyticsReportService {
               days,
               options.topPostsLimit!
             ),
+          }
+        : {}),
+      // What the posts of the window have in common (see postInsights)
+      ...(sections.includes('insights')
+        ? {
+            insights: await this._analyticsHistoryService
+              .postInsights(orgId, {
+                from: from.format('YYYY-MM-DD'),
+                to: to.format('YYYY-MM-DD'),
+                integrations: options.integrationIds,
+              })
+              .catch((err) => {
+                console.error(
+                  'analytics report insights failed',
+                  (err as Error).message
+                );
+                return undefined;
+              }),
           }
         : {}),
     };
@@ -381,10 +404,7 @@ export class AnalyticsReportService {
 
         return {
           id: post.id,
-          content: striptags(post.content)
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 280),
+          content: postExcerpt(post.content),
           publishDate: post.publishDate,
           releaseURL: post.releaseURL,
           integration: post.integration,
@@ -395,13 +415,12 @@ export class AnalyticsReportService {
       }
     });
 
-    const score = (metrics: Record<string, number>) =>
-      metrics.engagements ??
-      (metrics.likes ?? 0) + (metrics.comments ?? 0) + (metrics.shares ?? 0);
-
     return withMetrics
       .filter((p) => !!p)
-      .sort((a, b) => score(b!.metrics) - score(a!.metrics))
+      .sort(
+        (a, b) =>
+          postEngagementScore(b!.metrics) - postEngagementScore(a!.metrics)
+      )
       .slice(0, limit);
   }
 

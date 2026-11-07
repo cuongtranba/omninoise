@@ -56,7 +56,9 @@ Everything is stored in one Postgres database:
   with one row per channel, metric and day
   (`libraries/nestjs-libraries/src/database/prisma/analytics`). The
   `analytics.collect.sweep` job, seeded when `RUN_CRON` is set, queues a
-  collection per channel every day at 02:00 UTC.
+  collection per channel every day at 02:00 UTC. The same sweep reads the
+  lifetime totals of each published post 1, 3, 7, 14, 30 and 90 days after it
+  went live into `pgonly.post_metrics`, which feeds the post insights.
 
 The `pgonly` schema is not managed by Prisma; the apps create it on boot.
 
@@ -102,6 +104,8 @@ options, including the per-platform app keys and the job-worker settings.
 | `DISABLE_REGISTRATION` | optional | `true` closes sign-up. |
 | `WORKER_CONCURRENCY_DIVIDER` | optional | Number of worker servers sharing each queue; divides each provider queue's concurrency. |
 | `EXCLUDE_QUEUE` | optional | Comma-separated queues this worker should not run (e.g. `reddit,x`). |
+| `ANALYTICS_POST_SNAPSHOTS` | optional | `false` stops the daily sweep from reading the totals of published posts (1, 3, 7, 14, 30 and 90 days after publishing). Channel analytics are still collected. |
+| `ANALYTICS_POST_SNAPSHOTS_PER_DAY` | optional | Most posts read per organization per sweep, the younger ones first. `300` by default; each read is a call to the platform. |
 | `ORCHESTRATOR_PORT` | optional | Orchestrator port, `3002` by default. |
 
 ## Test, lint and build

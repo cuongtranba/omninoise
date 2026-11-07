@@ -943,6 +943,32 @@ export class PostsService {
     );
   }
 
+  getPostForSnapshot(orgId: string, postId: string) {
+    return this._postRepository.getPostForSnapshot(orgId, postId);
+  }
+
+  getPostsPublishedInWindows(
+    windows: { from: Date; to: Date }[],
+    providerIdentifiers: string[]
+  ) {
+    return this._postRepository.getPostsPublishedInWindows(
+      windows,
+      providerIdentifiers
+    );
+  }
+
+  getPublishedPostsBetween(
+    orgId: string,
+    range: { from: Date; to: Date },
+    integrationIds?: string[]
+  ) {
+    return this._postRepository.getPublishedPostsBetween(
+      orgId,
+      range,
+      integrationIds
+    );
+  }
+
   getPostByForWebhookId(id: string, integrationId: string) {
     return this._postRepository.getPostByForWebhookId(id, integrationId);
   }

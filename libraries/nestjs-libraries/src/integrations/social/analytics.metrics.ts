@@ -125,3 +125,14 @@ export type AnalyticsGrain = (typeof analyticsGrains)[number];
 // The grain that keeps a chart of that many days readable
 export const analyticsGrainFor = (days: number): AnalyticsGrain =>
   days > 180 ? 'month' : days > 90 ? 'week' : 'day';
+
+// How a published post ranks against the others, by its metrics: its
+// engagements, else its likes, comments and shares added up
+export const postEngagementScore = (metrics: Record<string, number>) =>
+  metrics.engagements ??
+  (metrics.likes ?? 0) + (metrics.comments ?? 0) + (metrics.shares ?? 0);
+
+// Days after publishing at which the lifetime totals of a post are stored, and
+// the one the insights compare the posts at when none is asked for
+export const analyticsPostAges = [1, 3, 7, 14, 30, 90] as const;
+export const analyticsPostDefaultAge = 7;

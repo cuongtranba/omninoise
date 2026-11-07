@@ -10,7 +10,10 @@ import {
 } from '@gitroom/nestjs-libraries/dtos/webhooks/webhooks.dto';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
-import { AnalyticsReportService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.report.service';
+import {
+  AnalyticsReportSection,
+  AnalyticsReportService,
+} from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.report.service';
 
 const DAY = 24 * 60 * 60 * 1000;
 const analyticsIntervals: Record<string, number> = {
@@ -132,7 +135,7 @@ export class WebhooksService {
           days: webhook.lookbackDays ?? 7,
           metrics: webhook.metrics,
           sections: webhook.sections.length
-            ? (webhook.sections as ('channels' | 'summary' | 'topPosts')[])
+            ? (webhook.sections as AnalyticsReportSection[])
             : undefined,
           topPostsLimit: webhook.topPostsLimit ?? 0,
         }

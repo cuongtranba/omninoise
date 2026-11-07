@@ -53,6 +53,7 @@ import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/us
 import { SuperAdminGuard } from '@gitroom/backend/services/auth/super.admin.guard';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { AnalyticsInsightsDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.insights.dto';
 import { AnalyticsHistoryDto } from '@gitroom/nestjs-libraries/dtos/analytics/analytics.history.dto';
 import { AnalyticsHistoryService } from '@gitroom/nestjs-libraries/database/prisma/analytics/analytics.history.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
@@ -598,6 +599,16 @@ export class PublicIntegrationsController {
     return post;
   }
 
+  // Before '/analytics/:integration', which would take 'insights' for a channel id
+  @Get('/analytics/insights')
+  async getAnalyticsInsights(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: AnalyticsInsightsDto
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    return this._analyticsHistoryService.postInsights(org.id, query);
+  }
+
   @Get('/analytics/:integration')
   async getAnalytics(
     @GetOrgFromRequest() org: Organization,
@@ -620,6 +631,15 @@ export class PublicIntegrationsController {
       integration,
       query
     );
+  }
+
+  @Get('/analytics/post/:postId/history')
+  async getPostAnalyticsHistory(
+    @GetOrgFromRequest() org: Organization,
+    @Param('postId') postId: string
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    return this._analyticsHistoryService.postHistory(org.id, postId);
   }
 
   @Get('/analytics/post/:postId')

@@ -12,4 +12,12 @@ export class AnalyticsCollectActivity {
   collectChannel(params: { organizationId: string; integrationId: string }) {
     return this._analyticsHistory.collectChannel(params);
   }
+
+  listPosts() {
+    return this._analyticsHistory.collectablePosts();
+  }
+
+  collectPost(params: { organizationId: string; postId: string }) {
+    return this._analyticsHistory.collectPost(params);
+  }
 }

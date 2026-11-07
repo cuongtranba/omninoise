@@ -109,3 +109,34 @@ test('history saved for one organization is not read by another one with the sam
     )
   ).toEqual([5]);
 });
+
+test('reading a post again at the same age keeps one row per metric with the newer value, and skips what it cannot store', async () => {
+  const postId = unique('post');
+  const read = (data: AnalyticsData[], age = 7) =>
+    history.savePostMetrics('org', 'channel', postId, age, '2026-05-01', data);
+  const point = (total: string, date = '2026-05-01') => ({ total, date });
+
+  await read([metric('likes', [point('5')]), metric('shares', [point('2')])]);
+  const count = await read([
+    metric('likes', [point('3', '2026-04-30'), point('9')]),
+    metric('comments', [point('abc'), point(' ')]),
+    metric('followers', [{ ...point('1') }]),
+    { ...metric('engagement_rate', [point('1')]), derived: true },
+    metric('not_in_the_catalogue', [point('1')]),
+    metric(undefined, [point('1')]),
+  ]);
+  await read([metric('likes', [point('1')])], 14);
+
+  expect(count).toBe(2);
+  expect(
+    (await history.getPostMetrics('org', [postId], { age: 7 })).map((row) => [
+      row.metric,
+      row.value,
+    ])
+  ).toEqual([
+    ['followers', 1],
+    ['likes', 9],
+    ['shares', 2],
+  ]);
+  expect(await history.getPostMetrics('other-org', [postId])).toEqual([]);
+});

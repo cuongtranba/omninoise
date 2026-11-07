@@ -1313,4 +1313,91 @@ export class PostsRepository {
 
     return posts.flat();
   }
+
+  // The post of the organization whose analytics are stored: when it was
+  // published and on which channel
+  getPostForSnapshot(orgId: string, postId: string) {
+    return this._post.model.post.findFirst({
+      where: {
+        id: postId,
+        organizationId: orgId,
+        deletedAt: null,
+        parentPostId: null,
+      },
+      select: { id: true, integrationId: true, publishDate: true },
+    });
+  }
+
+  // Published top-level posts that went live inside one of the windows, on
+  // channels that can be read now, for the stored analytics of a post
+  getPostsPublishedInWindows(
+    windows: { from: Date; to: Date }[],
+    providerIdentifiers: string[]
+  ) {
+    return this._post.model.post.findMany({
+      where: {
+        state: 'PUBLISHED',
+        deletedAt: null,
+        parentPostId: null,
+        AND: [{ releaseId: { not: null } }, { releaseId: { not: 'missing' } }],
+        integration: {
+          deletedAt: null,
+          disabled: false,
+          inBetweenSteps: false,
+          refreshNeeded: false,
+          type: 'social',
+          providerIdentifier: { in: providerIdentifiers },
+        },
+        OR: windows.map((window) => ({
+          publishDate: { gte: window.from, lt: window.to },
+        })),
+      },
+      select: {
+        id: true,
+        organizationId: true,
+        publishDate: true,
+        integration: { select: { providerIdentifier: true } },
+      },
+    });
+  }
+
+  // Published top-level posts of the organization published in the range,
+  // oldest first, with what the insights group them by
+  getPublishedPostsBetween(
+    orgId: string,
+    range: { from: Date; to: Date },
+    integrationIds?: string[]
+  ) {
+    return this._post.model.post.findMany({
+      where: {
+        organizationId: orgId,
+        state: 'PUBLISHED',
+        deletedAt: null,
+        parentPostId: null,
+        publishDate: { gte: range.from, lte: range.to },
+        integration: {
+          deletedAt: null,
+          ...(integrationIds?.length ? { id: { in: integrationIds } } : {}),
+        },
+        AND: [{ releaseId: { not: null } }, { releaseId: { not: 'missing' } }],
+      },
+      orderBy: { publishDate: 'asc' },
+      select: {
+        id: true,
+        content: true,
+        image: true,
+        publishDate: true,
+        releaseURL: true,
+        integration: {
+          select: {
+            id: true,
+            name: true,
+            customName: true,
+            providerIdentifier: true,
+            picture: true,
+          },
+        },
+      },
+    });
+  }
 }
