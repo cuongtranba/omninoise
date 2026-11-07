@@ -1296,6 +1296,7 @@ export class InstagramProvider
           label: this.setTitle(d.name),
           key: this.setKey(d.name),
           percentageChange: 0,
+          window: true,
           data: [
             {
               total: d.total_value.value,

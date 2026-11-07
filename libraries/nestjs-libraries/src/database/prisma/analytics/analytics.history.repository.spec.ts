@@ -67,6 +67,11 @@ test('saving a channel metric day again keeps one row with the newer value, and 
     metric('impressions', [{ total: '9', date: '2026-02-02' }]),
     metric(undefined, [{ total: '1', date: '2026-02-02' }]),
     metric('not_in_the_catalogue', [{ total: '1', date: '2026-02-02' }]),
+    // A total for the whole window, not the value of its last day
+    {
+      ...metric('shares', [{ total: '40', date: '2026-02-02' }]),
+      window: true,
+    },
     metric('likes', [
       { total: 'abc', date: '2026-02-02' },
       { total: '', date: '2026-02-03' },
