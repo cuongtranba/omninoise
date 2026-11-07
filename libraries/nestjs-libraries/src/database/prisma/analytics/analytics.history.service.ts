@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import striptags from 'striptags';
@@ -28,6 +28,10 @@ dayjs.extend(utc);
 // The window read when the platform does not list its windows. Every
 // collection re-reads a whole window: platforms revise the latest days.
 const REFRESH_DAYS = 7;
+
+// How many closed days back the first collection reads one by one, the totals
+// that a platform only serves per window (see analyticsDay)
+const BACKFILL_DAYS = 30;
 
 // The range read when none is given, and the longest one that can be read
 const DEFAULT_DAYS = 90;
@@ -147,6 +151,8 @@ const median = (values: number[]) => {
 
 @Injectable()
 export class AnalyticsHistoryService {
+  private readonly _logger = new Logger(AnalyticsHistoryService.name);
+
   constructor(
     private _analyticsHistoryRepository: AnalyticsHistoryRepository,
     private _integrationService: IntegrationService,
@@ -193,16 +199,83 @@ export class AnalyticsHistoryService {
       integrationId,
       String(days)
     );
+    const stored = await this._analyticsHistoryRepository.saveMetrics(
+      organizationId,
+      integrationId,
+      // A platform that only serves current totals gives running totals
+      provider?.analyticsSnapshot ? 'total' : 'day',
+      data
+    );
+    const daily = provider?.analyticsDay
+      ? await this.collectDays(
+          organizationId,
+          integrationId,
+          Math.min(BACKFILL_DAYS, Math.max(...served))
+        )
+      : { reads: 0, stored: 0 };
     return {
       days,
-      stored: await this._analyticsHistoryRepository.saveMetrics(
-        organizationId,
-        integrationId,
-        // A platform that only serves current totals gives running totals
-        provider?.analyticsSnapshot ? 'total' : 'day',
-        data
-      ),
+      stored: stored + daily.stored,
+      dayReads: daily.reads,
     };
+  }
+
+  // Reads the totals the platform only serves per window, one closed UTC day
+  // per call: yesterday and the day before (platforms revise the latest days),
+  // then the days older than the oldest one stored, back to `backfillDays` days
+  // ago. The backfill stops at a day the platform gives nothing for and goes on
+  // from there at the next collection. An error storing a day is logged.
+  private async collectDays(
+    organizationId: string,
+    integrationId: string,
+    backfillDays: number
+  ) {
+    const today = dayjs.utc().startOf('day');
+    let reads = 0;
+    let stored = 0;
+    const readDay = async (daysAgo: number) => {
+      reads++;
+      const day = today.subtract(daysAgo, 'day').format(DAY);
+      try {
+        const data = await this._integrationService.checkAnalyticsDay(
+          { id: organizationId },
+          integrationId,
+          day
+        );
+        stored += await this._analyticsHistoryRepository.saveMetrics(
+          organizationId,
+          integrationId,
+          'day',
+          data
+        );
+        return data;
+      } catch (err) {
+        this._logger.warn(
+          `Reading ${day} of channel ${integrationId} failed: ${err}`
+        );
+        return [];
+      }
+    };
+
+    const yesterday = await readDay(1);
+    // Nothing came back: the channel can't be read, further days would fail too
+    if (yesterday.length === 0) {
+      return { reads, stored };
+    }
+    await readDay(2);
+
+    const oldest = await this._analyticsHistoryRepository.getOldestDay(
+      organizationId,
+      integrationId,
+      yesterday.flatMap((item) => (item.key ? [item.key] : []))
+    );
+    const from = oldest ? today.diff(dayjs.utc(oldest), 'day') + 1 : 3;
+    for (let daysAgo = Math.max(3, from); daysAgo <= backfillDays; daysAgo++) {
+      if ((await readDay(daysAgo)).length === 0) {
+        break;
+      }
+    }
+    return { reads, stored };
   }
 
   // The first day stored for the channel is on or before `day`, so a range

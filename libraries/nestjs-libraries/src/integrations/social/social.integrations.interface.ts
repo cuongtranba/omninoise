@@ -30,6 +30,16 @@ export interface IAuthenticator {
     date: number,
     offset?: number // Days: the window ending `offset` days ago instead of today
   ): Promise<AnalyticsData[]>;
+  // The metrics that `analytics` can only serve as window totals (items flagged
+  // `window`), each as the total of the single closed UTC day `day`
+  // (YYYY-MM-DD, from `day` 00:00Z up to the next day 00:00Z) with one point
+  // dated `day`. These items are not flagged `window`, so they are stored as
+  // the value of that day.
+  analyticsDay?(
+    id: string,
+    accessToken: string,
+    day: string
+  ): Promise<AnalyticsData[]>;
   postAnalytics?(
     integrationId: string,
     accessToken: string,

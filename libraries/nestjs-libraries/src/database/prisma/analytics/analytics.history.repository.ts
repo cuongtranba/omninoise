@@ -309,14 +309,20 @@ export class AnalyticsHistoryRepository {
     return rows;
   }
 
-  // The first day stored for the channel, undefined when nothing is stored
-  async getOldestDay(organizationId: string, integrationId: string) {
+  // The first day stored for the channel, of the metrics when they are given,
+  // undefined when nothing is stored
+  async getOldestDay(
+    organizationId: string,
+    integrationId: string,
+    metrics?: string[]
+  ) {
     const { rows } = await (
       await this.pool()
     ).query<{ day: string | null }>(
       `SELECT min(day)::text AS day FROM pgonly.channel_metrics
-      WHERE organization_id = $1 AND integration_id = $2`,
-      [organizationId, integrationId]
+      WHERE organization_id = $1 AND integration_id = $2
+        AND ($3::text[] IS NULL OR metric = ANY($3::text[]))`,
+      [organizationId, integrationId, metrics?.length ? metrics : null]
     );
     return rows[0]?.day ?? undefined;
   }

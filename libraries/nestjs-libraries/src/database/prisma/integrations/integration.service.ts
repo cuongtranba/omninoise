@@ -852,43 +852,14 @@ export class IntegrationService {
   ): Promise<AnalyticsData[]> {
     // Days to load, missing or invalid on some public API calls (same default as the app)
     const days = Number(date) > 0 ? Number(date) : 7;
-    const getIntegration = await this.getIntegrationById(org.id, integration);
+    const channel = await this.analyticsChannel(org, integration, forceRefresh);
 
-    if (!getIntegration) {
-      throw new Error('Invalid integration');
-    }
-
-    if (getIntegration.type !== 'social') {
+    if (!channel) {
       return [];
     }
 
-    const integrationProvider = this._integrationManager.getSocialIntegration(
-      getIntegration.providerIdentifier
-    );
-
-    if (
-      dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
-      forceRefresh
-    ) {
-      const data =
-        await this._refreshIntegrationService.refresh(getIntegration);
-      if (!data) {
-        return [];
-      }
-
-      const { accessToken } = data;
-
-      if (accessToken) {
-        getIntegration.token = accessToken;
-
-        if (integrationProvider.refreshWait) {
-          await timer(10000);
-        }
-      } else {
-        await this.disconnectChannel(org.id, getIntegration);
-        return [];
-      }
-    }
+    const { integration: getIntegration, provider: integrationProvider } =
+      channel;
 
     if (integrationProvider.analytics) {
       const cacheKey = `integration:${org.id}:${integration}:${days}`;
@@ -919,6 +890,86 @@ export class IntegrationService {
     }
 
     return [];
+  }
+
+  // The window totals of the platform for the single closed UTC day `day`
+  // (YYYY-MM-DD), see `analyticsDay` of the provider. Not cached: the history
+  // stores each day once.
+  async checkAnalyticsDay(
+    org: Pick<Organization, 'id'>,
+    integration: string,
+    day: string,
+    forceRefresh = false
+  ): Promise<AnalyticsData[]> {
+    const channel = await this.analyticsChannel(org, integration, forceRefresh);
+
+    if (!channel?.provider.analyticsDay) {
+      return [];
+    }
+
+    try {
+      return await channel.provider.analyticsDay(
+        channel.integration.internalId,
+        channel.integration.token,
+        day
+      );
+    } catch (e) {
+      if (e instanceof RefreshToken && !forceRefresh) {
+        return this.checkAnalyticsDay(org, integration, day, true);
+      }
+    }
+
+    return [];
+  }
+
+  // The social channel and its provider, with a token that is valid: refreshed
+  // when it expired or on `forceRefresh`. Undefined when the channel has no
+  // analytics to read: it is not a social channel, or its token can't be
+  // refreshed (the channel is disconnected when the platform gave no token).
+  private async analyticsChannel(
+    org: Pick<Organization, 'id'>,
+    integration: string,
+    forceRefresh: boolean
+  ) {
+    const getIntegration = await this.getIntegrationById(org.id, integration);
+
+    if (!getIntegration) {
+      throw new Error('Invalid integration');
+    }
+
+    if (getIntegration.type !== 'social') {
+      return undefined;
+    }
+
+    const integrationProvider = this._integrationManager.getSocialIntegration(
+      getIntegration.providerIdentifier
+    );
+
+    if (
+      dayjs(getIntegration?.tokenExpiration).isBefore(dayjs()) ||
+      forceRefresh
+    ) {
+      const data =
+        await this._refreshIntegrationService.refresh(getIntegration);
+      if (!data) {
+        return undefined;
+      }
+
+      const { accessToken } = data;
+
+      if (accessToken) {
+        getIntegration.token = accessToken;
+
+        if (integrationProvider.refreshWait) {
+          await timer(10000);
+        }
+      } else {
+        await this.disconnectChannel(org.id, getIntegration);
+        return undefined;
+      }
+    }
+
+    return { integration: getIntegration, provider: integrationProvider };
   }
 
   // One analytics window of the provider, cached for an hour
