@@ -5,8 +5,9 @@ publishes posts to TikTok, Facebook, YouTube, Instagram, Threads and the other
 supported channels, with a calendar, media library, analytics, team accounts, a
 public API and an MCP server for agents.
 
-It runs on **Postgres alone**: no Redis, no Temporal, no Elasticsearch. One
-application container and one Postgres container are the whole deployment.
+It runs on **Postgres alone** (Postgres 17 with the TimescaleDB extension): no
+Redis, no Temporal, no Elasticsearch. One application container and one Postgres
+container are the whole deployment.
 
 Production runs on Dokploy and is deployed from
 this repository on every push to `main`. Runbooks, decisions and content live in
@@ -26,7 +27,7 @@ flowchart LR
     nginx -->|"/api"| backend["backend :3000 (NestJS)"]
     orchestrator["orchestrator :3002 (job worker)"]
   end
-  backend -->|"Prisma + enqueue"| pg[("Postgres 17")]
+  backend -->|"Prisma + enqueue"| pg[("Postgres 17 + TimescaleDB")]
   orchestrator -->|"claim jobs, publish posts"| pg
   orchestrator --> social["Social platform APIs"]
 ```
@@ -66,7 +67,7 @@ global CLI (`curl -fsSL https://vite.plus | bash`); without it, prefix them with
 
 ```bash
 pnpm install                  # also generates the Prisma client
-vp run dev:docker             # Postgres 17 on :5432, pgAdmin on :8085
+vp run dev:docker             # Postgres 17 + TimescaleDB on :5432, pgAdmin on :8085
 cp .env.example .env          # then edit, see Configuration
 vp run prisma-db-push         # apply the Prisma schema
 vp run dev                    # orchestrator, backend, frontend and extension
@@ -86,7 +87,7 @@ options, including the per-platform app keys and the job-worker settings.
 
 | Variable | Needed | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | yes | The Postgres database. The only infrastructure the app needs. |
+| `DATABASE_URL` | yes | The Postgres 17 database, with the TimescaleDB extension available (see [Database](#database)). The only infrastructure the app needs. |
 | `JWT_SECRET` | yes | Signs session tokens. |
 | `FRONTEND_URL` | yes | Public URL of the UI. |
 | `NEXT_PUBLIC_BACKEND_URL` | yes | Public URL of the API. |
@@ -104,7 +105,7 @@ The toolchain is [Vite+](https://viteplus.dev) (`vp`): Oxlint, Oxfmt and Vitest,
 configured in the root `vite.config.ts`. Run these from the repository root.
 
 ```bash
-vp test            # Vitest specs against Postgres 17
+vp test            # Vitest specs against Postgres 17 + TimescaleDB
 vp check           # lint (Oxlint) and format check (Oxfmt), as CI runs it
 vp lint            # lint only
 vp fmt             # format the repository
@@ -137,7 +138,40 @@ Dokploy environment only. The workflow needs the repository secrets
 `DOKPLOY_API_KEY`, `DOKPLOY_URL` (the Dokploy API base, ending in `/api`) and
 `SITE_URL` (the public site, no trailing slash). The URLs are secrets rather
 than variables so the public run logs mask them. To roll back, re-run the Deploy workflow of an earlier commit
-from the Actions tab.
+from the Actions tab. The database image is the exception: once the app has
+created its TimescaleDB tables, the database cannot go back to plain
+`postgres:17-alpine` (see [Database](#database)).
+
+## Database
+
+Postgres runs from `timescale/timescaledb:<version>-pg17`, which is the official
+`postgres:17-alpine` image with the TimescaleDB extension. It uses the same
+Alpine libc, so a data volume created by `postgres:17-alpine` keeps its
+collations and indexes. Keep the version pinned and the same in
+`deploy/compose.yaml`, `docker-compose.dev.yaml` and `.github/workflows/build.yml`.
+
+- **Preload.** The image enables the extension only in the config it writes
+  for a new data volume. `deploy/compose.yaml` and `docker-compose.dev.yaml`
+  therefore start Postgres with `-c shared_preload_libraries=timescaledb`; keep
+  it, or an older volume starts without the extension.
+- **Extension user.** `CREATE EXTENSION timescaledb` needs a superuser. The
+  image makes `POSTGRES_USER` (`DB_USER`) one.
+- **Upgrading TimescaleDB.** Change the tag, deploy, then run
+  `ALTER EXTENSION timescaledb UPDATE;` in every database that uses it, in a
+  fresh `psql -X` session.
+
+Backups are plain `pg_dump` archives. They contain the TimescaleDB catalog, so a
+restore needs the same TimescaleDB version as the dump and these steps:
+
+1. Start an empty database from the same image and tag.
+2. `psql -X -d <db> -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"`
+3. `psql -X -d <db> -c "SELECT timescaledb_pre_restore();"`
+4. `pg_restore -Fc -d <db> <dump>` (never `-j`: a parallel restore breaks the
+   TimescaleDB catalog).
+5. `psql -X -d <db> -c "SELECT timescaledb_post_restore();"`
+
+`pg_dump` prints warnings about circular foreign keys in the TimescaleDB catalog;
+they are expected.
 
 A stop or deploy is graceful: `var/docker/entrypoint.sh` runs `pm2-runtime` as
 PID 1, so `docker stop` reaches the orchestrator, which stops taking new jobs and
