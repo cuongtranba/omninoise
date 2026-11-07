@@ -80,6 +80,7 @@ export interface AnalyticsData {
   average?: boolean; // Legacy way to say aggregate average
   previousTotal?: number;
   derived?: boolean; // Computed from the other metrics, not read from the platform
+  window?: boolean; // One point holding the total of the whole window, dated at its end
 }
 
 export type GenerateAuthUrlResponse = {
