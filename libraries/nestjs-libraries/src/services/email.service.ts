@@ -81,57 +81,44 @@ export class EmailService {
     }
 
     const modifiedHtml = `
-    <div style="
-        background: linear-gradient(to bottom right, #e6f2ff, #f0e6ff);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-    ">
-        <div style="
-            background-color: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(4px);
-            border-radius: 0.5rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            max-width: 48rem;
-            width: 100%;
-            padding: 2rem;
-        ">
-            <h1 style="
-                font-size: 1.875rem;
-                font-weight: bold;
-                margin-bottom: 1.5rem;
-                text-align: left;
-                color: #1f2937;
-            ">${subject}</h1>
-            
-            <div style="
-                margin-bottom: 2rem;
-                color: #374151;
-            ">
-                ${html}
-            </div>
-            
-            <div style="
-                display: flex;
-                align-items: center;
-                border-top: 1px solid #e5e7eb;
-                padding-top: 1.5rem;
-            ">
-                <div>
-                    <h2 style="
-                        font-size: 1.25rem;
-                        font-weight: 600;
-                        color: #1f2937;
-                        margin: 0;
-                    ">${process.env.EMAIL_FROM_NAME}</h2>
-                    <div style="font-size: 12px">
-                      You can change your notification preferences in your <a href="${process.env.FRONTEND_URL}/settings">account settings.</a>
-                     </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f5;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;border-radius:12px;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <tr>
+              <td align="left" style="background-color:#0e0e0e;border-radius:12px 12px 0 0;padding:24px 28px;">
+                <img src="${process.env.FRONTEND_URL}/email-logo.png" width="160" height="32" alt="Omninoise" style="display:block;border:0;">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px 28px 8px 28px;">
+                <h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;font-weight:700;color:#111827;">${subject}</h1>
+                <div style="font-size:15px;line-height:1.6;color:#374151;">
+                  ${html}
                 </div>
-            </div>
-        </div>
-    </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 28px 28px 28px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e5e7eb;">
+                  <tr>
+                    <td style="padding-top:20px;">
+                      <div style="font-size:13px;font-weight:600;color:#111827;">${process.env.EMAIL_FROM_NAME}</div>
+                      <div style="padding-top:4px;font-size:13px;line-height:1.5;color:#6b7280;">
+                        You can change your notification preferences in your <a href="${process.env.FRONTEND_URL}/settings" style="color:#D04430;">account settings.</a>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <div style="padding-top:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#9ca3af;">
+            &copy; ${new Date().getFullYear()} ${process.env.EMAIL_FROM_NAME}
+          </div>
+        </td>
+      </tr>
+    </table>
     `;
 
     let lastErr: unknown;

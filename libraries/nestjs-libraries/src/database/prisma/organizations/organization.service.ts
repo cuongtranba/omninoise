@@ -233,7 +233,19 @@ export class OrganizationService {
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
+        `${inviter} has invited you to join the "${org.name}" team.
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+          <tr>
+            <td align="center" bgcolor="#D04430" style="background-color:#D04430;border-radius:8px;">
+              <a href="${url}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">Accept the invitation</a>
+            </td>
+          </tr>
+        </table>
+        The link will expire in 2 days.
+        <div style="padding-top:16px;font-size:13px;line-height:1.5;color:#6b7280;">
+          Or paste this link into your browser:<br />
+          <a href="${url}" style="color:#6b7280;word-break:break-all;">${url}</a>
+        </div>`
       );
     }
     return { url };
