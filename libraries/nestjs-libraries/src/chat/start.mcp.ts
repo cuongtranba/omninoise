@@ -131,6 +131,7 @@ export const startMcp = async (app: INestApplication) => {
     // instance admin tools, they only work for the super admin of the instance
     'adminTool',
     'announcementsTool',
+    'platformInviteTool',
   ];
   const withoutClaudeHidden = <T extends Record<string, unknown>>(source: T) =>
     Object.fromEntries(

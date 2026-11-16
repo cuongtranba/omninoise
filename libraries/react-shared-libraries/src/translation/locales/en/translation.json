@@ -620,7 +620,6 @@
   "total_forks": "Total Forks",
   "continue_with": "Continue With",
   "email_address": "Email Address",
-  "label_company": "Company",
   "email_already_exists": "Email already exists",
   "google": "Google",
   "apple": "Apple",
@@ -661,7 +660,6 @@
   "add_provider_title": "Add Provider",
   "profile_updated": "Profile updated",
   "sets": "Sets",
-  "email_address": "Email Address",
   "invitation_link_sent": "Invitation link sent",
   "could_not_send_invitation": "Could not send the invitation",
   "send_invitation_link": "Send Invitation Link",
@@ -1004,5 +1002,12 @@
   "analytics_metric_karma": "Karma",
   "analytics_metric_engaged_views": "Engaged Views",
   "analytics_metric_total_likes": "Total Likes",
-  "analytics_metric_videos_count": "Videos"
+  "analytics_metric_videos_count": "Videos",
+  "invitation_needs_existing_account": "The person needs an existing Omninoise account to join with this link.",
+  "add_existing_account": "Add existing account",
+  "add_existing_account_hint": "The account is added to your team at once, without an invitation link.",
+  "invite_to_platform": "Invite to platform",
+  "member_added": "Member added",
+  "could_not_add_member": "Could not add the member",
+  "add_team_member": "Add Team Member"
 }

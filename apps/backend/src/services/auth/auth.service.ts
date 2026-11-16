@@ -19,7 +19,10 @@ export class AuthService {
     private _emailService: EmailService,
     private _providerManager: AuthProviderManager
   ) {}
-  async canRegister(provider: string, invite?: boolean | { id: string }) {
+  async canRegister(
+    provider: string,
+    platformInvite?: boolean | { id: string }
+  ) {
     if (
       process.env.DISABLE_REGISTRATION !== 'true' ||
       provider === Provider.GENERIC
@@ -27,11 +30,12 @@ export class AuthService {
       return true;
     }
 
-    // A valid invite that nobody used yet lets its holder sign up
+    // A valid platform invite that nobody used yet lets its holder sign up,
+    // a team invite only adds an existing account to an organization
     if (
-      invite &&
-      typeof invite !== 'boolean' &&
-      !(await this._organizationService.isInviteUsed(invite.id))
+      platformInvite &&
+      typeof platformInvite !== 'boolean' &&
+      !(await this._organizationService.isPlatformInviteUsed(platformInvite.id))
     ) {
       return true;
     }
@@ -44,7 +48,8 @@ export class AuthService {
     body: CreateOrgUserDto | LoginUserDto,
     ip: string,
     userAgent: string,
-    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string }
+    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string },
+    platformInvite?: boolean | { id: string }
   ) {
     if (provider === Provider.LOCAL) {
       if (process.env.DISALLOW_PLUS && body.email.includes('+')) {
@@ -59,14 +64,17 @@ export class AuthService {
           throw new Error('Email already exists');
         }
 
-        if (!(await this.canRegister(provider, addToOrg))) {
+        if (!(await this.canRegister(provider, platformInvite))) {
           throw new Error('Registration is disabled');
         }
 
         const create = await this._organizationService.createOrgAndUser(
           body,
           ip,
-          userAgent
+          userAgent,
+          platformInvite && typeof platformInvite !== 'boolean'
+            ? platformInvite.id
+            : undefined
         );
 
         const addedOrg =
@@ -96,7 +104,17 @@ export class AuthService {
         throw new Error('User is not activated');
       }
 
-      return { addedOrg: false, jwt: await this.jwt(user) };
+      const addedOrg =
+        addToOrg && typeof addToOrg !== 'boolean'
+          ? await this._organizationService.addUserToOrg(
+              user.id,
+              addToOrg.id,
+              addToOrg.orgId,
+              addToOrg.role
+            )
+          : false;
+
+      return { addedOrg, jwt: await this.jwt(user) };
     }
 
     const user = await this.loginOrRegisterProvider(
@@ -104,7 +122,7 @@ export class AuthService {
       body as CreateOrgUserDto,
       ip,
       userAgent,
-      addToOrg
+      platformInvite
     );
 
     const addedOrg =
@@ -123,12 +141,16 @@ export class AuthService {
     return this._organizationService.getInviteFromToken(cookie);
   }
 
+  public getPlatformInviteFromCookie(cookie?: string) {
+    return this._organizationService.getPlatformInviteFromToken(cookie);
+  }
+
   private async loginOrRegisterProvider(
     provider: Provider,
     body: CreateOrgUserDto,
     ip: string,
     userAgent: string,
-    invite?: boolean | { id: string }
+    platformInvite?: boolean | { id: string }
   ) {
     const providerInstance = this._providerManager.getProvider(provider);
     const providerUser = await providerInstance.getUser(body.providerToken);
@@ -145,7 +167,7 @@ export class AuthService {
       return user;
     }
 
-    if (!(await this.canRegister(provider, invite))) {
+    if (!(await this.canRegister(provider, platformInvite))) {
       throw new Error('Registration is disabled');
     }
 
@@ -159,7 +181,10 @@ export class AuthService {
         datafast_visitor_id: body.datafast_visitor_id,
       },
       ip,
-      userAgent
+      userAgent,
+      platformInvite && typeof platformInvite !== 'boolean'
+        ? platformInvite.id
+        : undefined
     );
 
     this._track('register', providerUser.email, body.datafast_visitor_id).catch(

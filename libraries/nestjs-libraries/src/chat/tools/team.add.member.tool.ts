@@ -29,7 +29,7 @@ export class TeamAddMemberTool implements AgentToolInterface {
         },
       },
       description: `
-Use this to add an account that already exists in Postiz to the organization by its email, without an invitation link. Only the super admin of the Postiz instance can do it (the operator of the installation), for everybody else the result contains output.errors with "Unauthorized". To invite a new person use teamTool (action invite).
+Use this to add an account that already exists in Postiz to the organization by its email, without an invitation link. Only an admin or owner of the organization and the super admin of the Postiz instance (the operator of the installation) can do it, for everybody else the result contains output.errors with "Unauthorized". To invite a person with an invitation link use teamTool (action invite).
 The account is added at once with the given "role" (USER or ADMIN), so confirm the email and the role with the user first. The plan of the organization must include team members.
 It acts as the connected user, so this needs a connection through OAuth, an API key has no user.
 If something fails, the result contains output.errors.
@@ -63,7 +63,7 @@ If something fails, the result contains output.errors.
             };
           }
 
-          // the super admin check is part of the service, like on the web
+          // the admin or super admin check is part of the service, like on the web
           return {
             output: await this._organizationService.addTeamMemberByEmail(
               organization,
