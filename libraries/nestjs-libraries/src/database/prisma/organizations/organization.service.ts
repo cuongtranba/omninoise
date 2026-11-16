@@ -55,6 +55,10 @@ export class OrganizationService {
     return this._organizationRepository.getCount();
   }
 
+  async isInviteUsed(id: string) {
+    return this._organizationRepository.isInviteUsed(id);
+  }
+
   async createMaxUser(
     id: string,
     name: string,
