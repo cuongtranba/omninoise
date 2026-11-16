@@ -409,19 +409,26 @@ export class OrganizationRepository {
     });
   }
 
+  async isInviteUsed(id: string) {
+    const user = await this._user.model.user.findFirst({
+      where: {
+        inviteId: id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return !!user;
+  }
+
   async addUserToOrg(
     userId: string,
     id: string,
     orgId: string,
     role: 'USER' | 'ADMIN'
   ) {
-    const checkIfInviteExists = await this._user.model.user.findFirst({
-      where: {
-        inviteId: id,
-      },
-    });
-
-    if (checkIfInviteExists) {
+    if (await this.isInviteUsed(id)) {
       return false;
     }
 

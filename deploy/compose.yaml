@@ -19,6 +19,14 @@ services:
       # Postiz still allows the first signup while this is true, then closes registration.
       DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-true}
       API_LIMIT: ${API_LIMIT:-30}
+      # EMAIL_PROVIDER=resend turns email sending on. While it is on, new
+      # email/password sign-ups must activate their account from the email, and
+      # EMAIL_FROM_ADDRESS must be on a domain verified in Resend. Leave all four
+      # empty to keep email off.
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
       RUN_CRON: "true"
       # Postiz only checks whether NOT_SECURED is set (any value, even "false",
       # enables insecure mode). The template is served over HTTPS, so keep it
