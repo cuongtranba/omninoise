@@ -1,4 +1,6 @@
 import { Input } from '@gitroom/react/form/input';
+import { Checkbox } from '@gitroom/react/form/checkbox';
+import copy from 'copy-to-clipboard';
 import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
 import { ChangeEventHandler, FC, useCallback, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -14,9 +16,10 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { Button } from '@gitroom/react/form/button';
 import { ImportDebugPostModal } from '@gitroom/frontend/components/launches/import-debug-post.modal';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
+import { PlatformInviteDto } from '@gitroom/nestjs-libraries/dtos/settings/platform.invite.dto';
 
 interface Charge {
   id: string;
@@ -730,6 +733,110 @@ const AddAnnouncement = () => {
   );
 };
 
+const InvitePlatformModal: FC<{ close: () => void }> = ({ close }) => {
+  const fetch = useFetch();
+  const toast = useToaster();
+  const t = useT();
+  const [saving, setSaving] = useState(false);
+  const resolver = useMemo(() => {
+    return classValidatorResolver(PlatformInviteDto);
+  }, []);
+  const form = useForm({
+    values: {
+      email: '',
+      sendEmail: true,
+    },
+    resolver,
+    mode: 'onChange',
+  });
+  const sendEmail = useWatch({
+    control: form.control,
+    name: 'sendEmail',
+  });
+
+  const submit = useCallback(
+    async (values: { email: string; sendEmail: boolean }) => {
+      setSaving(true);
+      try {
+        const response = await fetch('/admin/platform-invite', {
+          method: 'POST',
+          body: JSON.stringify(values),
+        });
+        if (!response.ok) {
+          const { message } = await response.json().catch(() => ({}) as any);
+          toast.show(
+            (Array.isArray(message) ? message[0] : message) ||
+              t('could_not_send_invitation', 'Could not send the invitation'),
+            'warning'
+          );
+          return;
+        }
+        const { url } = await response.json();
+        if (values.sendEmail) {
+          toast.show(t('invitation_link_sent', 'Invitation link sent'));
+        } else {
+          copy(url);
+          toast.show(t('link_copied_to_clipboard', 'Link copied to clipboard'));
+        }
+        close();
+      } finally {
+        setSaving(false);
+      }
+    },
+    []
+  );
+
+  return (
+    <FormProvider {...form}>
+      <form onSubmit={form.handleSubmit(submit)}>
+        <div className="flex flex-col gap-[10px] min-w-[400px]">
+          {sendEmail && (
+            <Input
+              label="Email"
+              placeholder={t('enter_email', 'Enter email')}
+              name="email"
+            />
+          )}
+          <div className="flex gap-[5px]">
+            <div>
+              <Checkbox name="sendEmail" />
+            </div>
+            <div>
+              {t('send_invitation_via_email', 'Send invitation via email?')}
+            </div>
+          </div>
+          <Button type="submit" loading={saving} className="rounded-[4px]">
+            {sendEmail
+              ? t('send_invitation_link', 'Send Invitation Link')
+              : t('copy_link', 'Copy Link')}
+          </Button>
+        </div>
+      </form>
+    </FormProvider>
+  );
+};
+
+const InvitePlatform = () => {
+  const { openModal } = useModals();
+  const t = useT();
+
+  const handleClick = useCallback(() => {
+    openModal({
+      title: t('invite_to_platform', 'Invite to platform'),
+      children: (close) => <InvitePlatformModal close={close} />,
+    });
+  }, []);
+
+  return (
+    <div
+      className="px-[10px] rounded-[4px] bg-purple-700 text-white cursor-pointer whitespace-nowrap"
+      onClick={handleClick}
+    >
+      {t('invite_to_platform', 'Invite to platform')}
+    </div>
+  );
+};
+
 const AddTeamMemberModal: FC<{ close: () => void }> = ({ close }) => {
   const fetch = useFetch();
   const toast = useToaster();
@@ -1139,6 +1246,7 @@ export const Impersonate = () => {
                 </div>
                 <ImportDebugPost />
                 <AddAnnouncement />
+                <InvitePlatform />
                 <ViewErrors />
                 <ViewStats />
               </div>

@@ -422,6 +422,19 @@ export class OrganizationRepository {
     return !!user;
   }
 
+  async isPlatformInviteUsed(id: string) {
+    const user = await this._user.model.user.findFirst({
+      where: {
+        platformInviteId: id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return !!user;
+  }
+
   async addUserToOrg(
     userId: string,
     id: string,
@@ -429,6 +442,21 @@ export class OrganizationRepository {
     role: 'USER' | 'ADMIN'
   ) {
     if (await this.isInviteUsed(id)) {
+      return false;
+    }
+
+    // Already a member: an invite left in the cookie must not fail their login
+    const alreadyMember = await this._userOrg.model.userOrganization.findFirst({
+      where: {
+        userId,
+        organizationId: orgId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (alreadyMember) {
       return false;
     }
 
@@ -474,7 +502,8 @@ export class OrganizationRepository {
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
     hasEmail: boolean,
     ip: string,
-    userAgent: string
+    userAgent: string,
+    platformInviteId?: string
   ) {
     return this._organization.model.organization.create({
       data: {
@@ -497,6 +526,7 @@ export class OrganizationRepository {
                 timezone: 0,
                 ip,
                 agent: userAgent,
+                platformInviteId,
               },
             },
           },

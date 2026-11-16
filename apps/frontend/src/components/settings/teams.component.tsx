@@ -3,7 +3,7 @@
 import { Button } from '@gitroom/react/form/button';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
-import React, { useCallback, useMemo } from 'react';
+import React, { FC, useCallback, useMemo } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { capitalize } from 'lodash';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
@@ -13,6 +13,7 @@ import { Select } from '@gitroom/react/form/select';
 import { Checkbox } from '@gitroom/react/form/checkbox';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
+import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import copy from 'copy-to-clipboard';
@@ -97,6 +98,12 @@ export const AddMember = () => {
               </option>
             ))}
           </Select>
+          <div className="text-[12px] text-textColor/60">
+            {t(
+              'invitation_needs_existing_account',
+              'The person needs an existing Omninoise account to join with this link.'
+            )}
+          </div>
           <div className="flex gap-[5px]">
             <div>
               <Checkbox name="sendEmail" />
@@ -109,6 +116,77 @@ export const AddMember = () => {
             {sendEmail
               ? t('send_invitation_link', 'Send Invitation Link')
               : t('copy_link', 'Copy Link')}
+          </Button>
+        </div>
+      </form>
+    </FormProvider>
+  );
+};
+export const AddExistingAccount: FC<{ onAdded: () => void }> = ({
+  onAdded,
+}) => {
+  const modals = useModals();
+  const fetch = useFetch();
+  const toast = useToaster();
+  const t = useT();
+  const resolver = useMemo(() => {
+    return classValidatorResolver(AdminAddTeamMemberDto);
+  }, []);
+  const form = useForm({
+    values: {
+      email: '',
+      role: '',
+    },
+    resolver,
+    mode: 'onChange',
+  });
+  const submit = useCallback(
+    async (values: { email: string; role: string }) => {
+      const response = await fetch('/settings/team/add', {
+        method: 'POST',
+        body: JSON.stringify(values),
+      });
+      if (!response.ok) {
+        const { message } = await response.json().catch(() => ({}) as any);
+        toast.show(
+          (Array.isArray(message) ? message[0] : message) ||
+            t('could_not_add_member', 'Could not add the member'),
+          'warning'
+        );
+        return;
+      }
+      modals.closeAll();
+      toast.show(t('member_added', 'Member added'));
+      onAdded();
+    },
+    []
+  );
+
+  return (
+    <FormProvider {...form}>
+      <form onSubmit={form.handleSubmit(submit)}>
+        <div className="relative flex gap-[10px] flex-col flex-1 p-[16px] pt-0">
+          <Input
+            label="Email"
+            placeholder={t('enter_email', 'Enter email')}
+            name="email"
+          />
+          <Select label="Role" name="role">
+            <option value="">{t('select_role', 'Select Role')}</option>
+            {roles.map((role) => (
+              <option key={role.value} value={role.value}>
+                {role.name}
+              </option>
+            ))}
+          </Select>
+          <div className="text-[12px] text-textColor/60">
+            {t(
+              'add_existing_account_hint',
+              'The account is added to your team at once, without an invitation link.'
+            )}
+          </div>
+          <Button type="submit" className="mt-[18px]">
+            {t('add_team_member', 'Add Team Member')}
           </Button>
         </div>
       </form>
@@ -151,6 +229,16 @@ export const TeamsComponent = () => {
     revalidateOnReconnect: false,
     revalidateIfStale: false,
   });
+  const addExistingAccount = useCallback(() => {
+    modals.openModal({
+      classNames: {
+        modal: 'bg-transparent text-textColor',
+      },
+      title: t('add_existing_account', 'Add existing account'),
+      withCloseButton: true,
+      children: <AddExistingAccount onAdded={() => mutate()} />,
+    });
+  }, [t]);
   const remove = useCallback(
     (toRemove: {
       user: {
@@ -231,9 +319,12 @@ export const TeamsComponent = () => {
             </div>
           ))}
         </div>
-        <div>
+        <div className="flex gap-[10px]">
           <Button onClick={addMember}>
             {t('add_another_member', 'Add another member')}
+          </Button>
+          <Button onClick={addExistingAccount} secondary={true}>
+            {t('add_existing_account', 'Add existing account')}
           </Button>
         </div>
       </div>

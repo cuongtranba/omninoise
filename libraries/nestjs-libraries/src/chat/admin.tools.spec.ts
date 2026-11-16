@@ -9,6 +9,8 @@ import { ChatModule } from '@gitroom/nestjs-libraries/chat/chat.module';
 import { LoadToolsService } from '@gitroom/nestjs-libraries/chat/load.tools.service';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 
+process.env.JWT_SECRET ||= 'admin-tools-spec-secret';
+
 const run = randomBytes(6).toString('hex');
 let moduleRef: Awaited<
   ReturnType<ReturnType<typeof Test.createTestingModule>['compile']>
@@ -121,6 +123,7 @@ test('the admin tools refuse an API key, a regular user and a regular user who c
       ),
     (c: any) =>
       tools.announcementsTool.execute({ action: 'delete', id: 'unknown' }, c),
+    (c: any) => tools.platformInviteTool.execute({ sendEmail: false }, c),
   ];
 
   for (const call of calls) {
@@ -140,6 +143,12 @@ test('the admin tools refuse an API key, a regular user and a regular user who c
     await connection(operatorId)
   );
   expect(allowed.output).toHaveProperty('stats.posts.total');
+
+  const invited = await tools.platformInviteTool.execute(
+    { sendEmail: false },
+    await connection(operatorId)
+  );
+  expect(invited.output).toEqual({ url: expect.stringContaining('/?org=') });
 });
 
 test('the super admin publishes and deletes an announcement and every connection, even an API key, can read them', async () => {

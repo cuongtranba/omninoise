@@ -68,6 +68,7 @@ import { WebhookCreateTool } from '@gitroom/nestjs-libraries/chat/tools/webhook.
 import { ThirdPartyTool } from '@gitroom/nestjs-libraries/chat/tools/third.party.tool';
 import { AdminTool } from '@gitroom/nestjs-libraries/chat/tools/admin.tool';
 import { AnnouncementsTool } from '@gitroom/nestjs-libraries/chat/tools/announcements.tool';
+import { PlatformInviteTool } from '@gitroom/nestjs-libraries/chat/tools/platform.invite.tool';
 
 export const toolList = [
   IntegrationListTool,
@@ -140,4 +141,5 @@ export const toolList = [
   ThirdPartyTool,
   AdminTool,
   AnnouncementsTool,
+  PlatformInviteTool,
 ];

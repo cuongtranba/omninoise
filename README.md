@@ -101,7 +101,7 @@ options, including the per-platform app keys and the job-worker settings.
 | `BACKEND_INTERNAL_URL` | yes | Checked at backend start. The frontend no longer reads it (it was for the Next.js server). |
 | `STORAGE_PROVIDER` | optional | `local` (default, with `UPLOAD_DIRECTORY`) or `cloudflare` (with the `CLOUDFLARE_*` keys). |
 | `RUN_CRON` | production | Any non-empty value (production sets `true`) enables the hourly sweep that catches missed posts. |
-| `DISABLE_REGISTRATION` | optional | `true` closes sign-up. |
+| `DISABLE_REGISTRATION` | optional | `true` closes sign-up. The super admin can still invite a new person with a one-time link ("Invite to platform" in the admin bar); a team invite link only adds an existing account to an organization. |
 | `WORKER_CONCURRENCY_DIVIDER` | optional | Number of worker servers sharing each queue; divides each provider queue's concurrency. |
 | `EXCLUDE_QUEUE` | optional | Comma-separated queues this worker should not run (e.g. `reddit,x`). |
 | `ANALYTICS_POST_SNAPSHOTS` | optional | `false` stops the daily sweep from reading the totals of published posts (1, 3, 7, 14, 30 and 90 days after publishing). Channel analytics are still collected. |

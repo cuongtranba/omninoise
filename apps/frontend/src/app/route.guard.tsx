@@ -129,7 +129,8 @@ export const RouteGuard: FC = () => {
     if (!rememberOrg) {
       return;
     }
-    // The backend picks the org up from this cookie once the visitor signs up
+    // The backend picks the invite up from this cookie once the visitor signs up,
+    // it carries either a team invite or a platform invite
     document.cookie = [
       `org=${encodeURIComponent(org!)}`,
       `expires=${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toUTCString()}`,

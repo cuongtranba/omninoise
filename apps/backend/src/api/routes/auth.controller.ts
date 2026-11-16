@@ -43,7 +43,7 @@ export class AuthController {
     return {
       register: await this._authService.canRegister(
         Provider.LOCAL as string,
-        this._authService.getOrgFromCookie(req?.cookies?.org)
+        this._authService.getPlatformInviteFromCookie(req?.cookies?.org)
       ),
     };
   }
@@ -60,13 +60,16 @@ export class AuthController {
       const getOrgFromCookie = this._authService.getOrgFromCookie(
         req?.cookies?.org
       );
+      const getPlatformInviteFromCookie =
+        this._authService.getPlatformInviteFromCookie(req?.cookies?.org);
 
       const { jwt, addedOrg } = await this._authService.routeAuth(
         body.provider,
         body,
         ip,
         userAgent,
-        getOrgFromCookie
+        getOrgFromCookie,
+        getPlatformInviteFromCookie
       );
 
       const activationRequired =
@@ -135,13 +138,16 @@ export class AuthController {
       const getOrgFromCookie = this._authService.getOrgFromCookie(
         req?.cookies?.org
       );
+      const getPlatformInviteFromCookie =
+        this._authService.getPlatformInviteFromCookie(req?.cookies?.org);
 
       const { jwt, addedOrg } = await this._authService.routeAuth(
         body.provider,
         body,
         ip,
         userAgent,
-        getOrgFromCookie
+        getOrgFromCookie,
+        getPlatformInviteFromCookie
       );
 
       response.cookie('auth', jwt, {

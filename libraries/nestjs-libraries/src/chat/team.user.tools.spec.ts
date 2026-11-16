@@ -260,34 +260,56 @@ test('an admin cannot remove a member with a higher role', async () => {
   expect(await isMember(team, owner)).toBe(true);
 });
 
-test('adding an account by email needs the super admin of the instance and a connection with a user', async () => {
+test('adding an account by email needs an admin of the organization or the super admin of the instance, and a connection with a user', async () => {
   const team = await org('team-add');
+  const owner = await user('team-add-owner');
+  const admin = await user('team-add-admin');
   const regular = await user('team-add-regular');
   const operator = await user('team-add-operator', { isSuperAdmin: true });
-  const target = await user('team-add-target');
-  await member(team, regular, 'SUPERADMIN');
+  const first = await user('team-add-first');
+  const second = await user('team-add-second');
+  const third = await user('team-add-third');
+  await member(team, owner, 'SUPERADMIN');
+  await member(team, admin, 'ADMIN');
+  await member(team, regular, 'USER');
   await member(team, operator, 'SUPERADMIN');
-  const input = { email: `team-add-target-${run}@postiz.test`, role: 'USER' };
+  const input = (name: string) => ({
+    email: `${name}-${run}@postiz.test`,
+    role: 'USER',
+  });
 
   const byRegular = await tools.teamAddMemberTool.execute(
-    input,
-    await connection(team, 'SUPERADMIN', regular)
+    input('team-add-first'),
+    await connection(team, 'USER', regular)
   );
   const byApiKey = await tools.teamAddMemberTool.execute(
-    input,
+    input('team-add-first'),
     await connection(team, 'SUPERADMIN')
   );
 
   expect(byRegular.output).toEqual({ errors: 'Unauthorized' });
   expect(byApiKey.output).toHaveProperty('errors');
-  expect(await isMember(team, target)).toBe(false);
-  // the super admin adds it
-  const byOperator = await tools.teamAddMemberTool.execute(
-    input,
-    await connection(team, 'SUPERADMIN', operator)
+  expect(await isMember(team, first)).toBe(false);
+
+  const byOwner = await tools.teamAddMemberTool.execute(
+    input('team-add-first'),
+    await connection(team, 'SUPERADMIN', owner)
   );
+  const byAdmin = await tools.teamAddMemberTool.execute(
+    input('team-add-second'),
+    await connection(team, 'ADMIN', admin)
+  );
+  // the super admin of the instance adds it without any role in the organization
+  const byOperator = await tools.teamAddMemberTool.execute(
+    input('team-add-third'),
+    await connection(team, 'USER', operator)
+  );
+  expect(byOwner.output).toEqual({ added: true });
+  expect(byAdmin.output).toEqual({ added: true });
   expect(byOperator.output).toEqual({ added: true });
-  expect(await isMember(team, target)).toBe(true);
+  expect(await isMember(team, first)).toBe(true);
+  expect(await isMember(team, second)).toBe(true);
+  expect(await isMember(team, third)).toBe(true);
 });
 
 test('an invitation link adds the user who opens it once', async () => {

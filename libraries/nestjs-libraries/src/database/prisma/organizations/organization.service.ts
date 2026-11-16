@@ -4,12 +4,14 @@ import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prism
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
+import { PlatformInviteDto } from '@gitroom/nestjs-libraries/dtos/settings/platform.invite.dto';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import {
   Organization,
+  Prisma,
   Role,
   ShortLinkPreference,
   Subscription,
@@ -41,14 +43,29 @@ export class OrganizationService {
   async createOrgAndUser(
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
     ip: string,
-    userAgent: string
+    userAgent: string,
+    platformInviteId?: string
   ) {
-    return this._organizationRepository.createOrgAndUser(
-      body,
-      this._notificationsService.hasEmailProvider(),
-      ip,
-      userAgent
-    );
+    try {
+      return await this._organizationRepository.createOrgAndUser(
+        body,
+        this._notificationsService.hasEmailProvider(),
+        ip,
+        userAgent,
+        platformInviteId
+      );
+    } catch (err) {
+      // two sign-ups racing on the same platform invite: the unique column lets one through
+      if (
+        platformInviteId &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        (await this.isPlatformInviteUsed(platformInviteId))
+      ) {
+        throw new HttpException('Registration is disabled', 400);
+      }
+      throw err;
+    }
   }
 
   async getCount() {
@@ -57,6 +74,10 @@ export class OrganizationService {
 
   async isInviteUsed(id: string) {
     return this._organizationRepository.isInviteUsed(id);
+  }
+
+  async isPlatformInviteUsed(id: string) {
+    return this._organizationRepository.isPlatformInviteUsed(id);
   }
 
   async createMaxUser(
@@ -106,6 +127,30 @@ export class OrganizationService {
         orgId: string;
         id: string;
       };
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // The platform invitation an invite link carries (an invite to create an
+  // account, not tied to an organization), false when it is invalid or expired
+  getPlatformInviteFromToken(token?: string) {
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const invite: any = AuthService.verifyJWT(token);
+      if (
+        invite.platform !== true ||
+        typeof invite.id !== 'string' ||
+        !invite.timeLimit ||
+        dayjs(invite.timeLimit).isBefore(dayjs())
+      ) {
+        return false;
+      }
+
+      return invite as { email?: string; id: string };
     } catch (err) {
       return false;
     }
@@ -233,11 +278,52 @@ export class OrganizationService {
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.
+        this.inviteEmailBody(
+          `${inviter} has invited you to join the "${org.name}" team.`,
+          'Accept the invitation',
+          url
+        )
+      );
+    }
+    return { url };
+  }
+
+  // An invitation to create an account on the instance, only for its super
+  // admin. It reuses the "org" link of the team invites and joins no organization.
+  async invitePlatform(
+    user: Pick<User, 'name' | 'email'>,
+    body: PlatformInviteDto
+  ) {
+    const timeLimit = dayjs().add(2, 'day').format('YYYY-MM-DD HH:mm:ss');
+    const url =
+      process.env.FRONTEND_URL +
+      `/?org=${AuthService.signJWT({
+        platform: true,
+        email: body.email,
+        timeLimit,
+        id: makeId(10),
+      })}`;
+    if (body.sendEmail) {
+      const inviter = user.name || user.email;
+      await this._notificationsService.sendEmail(
+        body.email,
+        `${inviter} invited you to Omninoise`,
+        this.inviteEmailBody(
+          `${inviter} has invited you to create an Omninoise account.`,
+          'Create your account',
+          url
+        )
+      );
+    }
+    return { url };
+  }
+
+  private inviteEmailBody(sentence: string, button: string, url: string) {
+    return `${sentence}
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
           <tr>
             <td align="center" bgcolor="#D04430" style="background-color:#D04430;border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">Accept the invitation</a>
+              <a href="${url}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">${button}</a>
             </td>
           </tr>
         </table>
@@ -245,20 +331,18 @@ export class OrganizationService {
         <div style="padding-top:16px;font-size:13px;line-height:1.5;color:#6b7280;">
           Or paste this link into your browser:<br />
           <a href="${url}" style="color:#6b7280;word-break:break-all;">${url}</a>
-        </div>`
-      );
-    }
-    return { url };
+        </div>`;
   }
 
-  // Only the super admin of the instance can add an existing account to an
-  // organization by its email
+  // The admins and owners of the organization, and the super admin of the
+  // instance, can add an existing account to the organization by its email
   async addTeamMemberByEmail(
     org: RequestOrganization,
     requester: Pick<User, 'isSuperAdmin'>,
     body: AdminAddTeamMemberDto
   ) {
-    if (!requester.isSuperAdmin) {
+    const role = org.users?.[0]?.role;
+    if (!requester.isSuperAdmin && role !== 'ADMIN' && role !== 'SUPERADMIN') {
       throw new HttpException('Unauthorized', 400);
     }
 
