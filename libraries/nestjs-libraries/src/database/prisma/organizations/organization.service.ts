@@ -11,7 +11,6 @@ import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import {
   Organization,
-  Prisma,
   Role,
   ShortLinkPreference,
   Subscription,
@@ -46,26 +45,13 @@ export class OrganizationService {
     userAgent: string,
     platformInviteId?: string
   ) {
-    try {
-      return await this._organizationRepository.createOrgAndUser(
-        body,
-        this._notificationsService.hasEmailProvider(),
-        ip,
-        userAgent,
-        platformInviteId
-      );
-    } catch (err) {
-      // two sign-ups racing on the same platform invite: the unique column lets one through
-      if (
-        platformInviteId &&
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002' &&
-        (await this.isPlatformInviteUsed(platformInviteId))
-      ) {
-        throw new HttpException('Registration is disabled', 400);
-      }
-      throw err;
-    }
+    return this._organizationRepository.createOrgAndUser(
+      body,
+      this._notificationsService.hasEmailProvider(),
+      ip,
+      userAgent,
+      platformInviteId
+    );
   }
 
   async getCount() {
