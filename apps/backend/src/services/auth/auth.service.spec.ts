@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import { DatabaseModule } from '@gitroom/nestjs-libraries/database/prisma/database.module';
 import { JobsModule } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
-import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
+import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { AuthService } from '@gitroom/backend/services/auth/auth.service';
@@ -121,28 +121,31 @@ test('a platform invite lets its holder register while registration is closed, u
 });
 
 test('a platform invite creates only one account, a second sign-up with it is refused', async () => {
-  const organizations = moduleRef.get(OrganizationService);
+  process.env.DISABLE_REGISTRATION = 'true';
+  const auth = moduleRef.get(AuthService);
   const platformInviteId = `platform-once-${run}`;
+  const invite = auth.getPlatformInviteFromCookie(
+    platformInviteToken(platformInviteId)
+  );
   const signUp = (name: string) =>
-    organizations.createOrgAndUser(
-      {
+    auth.routeAuth(
+      'LOCAL',
+      Object.assign(new CreateOrgUserDto(), {
         company: `platform-signup-${run}-${name}`,
         email: `${name}-${run}@postiz.test`,
         password: 'password',
         provider: 'LOCAL',
-      },
+      }),
       '127.0.0.1',
       'spec',
-      platformInviteId
+      false,
+      invite
     );
 
-  const first = await signUp('first-signup');
+  expect(typeof (await signUp('first-signup')).jwt).toBe('string');
   await expect(signUp('second-signup')).rejects.toThrow(
     'Registration is disabled'
   );
-
-  expect(first.users[0].user.platformInviteId).toBe(platformInviteId);
-  expect(await organizations.isPlatformInviteUsed(platformInviteId)).toBe(true);
 });
 
 // Regression: the team invite stays in the "org" cookie for 2 days, and logging

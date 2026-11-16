@@ -97,7 +97,7 @@ model User {
   updatedAt             DateTime             @updatedAt
   lastReadNotifications DateTime             @default(now())
   inviteId              String?
-  platformInviteId      String?              @unique
+  platformInviteId      String?
   activated             Boolean              @default(true)
   account               String?
   connectedAccount      Boolean              @default(false)
@@ -123,6 +123,7 @@ model User {
   @@unique([email, providerName])
   @@index([lastReadNotifications])
   @@index([inviteId])
+  @@index([platformInviteId])
   @@index([account])
   @@index([lastOnline])
   @@index([pictureId])
