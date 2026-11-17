@@ -2,7 +2,15 @@ import { Input } from '@gitroom/react/form/input';
 import { Checkbox } from '@gitroom/react/form/checkbox';
 import copy from 'copy-to-clipboard';
 import { formatDate } from '@gitroom/frontend/components/layout/set.timezone';
-import { ChangeEventHandler, FC, useCallback, useMemo, useState } from 'react';
+import {
+  ChangeEventHandler,
+  FC,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
+import clsx from 'clsx';
 import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -20,6 +28,26 @@ import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { PlatformInviteDto } from '@gitroom/nestjs-libraries/dtos/settings/platform.invite.dto';
+
+// Every action of the operator bar, styled like the secondary buttons of the app
+const AdminBarButton: FC<{
+  onClick: () => void;
+  children: ReactNode;
+  label?: string;
+  icon?: boolean;
+}> = ({ onClick, children, label, icon }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    className={clsx(
+      'cursor-pointer h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] whitespace-nowrap flex items-center',
+      icon ? 'w-[36px] justify-center' : 'px-[16px]'
+    )}
+  >
+    {children}
+  </button>
+);
 
 interface Charge {
   id: string;
@@ -569,12 +597,9 @@ const ManageBilling = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-red-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('manage_billing', 'Manage Billing')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -610,6 +635,7 @@ export const Subscription = () => {
       name="sub"
       label=""
       value=""
+      className="!h-[36px]"
     >
       <option>
         {t('add_free_subscription', '-- ADD FREE SUBSCRIPTION --')}
@@ -724,12 +750,9 @@ const AddAnnouncement = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-green-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('add_announcement', 'Add Announcement')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -828,12 +851,9 @@ const InvitePlatform = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-purple-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('invite_to_platform', 'Invite to platform')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -914,12 +934,9 @@ const AddTeamMember = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-teal-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('add_team_member', 'Add Team Member')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -929,12 +946,9 @@ const ViewErrors = () => {
     window.location.href = '/admin/errors';
   }, []);
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-blue-700 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('view_errors', 'View Errors')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -944,12 +958,9 @@ const ViewStats = () => {
     window.location.href = '/admin/stats';
   }, []);
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-brand text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('view_stats', 'View Stats')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -966,12 +977,9 @@ const ImportDebugPost = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-yellow-600 text-white cursor-pointer whitespace-nowrap"
-      onClick={handleClick}
-    >
+    <AdminBarButton onClick={handleClick}>
       {t('import_debug_post', 'Import Debug Post')}
-    </div>
+    </AdminBarButton>
   );
 };
 
@@ -1082,7 +1090,7 @@ const SwitchUser = () => {
   }, [selected]);
 
   return (
-    <div className="relative flex items-center gap-[10px]">
+    <div className="relative flex items-center gap-[8px]">
       <div className="flex-1 min-w-[220px]">
         <Input
           autoComplete="off"
@@ -1094,6 +1102,7 @@ const SwitchUser = () => {
           disableForm={true}
           label=""
           removeError={true}
+          className="!h-[36px]"
           value={
             selected
               ? `${selected.name ? `${selected.name} - ` : ''}${selected.email}`
@@ -1109,22 +1118,22 @@ const SwitchUser = () => {
         onClick={doSwitch}
         loading={switching}
         disabled={!selected}
-        className="rounded-[4px] whitespace-nowrap"
+        className="!h-[36px] !px-[14px] rounded-[8px] text-[13px] font-[600] whitespace-nowrap"
       >
         {t('switch_user', 'Switch User')}
       </Button>
       {!!mapData?.length && !selected && (
         <>
           <div
-            className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
+            className="fixed inset-0 bg-newBackdrop opacity-60 z-[998]"
             onClick={() => setName('')}
           />
-          <div className="absolute top-[100%] start-0 w-max min-w-full max-w-[90vw] bg-sixth border border-customColor6 text-textColor z-[999]">
+          <div className="absolute top-[calc(100%+8px)] start-0 w-max min-w-full max-w-[90vw] max-h-[400px] overflow-y-auto bg-newBgColorInner text-newTextColor rounded-[12px] border border-newTableBorder shadow-menu z-[999]">
             {mapData.map((item: any) => (
               <div
                 onClick={pick(item)}
                 key={item?.id}
-                className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer whitespace-nowrap truncate"
+                className="px-[16px] py-[10px] text-[14px] border-b border-newTableBorder last:border-b-0 hover:bg-boxHover cursor-pointer whitespace-nowrap truncate"
               >
                 {t('user_1', 'user:')}
                 {item?.id?.split('-')?.at(-1)} -{' '}
@@ -1203,36 +1212,47 @@ export const Impersonate = () => {
   }, [data]);
   return (
     <div>
-      <div className="bg-forth h-[52px] mobile:h-auto mobile:py-[8px] mobile:px-[8px] flex justify-center items-center border-input border rounded-[8px] text-white">
-        <div
-          className={`relative flex flex-col ${
-            user?.impersonate
-              ? 'w-full px-[20px] mobile:px-0'
-              : 'w-[600px] mobile:w-full'
-          }`}
-        >
+      <div className="bg-newBgColorInner h-[52px] mobile:h-auto mobile:py-[8px] px-[8px] mb-[8px] flex items-center rounded-[12px] text-newTextColor">
+        <div className="w-full">
           <div className="relative z-[1]">
             {user?.impersonate ? (
-              <div className="text-center flex justify-center items-center gap-[10px] mobile:flex-wrap">
-                <div className="whitespace-nowrap">
+              <div className="flex items-center gap-[8px] mobile:flex-wrap">
+                <div className="ps-[8px] text-[13px] font-[600] text-textItemBlur whitespace-nowrap">
                   {t('currently_impersonating', 'Currently Impersonating')}
                 </div>
-                <div>
-                  <div
-                    className="px-[10px] rounded-[4px] bg-red-500 text-white cursor-pointer"
-                    onClick={stopImpersonating}
+                <AdminBarButton
+                  onClick={stopImpersonating}
+                  label={t('close', 'Close')}
+                  icon={true}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
                   >
-                    X
-                  </div>
-                </div>
+                    <path
+                      d="M18 6L6 18M6 6L18 18"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </AdminBarButton>
                 {user?.tier?.current === 'FREE' && <Subscription />}
                 {user?.tier?.team_members && <AddTeamMember />}
                 {billingEnabled && <ManageBilling />}
-                <SwitchUser />
+                <div className="flex-1 min-w-0 mobile:basis-full">
+                  <SwitchUser />
+                </div>
               </div>
             ) : (
-              <div className="flex items-center gap-[10px] mobile:flex-wrap">
-                <div className="flex-1 mobile:basis-full">
+              <div className="flex items-center gap-[8px] mobile:flex-wrap">
+                <div className="ps-[8px] text-[13px] font-[600] text-textItemBlur whitespace-nowrap mobile:hidden">
+                  {t('admin', 'Admin')}
+                </div>
+                <div className="relative flex-1 max-w-[360px] mobile:max-w-none mobile:basis-full">
                   <Input
                     autoComplete="off"
                     placeholder="Write the user details"
@@ -1240,40 +1260,43 @@ export const Impersonate = () => {
                     disableForm={true}
                     label=""
                     removeError={true}
+                    className="!h-[36px]"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
+                  {!!data?.length && (
+                    <>
+                      <div
+                        className="fixed inset-0 bg-newBackdrop opacity-60 z-[998]"
+                        onClick={() => setName('')}
+                      />
+                      <div className="absolute top-[calc(100%+8px)] start-0 w-max min-w-full max-w-[90vw] max-h-[400px] overflow-y-auto bg-newBgColorInner text-newTextColor rounded-[12px] border border-newTableBorder shadow-menu z-[999]">
+                        {mapData?.map((user: any) => (
+                          <div
+                            onClick={setUser(user?.id)}
+                            key={user?.id}
+                            className="px-[16px] py-[10px] text-[14px] border-b border-newTableBorder last:border-b-0 hover:bg-boxHover cursor-pointer whitespace-nowrap truncate"
+                          >
+                            {t('user_1', 'user:')}
+                            {user?.id?.split('-')?.at(-1)} - {user?.name} -{' '}
+                            {user?.email} - {user?.orgName} ({user?.role} / {user?.tier}
+                            )
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <ImportDebugPost />
-                <AddAnnouncement />
-                <InvitePlatform />
-                <ViewErrors />
-                <ViewStats />
+                <div className="flex items-center gap-[8px] ms-auto mobile:ms-0 mobile:flex-wrap">
+                  <ImportDebugPost />
+                  <AddAnnouncement />
+                  <InvitePlatform />
+                  <ViewErrors />
+                  <ViewStats />
+                </div>
               </div>
             )}
           </div>
-          {!!data?.length && (
-            <>
-              <div
-                className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
-                onClick={() => setName('')}
-              />
-              <div className="absolute top-[100%] w-max min-w-full max-w-[90vw] start-0 bg-sixth border border-customColor6 text-textColor z-[999]">
-                {mapData?.map((user: any) => (
-                  <div
-                    onClick={setUser(user?.id)}
-                    key={user?.id}
-                    className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer whitespace-nowrap truncate"
-                  >
-                    {t('user_1', 'user:')}
-                    {user?.id?.split('-')?.at(-1)} - {user?.name} -{' '}
-                    {user?.email} - {user?.orgName} ({user?.role} / {user?.tier}
-                    )
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
