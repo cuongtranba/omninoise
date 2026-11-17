@@ -1279,8 +1279,8 @@ export const Impersonate = () => {
                           >
                             {t('user_1', 'user:')}
                             {user?.id?.split('-')?.at(-1)} - {user?.name} -{' '}
-                            {user?.email} - {user?.orgName} ({user?.role} / {user?.tier}
-                            )
+                            {user?.email} - {user?.orgName} ({user?.role} /{' '}
+                            {user?.tier})
                           </div>
                         ))}
                       </div>
