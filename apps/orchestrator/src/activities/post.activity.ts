@@ -12,6 +12,7 @@ import { AuthTokenDetails } from '@gitroom/nestjs-libraries/integrations/social/
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
+import { ProviderAppService } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
 import { WebhooksService } from '@gitroom/nestjs-libraries/database/prisma/webhooks/webhooks.service';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { providerQueue } from '@gitroom/nestjs-libraries/jobs/job.queues';
@@ -97,7 +98,8 @@ export class PostActivity {
     private _webhookService: WebhooksService,
     private _queue: JobQueueService,
     private _subscriptionService: SubscriptionService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _providerAppService: ProviderAppService
   ) {}
 
   async getIntegrationById(orgId: string, id: string) {
@@ -281,15 +283,18 @@ export class PostActivity {
       );
 
       // everything before this line can be run again; the comment cannot
-      await markStarted();
-      return getIntegration.comment(
-        integration.internalId,
-        postId,
-        lastPostId,
-        integration.token,
-        mappedPosts,
-        integration
-      );
+      // the app is loaded first: a failure there can still be retried
+      return this._providerAppService.run(integration, async () => {
+        await markStarted();
+        return getIntegration.comment!(
+          integration.internalId,
+          postId,
+          lastPostId,
+          integration.token,
+          mappedPosts,
+          integration
+        );
+      });
     });
   }
 
@@ -440,22 +445,27 @@ export class PostActivity {
     );
 
     setHeartbeatDetails(`${integration.providerIdentifier}: publish`);
-    // everything before this line can be run again; the publish cannot
-    await markStarted();
-    const postNow =
-      allowPending && getIntegration.postPending
-        ? await getIntegration.postPending(
-            integration.internalId,
-            integration.token,
-            mappedPosts,
-            integration
-          )
-        : await getIntegration.post(
-            integration.internalId,
-            integration.token,
-            mappedPosts,
-            integration
-          );
+    const postNow = await this._providerAppService.run(
+      integration,
+      async () => {
+        // everything before this line can be run again (the app is loaded
+        // before it); the publish cannot
+        await markStarted();
+        return allowPending && getIntegration.postPending
+          ? getIntegration.postPending(
+              integration.internalId,
+              integration.token,
+              mappedPosts,
+              integration
+            )
+          : getIntegration.post(
+              integration.internalId,
+              integration.token,
+              mappedPosts,
+              integration
+            );
+      }
+    );
 
     // The post is already published at this point: the streak is best-effort,
     // failing the activity here would retry it and publish again.
@@ -475,10 +485,12 @@ export class PostActivity {
     );
 
     return this.handleDisconnect(integration, () =>
-      getIntegration.checkPostStatus(
-        integration.token,
-        pendingData,
-        integration
+      this._providerAppService.run(integration, () =>
+        getIntegration.checkPostStatus(
+          integration.token,
+          pendingData,
+          integration
+        )
       )
     );
   }
@@ -488,10 +500,17 @@ export class PostActivity {
       integration.providerIdentifier
     );
 
-    // finalize runs provider mutations: it cannot be repeated after this line
-    await markStarted();
     return this.handleDisconnect(integration, () =>
-      getIntegration.finalizePost(integration.token, pendingData, integration)
+      this._providerAppService.run(integration, async () => {
+        // finalize runs provider mutations: it cannot be repeated after this
+        // line
+        await markStarted();
+        return getIntegration.finalizePost(
+          integration.token,
+          pendingData,
+          integration
+        );
+      })
     );
   }
 

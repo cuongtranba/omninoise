@@ -2,8 +2,10 @@ import { timer } from '@gitroom/helpers/utils/timer';
 import { Integration } from '@prisma/client';
 import {
   AuthTokenDetails,
+  OwnApp,
   PendingCheckResponse,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
+import { currentProviderApp } from '@gitroom/nestjs-libraries/integrations/provider.app.context';
 import { NonRetryable } from '@gitroom/nestjs-libraries/jobs/job.errors';
 import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/jobs/job.context';
 import {
@@ -145,6 +147,31 @@ function safeStringify(obj: any) {
 export abstract class SocialAbstract {
   abstract identifier: string;
   maxConcurrentJob = 1;
+  ownApp?: OwnApp;
+
+  /**
+   * The OAuth app this call signs with: the organization's own app when the
+   * call runs inside ProviderAppService.run with one of this provider's
+   * family, the server's env pair otherwise.
+   */
+  protected appCredentials(): { clientId: string; clientSecret: string } {
+    const app = currentProviderApp();
+    if (app && this.ownApp && app.family === this.ownApp.family) {
+      return { clientId: app.clientId, clientSecret: app.clientSecret };
+    }
+
+    return {
+      clientId: this.ownApp ? process.env[this.ownApp.clientIdEnv] : undefined,
+      clientSecret: this.ownApp
+        ? process.env[this.ownApp.clientSecretEnv]
+        : undefined,
+    };
+  }
+
+  /** The callback URL an organization's own app must allow. */
+  ownAppRedirectUri(): string {
+    return `${process.env.FRONTEND_URL}/integrations/social/${this.identifier}`;
+  }
 
   public handleErrors(
     body: string,

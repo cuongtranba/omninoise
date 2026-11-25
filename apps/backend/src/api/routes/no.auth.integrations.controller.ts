@@ -24,6 +24,10 @@ import {
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import {
+  ProviderAppNotFound,
+  ProviderAppService,
+} from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -32,7 +36,8 @@ export class NoAuthIntegrationsController {
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _providerAppService: ProviderAppService
   ) {}
 
   @Get('/')
@@ -98,6 +103,26 @@ export class NoAuthIntegrationsController {
       await ioRedis.del(`onboarding:${body.state}`);
     }
 
+    // The app the connect link was made with (none: the server's). The token
+    // the platform returns only works with that app.
+    const providerAppId =
+      (await ioRedis.get(`providerApp:${body.state}`)) || null;
+    if (providerAppId) {
+      await ioRedis.del(`providerApp:${body.state}`);
+    }
+    // the link must have been made for this provider, with the app the
+    // organization still has for it
+    if (
+      providerAppId &&
+      providerAppId !==
+        (await this._providerAppService.currentAppId(org.id, integration))
+    ) {
+      throw new NotEnoughScopes(
+        'The app for this platform changed while connecting, please connect the channel again'
+      );
+    }
+    const boundApp = { organizationId: org.id, providerAppId };
+
     const {
       error,
       accessToken,
@@ -111,13 +136,15 @@ export class NoAuthIntegrationsController {
       // oxlint-disable-next-line no-async-promise-executor
     } = await new Promise<AuthTokenDetails>(async (res) => {
       try {
-        const auth = await integrationProvider.authenticate(
-          {
-            code: body.code,
-            codeVerifier: getCodeVerifier,
-            refresh: body.refresh,
-          },
-          details ? JSON.parse(details) : undefined
+        const auth = await this._providerAppService.run(boundApp, () =>
+          integrationProvider.authenticate(
+            {
+              code: body.code,
+              codeVerifier: getCodeVerifier,
+              refresh: body.refresh,
+            },
+            details ? JSON.parse(details) : undefined
+          )
         );
 
         if (typeof auth === 'string') {
@@ -135,10 +162,8 @@ export class NoAuthIntegrationsController {
         if (refresh && integrationProvider.reConnect) {
           console.log('reconnect');
           try {
-            const newAuth = await integrationProvider.reConnect(
-              auth.id,
-              refresh,
-              auth.accessToken
+            const newAuth = await this._providerAppService.run(boundApp, () =>
+              integrationProvider.reConnect!(auth.id, refresh, auth.accessToken)
             );
             // keep the fresh refresh token and expiration from the new
             // authentication, otherwise the stored refresh token is wiped and
@@ -163,7 +188,10 @@ export class NoAuthIntegrationsController {
 
         return res(auth);
       } catch (err) {
-        if (err instanceof NotEnoughScopes) {
+        if (
+          err instanceof NotEnoughScopes ||
+          err instanceof ProviderAppNotFound
+        ) {
           return res({
             error: err.message,
             accessToken: '',
@@ -267,7 +295,8 @@ export class NoAuthIntegrationsController {
               ? AuthService.fixedEncryption(
                   Buffer.from(body.code, 'base64').toString()
                 )
-              : undefined
+              : undefined,
+        providerAppId
       );
 
     this._refreshIntegrationService
@@ -281,11 +310,13 @@ export class NoAuthIntegrationsController {
     if (integrationProvider.isBetweenSteps && !refresh) {
       try {
         // Check which method the provider uses (pages or companies)
-        if (integrationProvider.pages) {
-          pages = await integrationProvider.pages(accessToken);
-        } else if (integrationProvider.companies) {
-          pages = await integrationProvider.companies(accessToken);
-        }
+        pages = await this._providerAppService.run(boundApp, async () =>
+          integrationProvider.pages
+            ? integrationProvider.pages(accessToken)
+            : integrationProvider.companies
+              ? integrationProvider.companies(accessToken)
+              : []
+        );
       } catch (err) {
         console.log('Failed to fetch pages:', err);
       }
@@ -403,10 +434,12 @@ export class NoAuthIntegrationsController {
       throw new HttpException('Not a Chrome extension integration', 400);
     }
 
-    const authResult = await integrationProvider.authenticate({
-      code: body.cookies,
-      codeVerifier: '',
-    });
+    const authResult = await this._providerAppService.run(integration, () =>
+      integrationProvider.authenticate({
+        code: body.cookies,
+        codeVerifier: '',
+      })
+    );
 
     if (typeof authResult === 'string') {
       throw new HttpException(authResult, 400);

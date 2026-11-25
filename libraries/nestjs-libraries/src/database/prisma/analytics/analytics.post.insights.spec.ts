@@ -24,6 +24,8 @@ import { PostsRepository } from '@gitroom/nestjs-libraries/database/prisma/posts
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { MediaRepository } from '@gitroom/nestjs-libraries/database/prisma/media/media.repository';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
+import { ProviderAppService } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
+import { ProviderAppRepository } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { BlueskyProvider } from '@gitroom/nestjs-libraries/integrations/social/bluesky.provider';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
@@ -56,7 +58,7 @@ class FakeManager extends IntegrationManager {
 // The channel is never refreshed here (its token is valid)
 class NoRefresh extends RefreshIntegrationService {
   constructor(manager: IntegrationManager, queue: JobQueueService) {
-    super(manager, undefined!, queue);
+    super(manager, undefined!, queue, providerApps);
   }
 }
 
@@ -64,6 +66,10 @@ const prisma = new PrismaService();
 const repo = new PrismaRepository<keyof PrismaService>(prisma);
 const queue = new JobQueueService();
 const manager = new FakeManager();
+const providerApps = new ProviderAppService(
+  new ProviderAppRepository(repo),
+  manager
+);
 const history = new AnalyticsHistoryRepository();
 const notifications = new NotificationService(
   new NotificationsRepository(repo, repo),
@@ -78,7 +84,8 @@ const integrations = new IntegrationService(
   manager,
   notifications,
   refresh,
-  queue
+  queue,
+  providerApps
 );
 
 let service: AnalyticsHistoryService;
@@ -187,7 +194,8 @@ beforeAll(async () => {
       new ShortLinkService(),
       openai,
       queue,
-      refresh
+      refresh,
+      providerApps
     )
   );
 });

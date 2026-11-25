@@ -37,6 +37,11 @@ export class TiktokBusinessProvider
   implements SocialProvider
 {
   identifier = 'tiktok-business';
+  override ownApp = {
+    family: 'tiktok-business',
+    clientIdEnv: 'TIKTOK_BUSINESS_CLIENT_ID',
+    clientSecretEnv: 'TIKTOK_BUSINESS_CLIENT_SECRET',
+  };
   name = 'TikTok';
   isBetweenSteps = false;
   convertToJPEG = true;
@@ -63,7 +68,7 @@ export class TiktokBusinessProvider
   // The TikTok developer portal only accepts redirect URLs that end with "/"
   // for Business apps, so the trailing slash here is not cosmetic - the
   // redirect_uri sent on the token exchange must match the registered one.
-  private redirectUri() {
+  override ownAppRedirectUri() {
     return `${
       process?.env?.FRONTEND_URL?.indexOf('https') === -1
         ? 'https://redirectmeto.com/'
@@ -313,6 +318,7 @@ export class TiktokBusinessProvider
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokenDetails> {
+    const { clientId, clientSecret } = this.appCredentials();
     const response = await (
       await fetch(`${this.baseUrl}/tt_user/oauth2/refresh_token/`, {
         method: 'POST',
@@ -320,8 +326,8 @@ export class TiktokBusinessProvider
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          client_id: process.env.TIKTOK_BUSINESS_CLIENT_ID!,
-          client_secret: process.env.TIKTOK_BUSINESS_CLIENT_SECRET!,
+          client_id: clientId,
+          client_secret: clientSecret,
           grant_type: 'refresh_token',
           refresh_token: refreshToken,
         }),
@@ -362,13 +368,14 @@ export class TiktokBusinessProvider
   }
 
   async generateAuthUrl() {
+    const { clientId } = this.appCredentials();
     const state = makeSecureId(16);
 
     return {
       url:
         'https://www.tiktok.com/v2/auth/authorize/' +
-        `?client_key=${process.env.TIKTOK_BUSINESS_CLIENT_ID}` +
-        `&redirect_uri=${encodeURIComponent(this.redirectUri())}` +
+        `?client_key=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(this.ownAppRedirectUri())}` +
         `&state=${state}` +
         `&response_type=code` +
         `&disable_auto_auth=1` +
@@ -383,6 +390,7 @@ export class TiktokBusinessProvider
     codeVerifier: string;
     refresh?: string;
   }) {
+    const { clientId, clientSecret } = this.appCredentials();
     const response = await (
       await fetch(`${this.baseUrl}/tt_user/oauth2/token/`, {
         method: 'POST',
@@ -390,11 +398,11 @@ export class TiktokBusinessProvider
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          client_id: process.env.TIKTOK_BUSINESS_CLIENT_ID!,
-          client_secret: process.env.TIKTOK_BUSINESS_CLIENT_SECRET!,
+          client_id: clientId,
+          client_secret: clientSecret,
           grant_type: 'authorization_code',
           auth_code: params.code,
-          redirect_uri: this.redirectUri(),
+          redirect_uri: this.ownAppRedirectUri(),
         }),
       })
     ).json();

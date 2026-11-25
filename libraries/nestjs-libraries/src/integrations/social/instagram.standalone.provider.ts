@@ -26,6 +26,11 @@ export class InstagramStandaloneProvider
   implements SocialProvider
 {
   identifier = 'instagram-standalone';
+  override ownApp = {
+    family: 'instagram-standalone',
+    clientIdEnv: 'INSTAGRAM_APP_ID',
+    clientSecretEnv: 'INSTAGRAM_APP_SECRET',
+  };
   name = 'Instagram\n(Standalone)';
   isBetweenSteps = false;
   refreshCron = true;
@@ -107,18 +112,24 @@ export class InstagramStandaloneProvider
     };
   }
 
+  // Instagram accepts only https callbacks
+  override ownAppRedirectUri() {
+    return `${
+      process?.env.FRONTEND_URL?.indexOf('https') == -1
+        ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
+        : `${process?.env.FRONTEND_URL}`
+    }/integrations/social/instagram-standalone`;
+  }
+
   async generateAuthUrl() {
+    const { clientId } = this.appCredentials();
     const state = makeSecureId(6);
     return {
       url:
         `https://www.instagram.com/oauth/authorize?enable_fb_login=0&client_id=${
-          process.env.INSTAGRAM_APP_ID
+          clientId
         }&redirect_uri=${encodeURIComponent(
-          `${
-            process?.env.FRONTEND_URL?.indexOf('https') == -1
-              ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
-              : `${process?.env.FRONTEND_URL}`
-          }/integrations/social/instagram-standalone`
+          this.ownAppRedirectUri()
         )}&response_type=code&scope=${encodeURIComponent(
           this.scopes.join(',')
         )}` + `&state=${state}`,
@@ -132,18 +143,12 @@ export class InstagramStandaloneProvider
     codeVerifier: string;
     refresh: string;
   }) {
+    const { clientId, clientSecret } = this.appCredentials();
     const formData = new FormData();
-    formData.append('client_id', process.env.INSTAGRAM_APP_ID!);
-    formData.append('client_secret', process.env.INSTAGRAM_APP_SECRET!);
+    formData.append('client_id', clientId);
+    formData.append('client_secret', clientSecret);
     formData.append('grant_type', 'authorization_code');
-    formData.append(
-      'redirect_uri',
-      `${
-        process?.env.FRONTEND_URL?.indexOf('https') == -1
-          ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
-          : `${process?.env.FRONTEND_URL}`
-      }/integrations/social/instagram-standalone`
-    );
+    formData.append('redirect_uri', this.ownAppRedirectUri());
     formData.append('code', params.code);
 
     const getAccessToken = await (
@@ -157,8 +162,8 @@ export class InstagramStandaloneProvider
       await fetch(
         'https://graph.instagram.com/access_token' +
           '?grant_type=ig_exchange_token' +
-          `&client_id=${process.env.INSTAGRAM_APP_ID}` +
-          `&client_secret=${process.env.INSTAGRAM_APP_SECRET}` +
+          `&client_id=${clientId}` +
+          `&client_secret=${clientSecret}` +
           `&access_token=${getAccessToken.access_token}`
       )
     ).json();

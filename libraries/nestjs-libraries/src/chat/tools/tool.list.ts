@@ -58,6 +58,7 @@ import { SubscriptionTool } from '@gitroom/nestjs-libraries/chat/tools/subscript
 import { UserOrganizationsTool } from '@gitroom/nestjs-libraries/chat/tools/user.organizations.tool';
 import { AccountDeleteTool } from '@gitroom/nestjs-libraries/chat/tools/account.delete.tool';
 import { OAuthAppTool } from '@gitroom/nestjs-libraries/chat/tools/oauth.app.tool';
+import { ProviderAppTool } from '@gitroom/nestjs-libraries/chat/tools/provider.app.tool';
 import { ApprovedAppsTool } from '@gitroom/nestjs-libraries/chat/tools/approved.apps.tool';
 import { SignaturesTool } from '@gitroom/nestjs-libraries/chat/tools/signatures.tool';
 import { SetsTool } from '@gitroom/nestjs-libraries/chat/tools/sets.tool';
@@ -131,6 +132,7 @@ export const toolList = [
   UserOrganizationsTool,
   AccountDeleteTool,
   OAuthAppTool,
+  ProviderAppTool,
   ApprovedAppsTool,
   SignaturesTool,
   SetsTool,

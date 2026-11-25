@@ -31,6 +31,7 @@ import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/au
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { ProviderAppService } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
 
 dayjs.extend(utc);
 
@@ -63,7 +64,8 @@ export class IntegrationService {
     private _notificationService: NotificationService,
     @Inject(forwardRef(() => RefreshIntegrationService))
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _jobQueue: JobQueueService
+    private _jobQueue: JobQueueService,
+    private _providerAppService: ProviderAppService
   ) {}
 
   async changeActiveCron(orgId: string) {
@@ -133,7 +135,8 @@ export class IntegrationService {
     isBetweenSteps = false,
     refresh?: string,
     timezone?: number,
-    customInstanceDetails?: string
+    customInstanceDetails?: string,
+    providerAppId?: string | null
   ) {
     const uploadedPicture = picture
       ? isCloudflareImage(picture)
@@ -160,7 +163,8 @@ export class IntegrationService {
       isBetweenSteps,
       refresh,
       timezone,
-      customInstanceDetails
+      customInstanceDetails,
+      providerAppId
     );
   }
 
@@ -310,12 +314,14 @@ export class IntegrationService {
           throw new TypeError(`${methodName} is not a function`);
         }
 
-        const load = await providerFunction.call(
-          provider,
-          current.token,
-          data,
-          current.internalId,
-          current
+        const load = await this._providerAppService.run(current, () =>
+          providerFunction.call(
+            provider,
+            current.token,
+            data,
+            current.internalId,
+            current
+          )
         );
 
         return { status: 'ok', data: load };
@@ -403,8 +409,20 @@ export class IntegrationService {
           }
         : undefined;
 
-      const { codeVerifier, state, url } =
-        await integrationProvider.generateAuthUrl(getExternalUrl);
+      // A new channel connects through the organization's own app when it
+      // has one; the callback reads which one from the state
+      const providerAppId = await this._providerAppService.currentAppId(
+        orgId,
+        integrationProvider.identifier
+      );
+      const { codeVerifier, state, url } = await this._providerAppService.run(
+        { organizationId: orgId, providerAppId },
+        () => integrationProvider.generateAuthUrl(getExternalUrl)
+      );
+
+      if (providerAppId) {
+        await ioRedis.set(`providerApp:${state}`, providerAppId, 'EX', 3600);
+      }
 
       if (refresh) {
         await ioRedis.set(`refresh:${state}`, refresh, 'EX', 3600);
@@ -556,21 +574,25 @@ export class IntegrationService {
       throw new Error('Invalid integration');
     }
 
-    const { url } = manager.changeProfilePicture
-      ? await manager.changeProfilePicture(
-          integration.internalId,
-          integration.token,
-          body.picture
-        )
-      : { url: '' };
-
-    const { name } = manager.changeNickname
-      ? await manager.changeNickname(
-          integration.internalId,
-          integration.token,
-          body.name
-        )
-      : { name: '' };
+    const { url, name } = await this._providerAppService.run(
+      integration,
+      async () => ({
+        ...(manager.changeProfilePicture
+          ? await manager.changeProfilePicture(
+              integration.internalId,
+              integration.token,
+              body.picture
+            )
+          : { url: '' }),
+        ...(manager.changeNickname
+          ? await manager.changeNickname(
+              integration.internalId,
+              integration.token,
+              body.name
+            )
+          : { name: '' }),
+      })
+    );
 
     return this._integrationRepository.updateNameAndUrl(orgId, id, name, url);
   }
@@ -713,7 +735,9 @@ export class IntegrationService {
         integration.providerIdentifier
       );
 
-      const data = await this.refreshToken(provider, integration.refreshToken!);
+      const data = await this._providerAppService.run(integration, () =>
+        this.refreshToken(provider, integration.refreshToken!)
+      );
 
       if (!data) {
         await this.informAboutRefreshError(
@@ -822,9 +846,9 @@ export class IntegrationService {
       );
     }
 
-    const getIntegrationInformation = await provider.fetchPageInformation(
-      getIntegration.token,
-      data
+    const getIntegrationInformation = await this._providerAppService.run(
+      getIntegration,
+      () => provider.fetchPageInformation!(getIntegration.token, data)
     );
 
     await this.checkForDeletedOnceAndUpdate(
@@ -908,10 +932,12 @@ export class IntegrationService {
     }
 
     try {
-      return await channel.provider.analyticsDay(
-        channel.integration.internalId,
-        channel.integration.token,
-        day
+      return await this._providerAppService.run(channel.integration, () =>
+        channel.provider.analyticsDay!(
+          channel.integration.internalId,
+          channel.integration.token,
+          day
+        )
       );
     } catch (e) {
       if (e instanceof RefreshToken && !forceRefresh) {
@@ -985,11 +1011,13 @@ export class IntegrationService {
       return JSON.parse(cached);
     }
 
-    const loadAnalytics = await provider.analytics!(
-      integration.internalId,
-      integration.token,
-      days,
-      offset
+    const loadAnalytics = await this._providerAppService.run(integration, () =>
+      provider.analytics!(
+        integration.internalId,
+        integration.token,
+        days,
+        offset
+      )
     );
     await ioRedis.set(
       cacheKey,
@@ -1215,12 +1243,14 @@ export class IntegrationService {
       getSocialIntegration &&
       Reflect.get(getSocialIntegration, getAllInternalPlugs.methodName);
     if (typeof plugMethod === 'function') {
-      await plugMethod.call(
-        getSocialIntegration,
-        getIntegration,
-        originalIntegration,
-        data.post,
-        data.information
+      await this._providerAppService.run(getIntegration, () =>
+        plugMethod.call(
+          getSocialIntegration,
+          getIntegration,
+          originalIntegration,
+          data.post,
+          data.information
+        )
       );
     }
 
@@ -1251,14 +1281,18 @@ export class IntegrationService {
       throw new TypeError(`${getPlugById.plugFunction} is not a function`);
     }
 
-    const process = await plugFunction.call(
-      integration,
+    const process = await this._providerAppService.run(
       getPlugById.integration,
-      data.postId,
-      JSON.parse(getPlugById.data).reduce((all: any, current: any) => {
-        all[current.name] = current.value;
-        return all;
-      }, {})
+      () =>
+        plugFunction.call(
+          integration,
+          getPlugById.integration,
+          data.postId,
+          JSON.parse(getPlugById.data).reduce((all: any, current: any) => {
+            all[current.name] = current.value;
+            return all;
+          }, {})
+        )
     );
 
     if (process) {

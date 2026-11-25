@@ -194,6 +194,7 @@ export class IntegrationRepository {
             rootInternalId: true,
             refreshToken: true,
             tokenExpiration: true,
+            providerAppId: true,
           },
         })
       : null;
@@ -232,6 +233,8 @@ export class IntegrationRepository {
         ...(fresh?.tokenExpiration
           ? { tokenExpiration: fresh.tokenExpiration }
           : {}),
+        // the token comes from the fresh login, so does the app that issued it
+        ...(fresh ? { providerAppId: fresh.providerAppId } : {}),
         disabled: false,
         deletedAt: null,
         refreshNeeded: false,
@@ -334,7 +337,10 @@ export class IntegrationRepository {
     isBetweenSteps = false,
     refresh?: string,
     timezone?: number,
-    customInstanceDetails?: string
+    customInstanceDetails?: string,
+    // The app that issued the token (null: the server's). Undefined leaves the
+    // stored one, so a token refresh never detaches a channel from its app.
+    providerAppId?: string | null
   ) {
     const postTimes = timezone
       ? {
@@ -370,6 +376,7 @@ export class IntegrationRepository {
         refreshNeeded: false,
         rootInternalId: internalId,
         ...(customInstanceDetails ? { customInstanceDetails } : {}),
+        ...(providerAppId ? { providerAppId } : {}),
         additionalSettings: additionalSettings
           ? JSON.stringify(additionalSettings)
           : '[]',
@@ -379,6 +386,7 @@ export class IntegrationRepository {
           ? { additionalSettings: JSON.stringify(additionalSettings) }
           : {}),
         ...(customInstanceDetails ? { customInstanceDetails } : {}),
+        ...(providerAppId !== undefined ? { providerAppId } : {}),
         type: type as any,
         ...(!refresh
           ? {
@@ -412,17 +420,25 @@ export class IntegrationRepository {
           })
         )?.rootInternalId || internalId;
 
+      // A token works only with the app that issued it, so it goes to the
+      // siblings of this organization (which move to that app with it) and
+      // to those of other organizations only when they use the same app
       await this._integration.model.integration.updateMany({
         where: {
           id: {
             not: upsert.id,
           },
           rootInternalId: rootId,
+          OR: [
+            { organizationId: org },
+            { providerAppId: upsert.providerAppId },
+          ],
         },
         data: {
           token,
           refreshToken,
           refreshNeeded: false,
+          providerAppId: upsert.providerAppId,
           ...(expiresIn
             ? { tokenExpiration: new Date(Date.now() + expiresIn * 1000) }
             : {}),

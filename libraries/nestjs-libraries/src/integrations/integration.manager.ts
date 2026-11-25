@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 import { Injectable } from '@nestjs/common';
+import { groupBy } from 'lodash';
 import { XProvider } from '@gitroom/nestjs-libraries/integrations/social/x.provider';
 import { SocialProvider } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { LinkedinProvider } from '@gitroom/nestjs-libraries/integrations/social/linkedin.provider';
@@ -260,6 +261,35 @@ export class IntegrationManager {
           ) || []
         ).filter((f: any) => !f.disabled) || [],
     };
+  }
+
+  // The provider families an organization can bring its own app for (see
+  // `ownApp`), each with the providers that share the app, the callback URL
+  // each one needs registered on it, and whether the server has an app too
+  getProviderAppFamilies() {
+    const families = groupBy(
+      socialIntegrationList.filter((p) => p.ownApp),
+      (p) => p.ownApp!.family
+    );
+
+    return Object.entries(families).map(([family, providers]) => {
+      const { clientIdEnv, clientSecretEnv } = providers[0].ownApp!;
+      return {
+        family,
+        instanceApp:
+          !!process.env[clientIdEnv] && !!process.env[clientSecretEnv],
+        providers: providers.map((p) => ({
+          identifier: p.identifier,
+          name: p.name,
+          redirectUri: p.ownAppRedirectUri(),
+        })),
+      };
+    });
+  }
+
+  getOwnAppFamily(identifier: string): string | undefined {
+    return socialIntegrationList.find((p) => p.identifier === identifier)
+      ?.ownApp?.family;
   }
 
   getAllowedSocialsIntegrations() {

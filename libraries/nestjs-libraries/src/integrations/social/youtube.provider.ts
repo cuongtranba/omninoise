@@ -27,10 +27,13 @@ import { setHeartbeatDetails } from '@gitroom/nestjs-libraries/jobs/job.context'
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { DashboardFunction } from '@gitroom/nestjs-libraries/integrations/dashboard.function.decorator';
 
-const clientAndYoutube = () => {
+const clientAndYoutube = (creds: {
+  clientId: string;
+  clientSecret: string;
+}) => {
   const client = new google.auth.OAuth2({
-    clientId: process.env.YOUTUBE_CLIENT_ID,
-    clientSecret: process.env.YOUTUBE_CLIENT_SECRET,
+    clientId: creds.clientId,
+    clientSecret: creds.clientSecret,
     redirectUri: `${process.env.FRONTEND_URL}/integrations/social/youtube`,
   });
 
@@ -59,6 +62,11 @@ const clientAndYoutube = () => {
 export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   override maxConcurrentJob = 200; // YouTube has strict upload quotas
   identifier = 'youtube';
+  override ownApp = {
+    family: 'youtube',
+    clientIdEnv: 'YOUTUBE_CLIENT_ID',
+    clientSecretEnv: 'YOUTUBE_CLIENT_SECRET',
+  };
   name = 'YouTube';
   isBetweenSteps = true;
   dto = YoutubeSettingsDto;
@@ -285,7 +293,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   }
 
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
-    const { client, oauth2 } = clientAndYoutube();
+    const { client, oauth2 } = clientAndYoutube(this.appCredentials());
     client.setCredentials({ refresh_token });
     const { credentials } = await client.refreshAccessToken();
     const user = oauth2(client);
@@ -309,7 +317,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
 
   async generateAuthUrl() {
     const state = makeSecureId(7);
-    const { client } = clientAndYoutube();
+    const { client } = clientAndYoutube(this.appCredentials());
     return {
       url: client.generateAuthUrl({
         access_type: 'offline',
@@ -328,7 +336,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     codeVerifier: string;
     refresh?: string;
   }) {
-    const { client, oauth2 } = clientAndYoutube();
+    const { client, oauth2 } = clientAndYoutube(this.appCredentials());
     const { tokens } = await client.getToken(params.code);
     client.setCredentials(tokens);
     const { scopes } = await client.getTokenInfo(tokens.access_token!);
@@ -355,7 +363,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
 
   @DashboardFunction()
   async pages(accessToken: string) {
-    const { client, youtube } = clientAndYoutube();
+    const { client, youtube } = clientAndYoutube(this.appCredentials());
     client.setCredentials({ access_token: accessToken });
     const youtubeClient = youtube(client);
 
@@ -386,7 +394,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   }
 
   async fetchPageInformation(accessToken: string, data: { id: string }) {
-    const { client, youtube } = clientAndYoutube();
+    const { client, youtube } = clientAndYoutube(this.appCredentials());
     client.setCredentials({ access_token: accessToken });
     const youtubeClient = youtube(client);
 
@@ -420,7 +428,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     requiredId: string,
     accessToken: string
   ): Promise<Omit<AuthTokenDetails, 'refreshToken' | 'expiresIn'>> {
-    const { client, youtube } = clientAndYoutube();
+    const { client, youtube } = clientAndYoutube(this.appCredentials());
     client.setCredentials({ access_token: accessToken });
 
     // don't go through pages() here, it swallows the real Google error and an
@@ -835,7 +843,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     const releaseURL = `https://www.youtube.com/watch?v=${videoId}`;
 
     if (pendingData.thumbnail) {
-      const { client, youtube } = clientAndYoutube();
+      const { client, youtube } = clientAndYoutube(this.appCredentials());
       client.setCredentials({ access_token: accessToken });
       const youtubeClient = youtube(client);
 
@@ -953,7 +961,9 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
       const endDate = endDay.format('YYYY-MM-DD');
       const startDate = endDay.subtract(date - 1, 'day').format('YYYY-MM-DD');
 
-      const { client, youtubeAnalytics } = clientAndYoutube();
+      const { client, youtubeAnalytics } = clientAndYoutube(
+        this.appCredentials()
+      );
       client.setCredentials({ access_token: accessToken });
 
       const youtubeClient = youtubeAnalytics(client);
@@ -1057,7 +1067,9 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     const today = dayjs().format('YYYY-MM-DD');
 
     try {
-      const { client, youtube, youtubeAnalytics } = clientAndYoutube();
+      const { client, youtube, youtubeAnalytics } = clientAndYoutube(
+        this.appCredentials()
+      );
       client.setCredentials({ access_token: accessToken });
       const youtubeClient = youtube(client);
 
