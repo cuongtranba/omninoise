@@ -7,6 +7,7 @@ import {
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { JobQueueService } from '@gitroom/nestjs-libraries/jobs/job.queue';
+import { ProviderAppService } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
 
 @Injectable()
 export class RefreshIntegrationService {
@@ -14,7 +15,8 @@ export class RefreshIntegrationService {
     private _integrationManager: IntegrationManager,
     @Inject(forwardRef(() => IntegrationService))
     private _integrationService: IntegrationService,
-    private _jobQueue: JobQueueService
+    private _jobQueue: JobQueueService,
+    private _providerAppService: ProviderAppService
   ) {}
   async refresh(
     integration: Integration,
@@ -24,10 +26,8 @@ export class RefreshIntegrationService {
       integration.providerIdentifier
     );
 
-    const refresh = await this.refreshProcess(
-      integration,
-      socialProvider,
-      cause
+    const refresh = await this._providerAppService.run(integration, () =>
+      this.refreshProcess(integration, socialProvider, cause)
     );
 
     if (!refresh) {

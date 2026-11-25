@@ -51,6 +51,7 @@ import { timer } from '@gitroom/helpers/utils/timer';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { RefreshToken } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
+import { ProviderAppService } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { stripLinks } from '@gitroom/helpers/utils/strip.links';
 import { validate } from 'class-validator';
@@ -82,7 +83,8 @@ export class PostsService {
     private _shortLinkService: ShortLinkService,
     private _openaiService: OpenaiService,
     private _jobQueue: JobQueueService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _refreshIntegrationService: RefreshIntegrationService,
+    private _providerAppService: ProviderAppService
   ) {}
 
   searchForMissingThreeHoursPosts() {
@@ -156,9 +158,11 @@ export class PostsService {
     }
 
     try {
-      return await integrationProvider.missing(
-        getIntegration.internalId,
-        getIntegration.token
+      return await this._providerAppService.run(getIntegration, () =>
+        integrationProvider.missing!(
+          getIntegration.internalId,
+          getIntegration.token
+        )
       );
     } catch (e) {
       console.log(e);
@@ -185,13 +189,18 @@ export class PostsService {
     let releaseURL: string | undefined;
     if (post?.releaseId === 'missing') {
       try {
-        releaseURL = await this._integrationManager
-          .getSocialIntegration(post.integration.providerIdentifier)
-          .releaseUrl?.(
-            post.integration.token,
-            String(releaseId),
-            post.integration
-          );
+        const provider = this._integrationManager.getSocialIntegration(
+          post.integration.providerIdentifier
+        );
+        releaseURL = await this._providerAppService.run(
+          post.integration,
+          async () =>
+            provider.releaseUrl?.(
+              post.integration.token,
+              String(releaseId),
+              post.integration
+            )
+        );
       } catch (e) {
         console.log(e);
       }
@@ -219,12 +228,16 @@ export class PostsService {
       post.integration.providerIdentifier
     );
 
-    const resolved = await integrationProvider.resolveReleaseId?.(
-      post.integration.token,
-      post.releaseId,
+    const resolved = await this._providerAppService.run(
       post.integration,
-      JSON.parse(post.settings || '{}'),
-      post.releaseURL
+      async () =>
+        integrationProvider.resolveReleaseId?.(
+          post.integration.token,
+          post.releaseId,
+          post.integration,
+          JSON.parse(post.settings || '{}'),
+          post.releaseURL
+        )
     );
     if (
       !resolved ||
@@ -376,11 +389,15 @@ export class PostsService {
     try {
       const { releaseId } = await this.resolveRelease(orgId, post);
 
-      const loadAnalytics = await integrationProvider.postAnalytics(
-        getIntegration.internalId,
-        getIntegration.token,
-        releaseId,
-        date
+      const loadAnalytics = await this._providerAppService.run(
+        getIntegration,
+        () =>
+          integrationProvider.postAnalytics!(
+            getIntegration.internalId,
+            getIntegration.token,
+            releaseId,
+            date
+          )
       );
       await ioRedis.set(
         `integration:${orgId}:${post.id}:${date}`,

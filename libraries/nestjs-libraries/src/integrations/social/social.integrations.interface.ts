@@ -195,9 +195,20 @@ export type FetchPageInformationResult = {
   username: string;
 };
 
+// A provider whose OAuth app an organization may replace with its own. The
+// providers of one family share one app (Facebook and Instagram through
+// Facebook login, LinkedIn and LinkedIn pages); the env pair is the server's
+// app, used when the organization has none.
+export type OwnApp = {
+  family: string;
+  clientIdEnv: string;
+  clientSecretEnv: string;
+};
+
 export interface SocialProvider
   extends IAuthenticator, ISocialMediaIntegration {
   identifier: string;
+  ownApp?: OwnApp;
   analyticsDays?: number[]; // Date windows analytics can serve
   analyticsPreviousPeriod?: boolean; // analytics honours the offset
   analyticsSnapshot?: boolean; // analytics returns current running totals dated today, not daily values

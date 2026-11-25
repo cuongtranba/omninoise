@@ -74,6 +74,11 @@ type XPendingData = {
 )
 export class XProvider extends SocialAbstract implements SocialProvider {
   identifier = 'x';
+  override ownApp = {
+    family: 'x',
+    clientIdEnv: 'X_API_KEY',
+    clientSecretEnv: 'X_API_SECRET',
+  };
   name = 'X';
   isBetweenSteps = false;
   scopes = [] as string[];
@@ -336,8 +341,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     // oxlint-disable-next-line prefer-rest-params
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });
@@ -369,8 +373,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   ) {
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });
@@ -419,8 +422,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     // oxlint-disable-next-line prefer-rest-params
     const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });
@@ -456,19 +458,14 @@ export class XProvider extends SocialAbstract implements SocialProvider {
 
   async generateAuthUrl() {
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
     });
     const { url, oauth_token, oauth_token_secret } =
-      await client.generateAuthLink(
-        (process.env.X_URL || process.env.FRONTEND_URL) +
-          `/integrations/social/x`,
-        {
-          authAccessType: 'write',
-          linkMode: 'authenticate',
-          forceLogin: false,
-        }
-      );
+      await client.generateAuthLink(this.ownAppRedirectUri(), {
+        authAccessType: 'write',
+        linkMode: 'authenticate',
+        forceLogin: false,
+      });
     return {
       url,
       codeVerifier: oauth_token + ':' + oauth_token_secret,
@@ -481,8 +478,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     const [oauth_token, oauth_token_secret] = codeVerifier.split(':');
 
     const startingClient = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: oauth_token,
       accessSecret: oauth_token_secret,
     });
@@ -521,11 +517,22 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  override ownAppRedirectUri() {
+    return (
+      (process.env.X_URL || process.env.FRONTEND_URL) + `/integrations/social/x`
+    );
+  }
+
+  // The consumer key pair every X call is signed with
+  private appKeys() {
+    const { clientId, clientSecret } = this.appCredentials();
+    return { appKey: clientId, appSecret: clientSecret };
+  }
+
   private async getClient(accessToken: string) {
     const [accessTokenSplit, accessSecretSplit] = accessToken.split(':');
     return new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });
@@ -544,9 +551,10 @@ export class XProvider extends SocialAbstract implements SocialProvider {
         .replace(/'/g, '%27')
         .replace(/\(/g, '%28')
         .replace(/\)/g, '%29');
+    const { appKey, appSecret } = this.appKeys();
 
     const params: Record<string, string> = {
-      oauth_consumer_key: process.env.X_API_KEY!,
+      oauth_consumer_key: appKey,
       oauth_nonce: randomBytes(16).toString('hex'),
       oauth_signature_method: 'HMAC-SHA1',
       oauth_timestamp: String(Math.floor(Date.now() / 1000)),
@@ -565,7 +573,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
       pct(paramString),
     ].join('&');
 
-    const signingKey = `${pct(process.env.X_API_SECRET!)}&${pct(accessSecret)}`;
+    const signingKey = `${pct(appSecret)}&${pct(accessSecret)}`;
     params.oauth_signature = createHmac('sha1', signingKey)
       .update(baseString)
       .digest('base64');
@@ -1565,8 +1573,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
 
     const [accessTokenSplit, accessSecretSplit] = accessToken.split(':');
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });
@@ -1689,8 +1696,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
 
     const [accessTokenSplit, accessSecretSplit] = accessToken.split(':');
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });
@@ -1808,8 +1814,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   override async mention(token: string, d: { query: string }) {
     const [accessTokenSplit, accessSecretSplit] = token.split(':');
     const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
+      ...this.appKeys(),
       accessToken: accessTokenSplit,
       accessSecret: accessSecretSplit,
     });

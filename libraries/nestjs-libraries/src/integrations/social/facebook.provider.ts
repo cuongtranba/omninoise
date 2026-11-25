@@ -31,6 +31,11 @@ export const META_GRAPH_API_VERSION = 'v25.0';
 )
 export class FacebookProvider extends SocialAbstract implements SocialProvider {
   identifier = 'facebook';
+  override ownApp = {
+    family: 'facebook',
+    clientIdEnv: 'FACEBOOK_APP_ID',
+    clientSecretEnv: 'FACEBOOK_APP_SECRET',
+  };
   name = 'Facebook Page';
   isBetweenSteps = true;
   scopes = [
@@ -302,11 +307,12 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
   }
 
   async generateAuthUrl() {
+    const { clientId } = this.appCredentials();
     const state = makeSecureId(6);
     return {
       url:
         `https://www.facebook.com/${META_GRAPH_API_VERSION}/dialog/oauth` +
-        `?client_id=${process.env.FACEBOOK_APP_ID}` +
+        `?client_id=${clientId}` +
         `&redirect_uri=${encodeURIComponent(
           `${process.env.FRONTEND_URL}/integrations/social/facebook`
         )}` +
@@ -340,16 +346,17 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     codeVerifier: string;
     refresh?: string;
   }) {
+    const { clientId, clientSecret } = this.appCredentials();
     const getAccessToken = await (
       await fetch(
         `https://graph.facebook.com/${META_GRAPH_API_VERSION}/oauth/access_token` +
-          `?client_id=${process.env.FACEBOOK_APP_ID}` +
+          `?client_id=${clientId}` +
           `&redirect_uri=${encodeURIComponent(
             `${process.env.FRONTEND_URL}/integrations/social/facebook${
               params.refresh ? `?refresh=${params.refresh}` : ''
             }`
           )}` +
-          `&client_secret=${process.env.FACEBOOK_APP_SECRET}` +
+          `&client_secret=${clientSecret}` +
           `&code=${params.code}`
       )
     ).json();
@@ -358,8 +365,8 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
       await fetch(
         `https://graph.facebook.com/${META_GRAPH_API_VERSION}/oauth/access_token` +
           '?grant_type=fb_exchange_token' +
-          `&client_id=${process.env.FACEBOOK_APP_ID}` +
-          `&client_secret=${process.env.FACEBOOK_APP_SECRET}` +
+          `&client_id=${clientId}` +
+          `&client_secret=${clientSecret}` +
           `&fb_exchange_token=${getAccessToken.access_token}&fields=access_token,expires_in`
       )
     ).json();

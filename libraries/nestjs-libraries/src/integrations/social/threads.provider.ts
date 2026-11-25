@@ -24,6 +24,11 @@ dayjs.extend(utc);
 
 export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   identifier = 'threads';
+  override ownApp = {
+    family: 'threads',
+    clientIdEnv: 'THREADS_APP_ID',
+    clientSecretEnv: 'THREADS_APP_SECRET',
+  };
   analyticsDays = [7, 30, 90];
   analyticsPreviousPeriod = true;
   name = 'Threads';
@@ -113,19 +118,23 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  // Threads accepts only https callbacks
+  override ownAppRedirectUri() {
+    return `${
+      process?.env.FRONTEND_URL?.indexOf('https') == -1
+        ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
+        : `${process?.env.FRONTEND_URL}`
+    }/integrations/social/threads`;
+  }
+
   async generateAuthUrl() {
+    const { clientId } = this.appCredentials();
     const state = makeSecureId(6);
     return {
       url:
         'https://www.threads.net/oauth/authorize' +
-        `?client_id=${process.env.THREADS_APP_ID}` +
-        `&redirect_uri=${encodeURIComponent(
-          `${
-            process?.env.FRONTEND_URL?.indexOf('https') == -1
-              ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
-              : `${process?.env.FRONTEND_URL}`
-          }/integrations/social/threads`
-        )}` +
+        `?client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(this.ownAppRedirectUri())}` +
         `&state=${state}` +
         `&scope=${encodeURIComponent(this.scopes.join(','))}`,
       codeVerifier: makeSecureId(10),
@@ -138,19 +147,14 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
     codeVerifier: string;
     refresh?: string;
   }) {
+    const { clientId, clientSecret } = this.appCredentials();
     const getAccessToken = await (
       await this.fetch(
         'https://graph.threads.net/oauth/access_token' +
-          `?client_id=${process.env.THREADS_APP_ID}` +
-          `&redirect_uri=${encodeURIComponent(
-            `${
-              process?.env.FRONTEND_URL?.indexOf('https') == -1
-                ? `https://redirectmeto.com/${process?.env.FRONTEND_URL}`
-                : `${process?.env.FRONTEND_URL}`
-            }/integrations/social/threads`
-          )}` +
+          `?client_id=${clientId}` +
+          `&redirect_uri=${encodeURIComponent(this.ownAppRedirectUri())}` +
           `&grant_type=authorization_code` +
-          `&client_secret=${process.env.THREADS_APP_SECRET}` +
+          `&client_secret=${clientSecret}` +
           `&code=${params.code}`
       )
     ).json();
@@ -159,7 +163,7 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
       await this.fetch(
         'https://graph.threads.net/access_token' +
           '?grant_type=th_exchange_token' +
-          `&client_secret=${process.env.THREADS_APP_SECRET}` +
+          `&client_secret=${clientSecret}` +
           `&access_token=${getAccessToken.access_token}`
       )
     ).json();

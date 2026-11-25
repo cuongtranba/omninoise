@@ -45,6 +45,7 @@ model Organization {
   webhooks            Webhooks[]
   oauthApp            OAuthApp[]
   oauthAuthorizations OAuthAuthorization[]
+  providerApps        ProviderApp[]
 
   @@index([apiKey])
   @@index([streakSince])
@@ -391,9 +392,11 @@ model Integration {
   customerId            String?
   rootInternalId        String?
   additionalSettings    String?                @default("[]")
+  providerAppId         String?
   exisingPlugData       ExisingPlugData[]
   customer              Customer?              @relation(fields: [customerId], references: [id])
   organization          Organization           @relation(fields: [organizationId], references: [id])
+  providerApp           ProviderApp?           @relation(fields: [providerAppId], references: [id])
   webhooks              IntegrationsWebhooks[]
   orderItems            OrderItems[]
   plugs                 Plugs[]
@@ -407,6 +410,7 @@ model Integration {
   @@index([createdAt])
   @@index([deletedAt])
   @@index([customerId])
+  @@index([providerAppId])
   @@index([inBetweenSteps])
   @@index([refreshNeeded])
   @@index([disabled])
@@ -729,6 +733,26 @@ model ThirdParty {
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([organizationId, internalId])
+  @@index([organizationId])
+  @@index([deletedAt])
+}
+
+// An organization's own developer app for a provider family (see `ownApp` on
+// the providers). Channels connected through it record it in
+// Integration.providerAppId, because their tokens are bound to the app.
+model ProviderApp {
+  id             String        @id @default(uuid())
+  organizationId String
+  family         String
+  clientId       String
+  clientSecret   String // AuthService.fixedEncryption
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  integrations   Integration[]
+
+  @@unique([organizationId, family])
   @@index([organizationId])
   @@index([deletedAt])
 }

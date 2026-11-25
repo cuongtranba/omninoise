@@ -33,6 +33,11 @@ import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorato
 )
 export class TiktokProvider extends SocialAbstract implements SocialProvider {
   identifier = 'tiktok';
+  override ownApp = {
+    family: 'tiktok',
+    clientIdEnv: 'TIKTOK_CLIENT_ID',
+    clientSecretEnv: 'TIKTOK_CLIENT_SECRET',
+  };
   name = 'Tiktok';
   isBetweenSteps = false;
   convertToJPEG = true;
@@ -296,9 +301,10 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokenDetails> {
+    const { clientId, clientSecret } = this.appCredentials();
     const value = {
-      client_key: process.env.TIKTOK_CLIENT_ID!,
-      client_secret: process.env.TIKTOK_CLIENT_SECRET!,
+      client_key: clientId,
+      client_secret: clientSecret,
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
     };
@@ -340,20 +346,24 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  // TikTok accepts only https callbacks
+  override ownAppRedirectUri() {
+    return `${
+      process?.env?.FRONTEND_URL?.indexOf('https') === -1
+        ? 'https://redirectmeto.com/'
+        : ''
+    }${process?.env?.FRONTEND_URL}/integrations/social/tiktok`;
+  }
+
   async generateAuthUrl() {
+    const { clientId } = this.appCredentials();
     const state = makeSecureId(16);
 
     return {
       url:
         'https://www.tiktok.com/v2/auth/authorize/' +
-        `?client_key=${process.env.TIKTOK_CLIENT_ID}` +
-        `&redirect_uri=${encodeURIComponent(
-          `${
-            process?.env?.FRONTEND_URL?.indexOf('https') === -1
-              ? 'https://redirectmeto.com/'
-              : ''
-          }${process?.env?.FRONTEND_URL}/integrations/social/tiktok`
-        )}` +
+        `?client_key=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(this.ownAppRedirectUri())}` +
         `&state=${state}` +
         `&response_type=code` +
         `&scope=${encodeURIComponent(this.scopes.join(','))}`,
@@ -367,17 +377,14 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     codeVerifier: string;
     refresh?: string;
   }) {
+    const { clientId, clientSecret } = this.appCredentials();
     const value = {
-      client_key: process.env.TIKTOK_CLIENT_ID!,
-      client_secret: process.env.TIKTOK_CLIENT_SECRET!,
+      client_key: clientId,
+      client_secret: clientSecret,
       code: params.code,
       grant_type: 'authorization_code',
       code_verifier: params.codeVerifier,
-      redirect_uri: `${
-        process?.env?.FRONTEND_URL?.indexOf('https') === -1
-          ? 'https://redirectmeto.com/'
-          : ''
-      }${process?.env?.FRONTEND_URL}/integrations/social/tiktok`,
+      redirect_uri: this.ownAppRedirectUri(),
     };
 
     const { access_token, refresh_token, scope } = await (

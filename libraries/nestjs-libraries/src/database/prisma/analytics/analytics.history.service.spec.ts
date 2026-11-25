@@ -15,6 +15,8 @@ import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/n
 import { NotificationsRepository } from '@gitroom/nestjs-libraries/database/prisma/notifications/notifications.repository';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
+import { ProviderAppService } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.service';
+import { ProviderAppRepository } from '@gitroom/nestjs-libraries/database/prisma/provider-apps/provider.app.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { BlueskyProvider } from '@gitroom/nestjs-libraries/integrations/social/bluesky.provider';
 import { AnalyticsData } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
@@ -67,6 +69,10 @@ const prisma = new PrismaService();
 const repo = new PrismaRepository<keyof PrismaService>(prisma);
 const queue = new JobQueueService();
 const manager = new FakeManager();
+const providerApps = new ProviderAppService(
+  new ProviderAppRepository(repo),
+  manager
+);
 const history = new AnalyticsHistoryRepository();
 const service = new AnalyticsHistoryService(
   history,
@@ -80,8 +86,9 @@ const service = new AnalyticsHistoryService(
       new OrganizationRepository(repo, repo, repo),
       queue
     ),
-    new RefreshIntegrationService(manager, undefined!, queue),
-    queue
+    new RefreshIntegrationService(manager, undefined!, queue, providerApps),
+    queue,
+    providerApps
   ),
   manager,
   undefined!

@@ -1009,5 +1009,22 @@
   "invite_to_platform": "Invite to platform",
   "member_added": "Member added",
   "could_not_add_member": "Could not add the member",
-  "add_team_member": "Add Team Member"
+  "add_team_member": "Add Team Member",
+  "platform_apps": "Platform apps",
+  "platform_apps_note": "Connect new channels through your own developer app instead of the server app. Channels already connected keep the app they were connected with.",
+  "platform_apps_live_hint": "Your app must be Live, and people who are not admins of the app need Advanced Access to its permissions.",
+  "your_app": "Your app",
+  "server_app": "Server app",
+  "no_app": "No app",
+  "redirect_uris": "Redirect URIs to add to your app",
+  "client_id": "Client ID",
+  "client_secret": "Client Secret",
+  "leave_empty_to_keep_the_secret": "Leave empty to keep the saved secret",
+  "channels_using_this_app": "Channels using this app",
+  "could_not_save_the_app": "Could not save the app",
+  "could_not_delete_the_app": "Could not delete the app",
+  "app_saved": "App saved",
+  "app_deleted": "App deleted",
+  "delete_platform_app": "Delete this app?",
+  "delete_platform_app_description": "New channels will connect through the server app again."
 }

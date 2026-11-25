@@ -123,6 +123,9 @@ const EXCLUDED: Record<string, string> = {
   // posts.controller
   'GET /posts/group/:group/debug-export':
     'support download for the super admin of the instance (403 for everyone else), an organization member can never use it',
+  // provider-apps.controller
+  'PUT /provider-apps/:family':
+    "the app's client secret is typed by an organization admin in the Postiz app and must never pass through an agent conversation",
   // public.controller
   'POST /public/agent': 'internal endpoint guarded by a server secret',
   'GET /public/posts/:id': 'unauthenticated public preview page of the browser',
