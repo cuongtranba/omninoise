@@ -11,6 +11,9 @@ import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/for
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
 
+// The account was blocked by the super admin of the instance (User.disabledAt)
+const BLOCKED_ACCOUNT = 'This account has been disabled';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -104,6 +107,10 @@ export class AuthService {
         throw new Error('User is not activated');
       }
 
+      if (user.disabledAt) {
+        throw new Error(BLOCKED_ACCOUNT);
+      }
+
       const addedOrg =
         addToOrg && typeof addToOrg !== 'boolean'
           ? await this._organizationService.addUserToOrg(
@@ -124,6 +131,10 @@ export class AuthService {
       userAgent,
       platformInvite
     );
+
+    if (user.disabledAt) {
+      throw new Error(BLOCKED_ACCOUNT);
+    }
 
     const addedOrg =
       addToOrg && typeof addToOrg !== 'boolean'
@@ -335,6 +346,9 @@ export class AuthService {
       provider as Provider
     );
     if (checkExists) {
+      if (checkExists.disabledAt) {
+        throw new Error(BLOCKED_ACCOUNT);
+      }
       return { jwt: await this.jwt(checkExists) };
     }
 

@@ -4,7 +4,7 @@ import {
 } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { Provider, Role } from '@prisma/client';
+import { Prisma, Provider, Role } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
@@ -100,6 +100,101 @@ export class UsersRepository {
         email: true,
       },
       take: 10,
+    });
+  }
+
+  // Every account of the instance for its super admin, newest first, without
+  // anything of the sign in (password, provider id, ip, agent)
+  async adminListUsers(params: {
+    search?: string;
+    page: number;
+    limit: number;
+  }) {
+    const page = Math.max(0, params.page || 0);
+    const limit = Math.min(Math.max(1, params.limit || 20), 100);
+    const skip = page * limit;
+    const where: Prisma.UserWhereInput = {
+      deletedAt: null,
+      ...(params.search
+        ? {
+            OR: [
+              {
+                id: params.search,
+              },
+              {
+                email: {
+                  contains: params.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                name: {
+                  contains: params.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this._user.model.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          activated: true,
+          isSuperAdmin: true,
+          disabledAt: true,
+          createdAt: true,
+          lastOnline: true,
+          organizations: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+            select: {
+              role: true,
+              disabled: true,
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  deletedAt: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this._user.model.user.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      hasMore: skip + items.length < total,
+    };
+  }
+
+  // disabledAt blocks the whole account, see AuthMiddleware
+  setDisabled(id: string, disabled: boolean) {
+    return this._user.model.user.update({
+      where: {
+        id,
+      },
+      data: {
+        disabledAt: disabled ? new Date() : null,
+      },
+      select: {
+        id: true,
+      },
     });
   }
 

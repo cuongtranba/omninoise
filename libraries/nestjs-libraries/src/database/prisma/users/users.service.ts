@@ -86,6 +86,8 @@ export class UsersService {
       ...this.getPlan(organization),
       admin: !!user.isSuperAdmin,
       impersonate,
+      // the super admin entered an organization they are not a member of
+      adminAccess: !!organization.users?.[0]?.adminAccess,
       publicApi: this.canSeeApiKey(organization) ? organization.apiKey : '',
     };
   }
@@ -121,6 +123,46 @@ export class UsersService {
   // user, so it can never pass.
   async assertSuperAdminById(userId?: string) {
     this.assertSuperAdmin(userId ? await this.getUserById(userId) : null);
+  }
+
+  async adminListUsers(params: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const list = await this._usersRepository.adminListUsers({
+      search: params.search?.trim() || undefined,
+      page: params.page ?? 0,
+      limit: params.limit ?? 20,
+    });
+
+    return {
+      ...list,
+      items: list.items.map(({ organizations, ...user }) => ({
+        ...user,
+        organizations: organizations.map((membership) => ({
+          id: membership.organization.id,
+          name: membership.organization.name,
+          deletedAt: membership.organization.deletedAt,
+          role: membership.role,
+          disabled: membership.disabled,
+        })),
+      })),
+    };
+  }
+
+  // The super admin of the instance blocks or unblocks a whole account, never
+  // their own (they would lock themselves out)
+  async setUserAccess(requesterId: string, userId: string, disabled: boolean) {
+    if (disabled && requesterId === userId) {
+      throw new HttpException('You cannot block your own account', 400);
+    }
+
+    if (!(await this.getUserById(userId))) {
+      throw new HttpException('User not found', 404);
+    }
+
+    return this._usersRepository.setDisabled(userId, disabled);
   }
 
   getUserByProvider(providerId: string, provider: Provider) {

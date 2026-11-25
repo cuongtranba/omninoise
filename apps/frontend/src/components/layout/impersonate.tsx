@@ -19,6 +19,7 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { setCookie } from '@gitroom/frontend/components/layout/layout.context';
+import { useAdminOrganization } from '@gitroom/frontend/components/admin/admin.shared';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -964,6 +965,66 @@ const ViewStats = () => {
   );
 };
 
+const ViewUsers = () => {
+  const t = useT();
+  const handleClick = useCallback(() => {
+    window.location.href = '/admin/users';
+  }, []);
+  return (
+    <AdminBarButton onClick={handleClick}>{t('users', 'Users')}</AdminBarButton>
+  );
+};
+
+const ViewOrganizations = () => {
+  const t = useT();
+  const handleClick = useCallback(() => {
+    window.location.href = '/admin/organizations';
+  }, []);
+  return (
+    <AdminBarButton onClick={handleClick}>
+      {t('organizations', 'Organizations')}
+    </AdminBarButton>
+  );
+};
+
+// Shown while the super admin is inside an organization they are not a member of
+const AdminAccessBanner = () => {
+  const fetch = useFetch();
+  const t = useT();
+  const user = useUser();
+  const { isSecured } = useVariables();
+  const { data } = useAdminOrganization(user?.orgId || '');
+
+  const exit = useCallback(async () => {
+    // without secured cookies the frontend keeps its own showorg cookie, and
+    // an empty showorg header does not clear it
+    if (!isSecured) {
+      setCookie('showorg', '', -10);
+    }
+    await fetch('/user/change-org', {
+      method: 'POST',
+      body: JSON.stringify({ id: '' }),
+    });
+    window.location.href = '/launches';
+  }, [fetch, isSecured]);
+
+  return (
+    <div className="flex items-center gap-[8px] ps-[8px] text-[13px] font-[600] whitespace-nowrap">
+      <span className="text-textItemBlur">
+        {t('admin_access', 'Admin access')}: {data?.organization.name || ''}
+      </span>
+      <span>—</span>
+      <button
+        type="button"
+        onClick={exit}
+        className="cursor-pointer underline hover:opacity-80"
+      >
+        {t('exit', 'Exit')}
+      </button>
+    </div>
+  );
+};
+
 const ImportDebugPost = () => {
   const { openModal } = useModals();
   const t = useT();
@@ -1220,6 +1281,7 @@ export const Impersonate = () => {
                 <div className="ps-[8px] text-[13px] font-[600] text-textItemBlur whitespace-nowrap">
                   {t('currently_impersonating', 'Currently Impersonating')}
                 </div>
+                {user?.adminAccess && <AdminAccessBanner />}
                 <AdminBarButton
                   onClick={stopImpersonating}
                   label={t('close', 'Close')}
@@ -1252,6 +1314,7 @@ export const Impersonate = () => {
                 <div className="ps-[8px] text-[13px] font-[600] text-textItemBlur whitespace-nowrap mobile:hidden">
                   {t('admin', 'Admin')}
                 </div>
+                {user?.adminAccess && <AdminAccessBanner />}
                 <div className="relative flex-1 max-w-[360px] mobile:max-w-none mobile:basis-full">
                   <Input
                     autoComplete="off"
@@ -1293,6 +1356,8 @@ export const Impersonate = () => {
                   <InvitePlatform />
                   <ViewErrors />
                   <ViewStats />
+                  <ViewUsers />
+                  <ViewOrganizations />
                 </div>
               </div>
             )}

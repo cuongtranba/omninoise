@@ -953,15 +953,49 @@ export class IntegrationRepository {
     }
   }
 
+  // The channels the super admin disabled by deleting the organization
+  // (suspendedAt) stay disabled until the organization is restored
   enableAllIntegrations(org: string) {
     return this._integration.model.integration.updateMany({
       where: {
         organizationId: org,
         disabled: true,
         deletedAt: null,
+        suspendedAt: null,
       },
       data: {
         disabled: false,
+      },
+    });
+  }
+
+  // The super admin deletes the organization: its enabled channels are
+  // disabled and marked, so restoring it re-enables exactly these
+  suspendForOrganization(org: string) {
+    return this._integration.model.integration.updateMany({
+      where: {
+        organizationId: org,
+        disabled: false,
+        deletedAt: null,
+      },
+      data: {
+        disabled: true,
+        suspendedAt: new Date(),
+      },
+    });
+  }
+
+  resumeForOrganization(org: string) {
+    return this._integration.model.integration.updateMany({
+      where: {
+        organizationId: org,
+        suspendedAt: {
+          not: null,
+        },
+      },
+      data: {
+        disabled: false,
+        suspendedAt: null,
       },
     });
   }

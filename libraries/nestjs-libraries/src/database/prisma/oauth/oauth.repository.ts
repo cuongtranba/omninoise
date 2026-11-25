@@ -278,7 +278,8 @@ export class OAuthRepository {
   }
 
   // The seat the token's user still holds in the organization: removed,
-  // disabled or deleted users no longer reach it through a token they approved
+  // disabled, blocked (disabledAt) or deleted users no longer reach it through
+  // a token they approved
   findActiveMembership(userId: string, organizationId: string) {
     return this._userOrg.model.userOrganization.findFirst({
       where: {
@@ -287,6 +288,7 @@ export class OAuthRepository {
         disabled: false,
         user: {
           deletedAt: null,
+          disabledAt: null,
         },
       },
       select: {

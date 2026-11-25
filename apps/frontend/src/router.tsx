@@ -80,6 +80,22 @@ export const router = createBrowserRouter([
             ...load(() => import('./app/(app)/(site)/admin/stats/page')),
           },
           {
+            path: 'admin/users',
+            ...load(() => import('./app/(app)/(site)/admin/users/page')),
+          },
+          {
+            path: 'admin/organizations',
+            ...load(
+              () => import('./app/(app)/(site)/admin/organizations/page')
+            ),
+          },
+          {
+            path: 'admin/organizations/:id',
+            ...load(
+              () => import('./app/(app)/(site)/admin/organizations/[id]/page')
+            ),
+          },
+          {
             path: 'agents',
             ...load(() => import('./app/(app)/(site)/agents/layout')),
             children: [
