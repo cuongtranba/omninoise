@@ -55,11 +55,11 @@ const authenticate = async (authorization: string) => {
 };
 
 // an OAuth token approved by a member of the organization
-const approve = async (role: 'USER' | 'ADMIN') => {
+const approve = async (role: 'USER' | 'ADMIN', name: string = role) => {
   const prisma = moduleRef.get(PrismaService);
   const user = await prisma.user.create({
     data: {
-      email: `${role}-${run}@postiz.test`,
+      email: `${name}-${run}@postiz.test`,
       providerName: 'LOCAL',
       timezone: 0,
     },
@@ -67,7 +67,7 @@ const approve = async (role: 'USER' | 'ADMIN') => {
   await prisma.userOrganization.create({
     data: { userId: user.id, organizationId: orgId, role },
   });
-  const token = `pos_${role}_${run}`;
+  const token = `pos_${name}_${run}`;
   await prisma.oAuthAuthorization.create({
     data: {
       oauthAppId: appId,
@@ -76,7 +76,7 @@ const approve = async (role: 'USER' | 'ADMIN') => {
       accessToken: AuthService.fixedEncryption(token),
     },
   });
-  return token;
+  return { token, userId: user.id };
 };
 
 beforeAll(async () => {
@@ -145,10 +145,36 @@ test('the public API gives the guard the role of the caller: the owner for an AP
   delete process.env.STRIPE_SECRET_KEY;
 
   const key = await authenticate(apiKey);
-  const admin = await authenticate(await approve('ADMIN'));
-  const regular = await authenticate(await approve('USER'));
+  const admin = await authenticate((await approve('ADMIN')).token);
+  const regular = await authenticate((await approve('USER')).token);
 
   expect(key).toEqual({ passed: true, role: 'SUPERADMIN', admin: true });
   expect(admin).toEqual({ passed: true, role: 'ADMIN', admin: true });
   expect(regular).toEqual({ passed: true, role: 'USER', admin: false });
+});
+
+test('the OAuth token of an account blocked by the super admin of the instance stops working', async () => {
+  const { token, userId } = await approve('ADMIN', 'blocked');
+  await moduleRef.get(PrismaService).user.update({
+    where: { id: userId },
+    data: { disabledAt: new Date() },
+  });
+  let status = 0;
+  let passed = false;
+  const res: any = {
+    status: (code: number) => {
+      status = code;
+      return res;
+    },
+    json: () => res,
+  };
+
+  await new PublicAuthMiddleware(
+    moduleRef.get(OrganizationService),
+    moduleRef.get(OAuthService)
+  ).use({ headers: { authorization: token } } as any, res, () => {
+    passed = true;
+  });
+
+  expect({ passed, status }).toEqual({ passed: false, status: 401 });
 });

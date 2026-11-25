@@ -1,5 +1,10 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
-import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
+import {
+  Prisma,
+  Role,
+  ShortLinkPreference,
+  SubscriptionTier,
+} from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
@@ -271,6 +276,28 @@ export class OrganizationRepository {
             role: true,
           },
         },
+        subscription: {
+          select: {
+            subscriptionTier: true,
+            totalChannels: true,
+            isLifetime: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  }
+
+  // An organization the instance super admin enters without being a member of
+  // it: the same shape as getOrgsByUserId, the caller's role is set by the
+  // auth middleware
+  getActiveOrgForAdmin(id: string) {
+    return this._organization.model.organization.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+      },
+      include: {
         subscription: {
           select: {
             subscriptionTier: true,
@@ -649,6 +676,205 @@ export class OrganizationRepository {
       },
       data: {
         deletedAt: new Date(),
+      },
+    });
+  }
+
+  restoreOrganization(orgId: string) {
+    return this._organization.model.organization.update({
+      where: {
+        id: orgId,
+      },
+      data: {
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  // Every organization of the instance for its super admin, newest first.
+  // deleted: true only the deleted ones, false only the active ones,
+  // undefined both.
+  async adminListOrganizations(params: {
+    search?: string;
+    page: number;
+    limit: number;
+    deleted?: boolean;
+  }) {
+    const page = Math.max(0, params.page || 0);
+    const limit = Math.min(Math.max(1, params.limit || 20), 100);
+    const skip = page * limit;
+    const where: Prisma.OrganizationWhereInput = {
+      ...(params.deleted === undefined
+        ? {}
+        : { deletedAt: params.deleted ? { not: null } : null }),
+      ...(params.search
+        ? {
+            OR: [
+              {
+                id: params.search,
+              },
+              {
+                name: {
+                  contains: params.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                users: {
+                  some: {
+                    user: {
+                      email: {
+                        contains: params.search,
+                        mode: 'insensitive',
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this._organization.model.organization.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          deletedAt: true,
+          subscription: {
+            select: {
+              subscriptionTier: true,
+            },
+          },
+          users: {
+            where: {
+              role: Role.SUPERADMIN,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+            take: 1,
+            select: {
+              user: {
+                select: {
+                  email: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+            },
+          },
+        },
+      }),
+      this._organization.model.organization.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      hasMore: skip + items.length < total,
+    };
+  }
+
+  // The members of an organization for the super admin of the instance,
+  // without anything of their sign in
+  getMembersForAdmin(orgId: string) {
+    return this._userOrg.model.userOrganization.findMany({
+      where: {
+        organizationId: orgId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      select: {
+        id: true,
+        role: true,
+        disabled: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            disabledAt: true,
+          },
+        },
+      },
+    });
+  }
+
+  getMembership(orgId: string, userId: string) {
+    return this._userOrg.model.userOrganization.findUnique({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId: orgId,
+        },
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+  }
+
+  // The owners (SUPERADMIN role) of the organization other than this user
+  countOtherOwners(orgId: string, userId: string) {
+    return this._userOrg.model.userOrganization.count({
+      where: {
+        organizationId: orgId,
+        role: Role.SUPERADMIN,
+        userId: {
+          not: userId,
+        },
+      },
+    });
+  }
+
+  // The super admin of the instance adds a member directly, without an invite
+  // and without the plan limits of addUserToOrg
+  addMemberForAdmin(orgId: string, userId: string, role: Role) {
+    return this._userOrg.model.userOrganization.create({
+      data: {
+        role,
+        userId,
+        organizationId: orgId,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  updateMembership(
+    orgId: string,
+    userId: string,
+    data: { role?: Role; disabled?: boolean }
+  ) {
+    return this._userOrg.model.userOrganization.update({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId: orgId,
+        },
+      },
+      data,
+      select: {
+        id: true,
       },
     });
   }

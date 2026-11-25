@@ -130,6 +130,7 @@ export const startMcp = async (app: INestApplication) => {
     'clippingWidgetTicketTool',
     // instance admin tools, they only work for the super admin of the instance
     'adminTool',
+    'adminManageTool',
     'announcementsTool',
     'platformInviteTool',
   ];

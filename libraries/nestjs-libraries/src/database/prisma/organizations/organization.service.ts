@@ -17,6 +17,9 @@ import {
   User,
 } from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
+import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
+import { AdminAddMemberDto } from '@gitroom/nestjs-libraries/dtos/admin/admin.add.member.dto';
+import { AdminUpdateMemberDto } from '@gitroom/nestjs-libraries/dtos/admin/admin.update.member.dto';
 
 // The organization the auth middlewares attach to the request: the full
 // organization for a signed-in user or an API key, only its id for the widget
@@ -30,14 +33,17 @@ export type RequestOrganization = Pick<Organization, 'id'> &
         'subscriptionTier' | 'totalChannels' | 'isLifetime' | 'createdAt'
       >
     > | null;
-    users?: { role: Role; disabled?: boolean }[];
+    // adminAccess: the instance super admin entered an organization they are
+    // not a member of, see AuthMiddleware
+    users?: { role: Role; disabled?: boolean; adminAccess?: boolean }[];
   };
 
 @Injectable()
 export class OrganizationService {
   constructor(
     private _organizationRepository: OrganizationRepository,
-    private _notificationsService: NotificationService
+    private _notificationsService: NotificationService,
+    private _integrationRepository: IntegrationRepository
   ) {}
   async createOrgAndUser(
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
@@ -183,6 +189,10 @@ export class OrganizationService {
 
   getOrgByIdWithSubscription(id: string) {
     return this._organizationRepository.getOrgByIdWithSubscription(id);
+  }
+
+  getActiveOrgForAdmin(id: string) {
+    return this._organizationRepository.getActiveOrgForAdmin(id);
   }
 
   getAccountOverview(orgId: string) {
@@ -343,21 +353,7 @@ export class OrganizationService {
       );
     }
 
-    const users = await this._organizationRepository.getUsersByEmail(
-      body.email
-    );
-    if (!users.length) {
-      throw new HttpException('No Omninoise account found for this email', 400);
-    }
-
-    if (users.length > 1) {
-      throw new HttpException(
-        'Multiple accounts exist for this email (different login providers)',
-        400
-      );
-    }
-
-    const [user] = users;
+    const user = await this.getSingleUserByEmail(body.email);
 
     const userOrgs = await this._organizationRepository.getOrgsByUserId(
       user.id
@@ -403,6 +399,175 @@ export class OrganizationService {
     }
 
     return this._organizationRepository.deleteTeamMember(org.id, userId);
+  }
+
+  // The organization management of the instance super admin. The callers
+  // (admin controller, adminTool, adminManageTool) check the super admin first.
+  async adminListOrganizations(params: {
+    search?: string;
+    page?: number;
+    limit?: number;
+    deleted?: boolean;
+  }) {
+    const list = await this._organizationRepository.adminListOrganizations({
+      search: params.search?.trim() || undefined,
+      page: params.page ?? 0,
+      limit: params.limit ?? 20,
+      deleted: params.deleted,
+    });
+
+    return {
+      ...list,
+      items: list.items.map((org) => ({
+        id: org.id,
+        name: org.name,
+        createdAt: org.createdAt,
+        deletedAt: org.deletedAt,
+        tier: org.subscription?.subscriptionTier ?? null,
+        ownerEmail: org.users[0]?.user.email ?? null,
+        members: org._count.users,
+      })),
+    };
+  }
+
+  async adminGetOrganization(orgId: string) {
+    const [overview, members] = await Promise.all([
+      this._organizationRepository.getAccountOverview(orgId),
+      this._organizationRepository.getMembersForAdmin(orgId),
+    ]);
+    if (!overview) {
+      throw new HttpException('Organization not found', 404);
+    }
+
+    return {
+      ...overview,
+      members: members.map((member) => ({
+        userId: member.user.id,
+        email: member.user.email,
+        name: member.user.name,
+        role: member.role,
+        disabled: member.disabled,
+        accountDisabledAt: member.user.disabledAt,
+        createdAt: member.createdAt,
+      })),
+    };
+  }
+
+  async adminAddMember(orgId: string, body: AdminAddMemberDto) {
+    if (!(await this._organizationRepository.getOrgById(orgId))) {
+      throw new HttpException('Organization not found', 404);
+    }
+
+    const user = await this.getSingleUserByEmail(body.email);
+
+    if (await this._organizationRepository.getMembership(orgId, user.id)) {
+      throw new HttpException(
+        'User is already a member of this organization',
+        400
+      );
+    }
+
+    return this._organizationRepository.addMemberForAdmin(
+      orgId,
+      user.id,
+      body.role
+    );
+  }
+
+  // The one account with this email, an email can have one account per login
+  // provider
+  private async getSingleUserByEmail(email: string) {
+    const users = await this._organizationRepository.getUsersByEmail(email);
+    if (!users.length) {
+      throw new HttpException('No Omninoise account found for this email', 400);
+    }
+
+    if (users.length > 1) {
+      throw new HttpException(
+        'Multiple accounts exist for this email (different login providers)',
+        400
+      );
+    }
+
+    return users[0];
+  }
+
+  async adminUpdateMember(
+    orgId: string,
+    userId: string,
+    body: AdminUpdateMemberDto
+  ) {
+    const membership = await this.getMembershipForAdmin(orgId, userId);
+    if (body.role && body.role !== Role.SUPERADMIN) {
+      await this.assertKeepsAnOwner(orgId, userId, membership.role);
+    }
+
+    return this._organizationRepository.updateMembership(orgId, userId, {
+      role: body.role,
+      disabled: body.disabled,
+    });
+  }
+
+  async adminRemoveMember(orgId: string, userId: string) {
+    const membership = await this.getMembershipForAdmin(orgId, userId);
+    await this.assertKeepsAnOwner(orgId, userId, membership.role);
+    await this._organizationRepository.deleteTeamMember(orgId, userId);
+
+    return { id: membership.id };
+  }
+
+  // Soft deletes the organization and disables its enabled channels, billing
+  // is left as it is. Running it again is harmless.
+  async adminDeleteOrganization(orgId: string) {
+    if (!(await this._organizationRepository.getOrgById(orgId))) {
+      throw new HttpException('Organization not found', 404);
+    }
+
+    await this._integrationRepository.suspendForOrganization(orgId);
+    await this._organizationRepository.deleteOrganization(orgId);
+
+    return { id: orgId };
+  }
+
+  // Restores the organization and re-enables the channels its delete disabled
+  async adminRestoreOrganization(orgId: string) {
+    if (!(await this._organizationRepository.getOrgById(orgId))) {
+      throw new HttpException('Organization not found', 404);
+    }
+
+    await this._organizationRepository.restoreOrganization(orgId);
+    await this._integrationRepository.resumeForOrganization(orgId);
+
+    return { id: orgId };
+  }
+
+  private async getMembershipForAdmin(orgId: string, userId: string) {
+    const membership = await this._organizationRepository.getMembership(
+      orgId,
+      userId
+    );
+    if (!membership) {
+      throw new HttpException(
+        'The user is not a member of this organization',
+        400
+      );
+    }
+
+    return membership;
+  }
+
+  // Billing and the account deletion rely on every organization having an
+  // owner (SUPERADMIN role), so the last one can be neither demoted nor removed
+  private async assertKeepsAnOwner(orgId: string, userId: string, role: Role) {
+    if (
+      role === Role.SUPERADMIN &&
+      !(await this._organizationRepository.countOtherOwners(orgId, userId))
+    ) {
+      throw new HttpException(
+        'The organization must keep at least one owner',
+        400
+      );
+    }
   }
 
   disableOrEnableNonSuperAdminUsers(orgId: string, disable: boolean) {

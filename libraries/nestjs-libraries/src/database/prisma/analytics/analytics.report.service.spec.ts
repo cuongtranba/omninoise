@@ -159,7 +159,8 @@ beforeAll(async () => {
       integrations,
       new OrganizationService(
         new OrganizationRepository(repo, repo, repo),
-        notifications
+        notifications,
+        new IntegrationRepository(repo, repo, repo, repo, repo, repo)
       )
     ),
     new VideoManager(moduleRef),

@@ -106,6 +106,8 @@ model User {
   ip                    String?
   agent                 String?
   deletedAt             DateTime?
+  // Set by an instance super admin to block the whole account; null = allowed.
+  disabledAt            DateTime?
   comments              Comments[]
   items                 ItemUser[]
   groupBuyer            MessagesGroup[]      @relation("groupBuyer")
@@ -393,6 +395,9 @@ model Integration {
   rootInternalId        String?
   additionalSettings    String?                @default("[]")
   providerAppId         String?
+  // Set only when a super admin deletes the organization and this channel was
+  // enabled; restoring the organization re-enables exactly these channels.
+  suspendedAt           DateTime?
   exisingPlugData       ExisingPlugData[]
   customer              Customer?              @relation(fields: [customerId], references: [id])
   organization          Organization           @relation(fields: [organizationId], references: [id])

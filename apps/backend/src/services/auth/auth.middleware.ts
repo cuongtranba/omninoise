@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
-import { User } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
@@ -55,7 +55,10 @@ export class AuthMiddleware implements NestMiddleware {
         throw new HttpForbiddenException();
       }
 
-      if (!user.activated) {
+      // disabledAt: the account was blocked by the super admin of the instance.
+      // Checked on the signed-in user, so a blocked user can still be
+      // impersonated for inspection.
+      if (!user.activated || user.disabledAt) {
         throw new HttpForbiddenException();
       }
 
@@ -94,6 +97,9 @@ export class AuthMiddleware implements NestMiddleware {
       ).filter((f) => !f.users[0].disabled);
       const setOrg =
         organization.find((org) => org.id === orgHeader) ||
+        (user.isSuperAdmin && typeof orgHeader === 'string' && orgHeader
+          ? await this.getAdminAccessOrg(orgHeader)
+          : undefined) ||
         organization.find((org) => org.subscription) ||
         organization[0];
 
@@ -119,5 +125,20 @@ export class AuthMiddleware implements NestMiddleware {
       throw new HttpForbiddenException();
     }
     next();
+  }
+
+  // The super admin of the instance enters an organization they are not a
+  // member of (showorg cookie) as its owner, acting as their own account.
+  // Anybody else naming a foreign organization falls back to their own.
+  private async getAdminAccessOrg(orgId: string) {
+    const org = await this._organizationService.getActiveOrgForAdmin(orgId);
+    if (!org) {
+      return undefined;
+    }
+
+    return {
+      ...org,
+      users: [{ role: Role.SUPERADMIN, disabled: false, adminAccess: true }],
+    };
   }
 }

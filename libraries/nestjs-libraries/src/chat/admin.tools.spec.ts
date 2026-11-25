@@ -20,6 +20,7 @@ let orgId: string;
 let operatorId: string;
 let regularId: string;
 const userIds: string[] = [];
+const orgIds: string[] = [];
 
 const user = async (name: string, isSuperAdmin: boolean) => {
   const created = await moduleRef.get(PrismaService).user.create({
@@ -55,6 +56,23 @@ const connection = async (
   return { requestContext };
 };
 
+// an organization of the instance with these members
+const organization = async (
+  name: string,
+  members: [string, 'USER' | 'ADMIN' | 'SUPERADMIN'][]
+) => {
+  const created = await moduleRef.get(PrismaService).organization.create({
+    data: {
+      name: `${name}-${run}`,
+      users: {
+        create: members.map(([userId, role]) => ({ userId, role })),
+      },
+    },
+  });
+  orgIds.push(created.id);
+  return created.id;
+};
+
 const announcementTitles = () =>
   moduleRef
     .get(PrismaService)
@@ -83,6 +101,7 @@ beforeAll(async () => {
       data: { name: `admin-tools-${run}`, paymentId: `cus_secret_${run}` },
     })
   ).id;
+  orgIds.push(orgId);
   operatorId = await user('admin-operator', true);
   regularId = await user('admin-regular', false);
   await prisma.userOrganization.createMany({
@@ -97,14 +116,13 @@ beforeAll(async () => {
 afterAll(async () => {
   const prisma = moduleRef.get(PrismaService);
   await prisma.announcement.deleteMany({ where: { title: { contains: run } } });
-  await prisma.errors.deleteMany({ where: { organizationId: orgId } });
-  await prisma.post.deleteMany({ where: { organizationId: orgId } });
-  await prisma.integration.deleteMany({ where: { organizationId: orgId } });
-  await prisma.userOrganization.deleteMany({
-    where: { organizationId: orgId },
-  });
+  const inOrgs = { organizationId: { in: orgIds } };
+  await prisma.errors.deleteMany({ where: inOrgs });
+  await prisma.post.deleteMany({ where: inOrgs });
+  await prisma.integration.deleteMany({ where: inOrgs });
+  await prisma.userOrganization.deleteMany({ where: inOrgs });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-  await prisma.organization.deleteMany({ where: { id: orgId } });
+  await prisma.organization.deleteMany({ where: { id: { in: orgIds } } });
   await moduleRef.close();
 });
 
@@ -124,6 +142,18 @@ test('the admin tools refuse an API key, a regular user and a regular user who c
     (c: any) =>
       tools.announcementsTool.execute({ action: 'delete', id: 'unknown' }, c),
     (c: any) => tools.platformInviteTool.execute({ sendEmail: false }, c),
+    (c: any) => tools.adminTool.execute({ action: 'listOrganizations' }, c),
+    (c: any) => tools.adminTool.execute({ action: 'listUsers' }, c),
+    (c: any) =>
+      tools.adminManageTool.execute(
+        { action: 'deleteOrganization', organizationId: orgId },
+        c
+      ),
+    (c: any) =>
+      tools.adminManageTool.execute(
+        { action: 'setUserAccess', userId: operatorId, disabled: true },
+        c
+      ),
   ];
 
   for (const call of calls) {
@@ -137,6 +167,11 @@ test('the admin tools refuse an API key, a regular user and a regular user who c
     }
   }
   expect(await announcementTitles()).toEqual([]);
+  expect(
+    await moduleRef
+      .get(PrismaService)
+      .organization.findUniqueOrThrow({ where: { id: orgId } })
+  ).toMatchObject({ deletedAt: null });
 
   const allowed = await tools.adminTool.execute(
     { action: 'stats' },
@@ -273,4 +308,152 @@ test('the failed posts list the organization members and filter by platform', as
     )
   ).toEqual(expect.arrayContaining([operatorId, regularId]));
   expect(JSON.stringify(errors.output)).not.toContain('secret-token');
+});
+
+test('the organization list finds an organization by the email of a member, with its owner and member count', async () => {
+  const result = await tools.adminTool.execute(
+    { action: 'listOrganizations', search: `admin-regular-${run}@` },
+    await connection(operatorId)
+  );
+
+  expect(result.output.organizations).toMatchObject({
+    total: 1,
+    items: [
+      {
+        id: orgId,
+        name: `admin-tools-${run}`,
+        deletedAt: null,
+        members: 2,
+        ownerEmail: expect.stringContaining(`-${run}@postiz.test`),
+      },
+    ],
+  });
+});
+
+test('the super admin adds a member and changes their role, but never demotes or removes the last owner', async () => {
+  const ownerId = await user('member-owner', false);
+  const memberId = await user('member-added', false);
+  const teamId = await organization('members', [[ownerId, 'SUPERADMIN']]);
+  const operator = await connection(operatorId);
+  const manage = (input: Record<string, unknown>) =>
+    tools.adminManageTool.execute(
+      { organizationId: teamId, ...input },
+      operator
+    );
+
+  const added = await manage({
+    action: 'addMember',
+    email: `member-added-${run}@postiz.test`,
+    role: 'USER',
+  });
+  const promoted = await manage({
+    action: 'updateMember',
+    userId: memberId,
+    role: 'ADMIN',
+  });
+  const demoted = await manage({
+    action: 'updateMember',
+    userId: ownerId,
+    role: 'USER',
+  });
+  const removed = await manage({ action: 'removeMember', userId: ownerId });
+
+  expect(added.output).toEqual({ id: expect.any(String) });
+  expect(promoted.output).toEqual({ id: added.output.id });
+  expect(demoted.output).toEqual({
+    errors: 'The organization must keep at least one owner',
+  });
+  expect(removed.output).toEqual(demoted.output);
+  expect(
+    await moduleRef.get(PrismaService).userOrganization.findMany({
+      where: { organizationId: teamId },
+      orderBy: { createdAt: 'asc' },
+      select: { userId: true, role: true },
+    })
+  ).toEqual([
+    { userId: ownerId, role: 'SUPERADMIN' },
+    { userId: memberId, role: 'ADMIN' },
+  ]);
+});
+
+test('deleting an organization disables its enabled channels and restoring it enables only those again', async () => {
+  const prisma = moduleRef.get(PrismaService);
+  const deletedId = await organization('deleted', []);
+  const channel = (name: string, disabled: boolean) =>
+    prisma.integration.create({
+      data: {
+        internalId: `${name}-${run}`,
+        organizationId: deletedId,
+        name,
+        providerIdentifier: 'x',
+        type: 'social',
+        token: 'secret-token',
+        disabled,
+      },
+    });
+  const enabled = await channel('enabled', false);
+  const disabledBefore = await channel('disabled-before', true);
+  const operator = await connection(operatorId);
+  const channels = async () =>
+    Object.fromEntries(
+      (
+        await prisma.integration.findMany({
+          where: { id: { in: [enabled.id, disabledBefore.id] } },
+        })
+      ).map((row) => [row.name, row.disabled])
+    );
+
+  const deleted = await tools.adminManageTool.execute(
+    { action: 'deleteOrganization', organizationId: deletedId },
+    operator
+  );
+  const afterDelete = await channels();
+  const deletedAt = (
+    await prisma.organization.findUniqueOrThrow({ where: { id: deletedId } })
+  ).deletedAt;
+  const restored = await tools.adminManageTool.execute(
+    { action: 'restoreOrganization', organizationId: deletedId },
+    operator
+  );
+
+  expect(deleted.output).toEqual({ id: deletedId });
+  expect(deletedAt).not.toBeNull();
+  expect(afterDelete).toEqual({ enabled: true, 'disabled-before': true });
+  expect(restored.output).toEqual({ id: deletedId });
+  expect(await channels()).toEqual({
+    enabled: false,
+    'disabled-before': true,
+  });
+  expect(
+    await prisma.organization.findUniqueOrThrow({ where: { id: deletedId } })
+  ).toMatchObject({ deletedAt: null });
+});
+
+test('the super admin blocks an account, but never their own', async () => {
+  const blockedId = await user('admin-blocked', false);
+  const operator = await connection(operatorId);
+
+  const blocked = await tools.adminManageTool.execute(
+    { action: 'setUserAccess', userId: blockedId, disabled: true },
+    operator
+  );
+  const self = await tools.adminManageTool.execute(
+    { action: 'setUserAccess', userId: operatorId, disabled: true },
+    operator
+  );
+  const listed = await tools.adminTool.execute(
+    { action: 'listUsers', search: `admin-blocked-${run}` },
+    operator
+  );
+
+  expect(blocked.output).toEqual({ id: blockedId });
+  expect(self.output).toEqual({ errors: 'You cannot block your own account' });
+  expect(listed.output.accounts.items).toEqual([
+    expect.objectContaining({ id: blockedId, disabledAt: expect.any(String) }),
+  ]);
+  expect(
+    await moduleRef
+      .get(PrismaService)
+      .user.findUniqueOrThrow({ where: { id: operatorId } })
+  ).toMatchObject({ disabledAt: null });
 });
