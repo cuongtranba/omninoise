@@ -1,6 +1,7 @@
 This project is Omninoise, a self-hosted fork of Postiz (the README calls it omninoise): a tool to schedule social media and chat posts to 28+ channels.
 This repository is PUBLIC. It holds only the application: backend, orchestrator, frontend, shared libraries and the deployment files in `deploy/`.
 Agent skills, the `omninoise` CLI, the video/carousel studio, voice tooling and channel content are NOT part of this repo. They live in the private ops repo `cuongtranba/omninoise-ops` (see its ADR 0037); do not add them here.
+The one exception is the skill the MCP server itself serves to connected agents (`libraries/nestjs-libraries/src/chat/skills/mcp.skill.ts`, MCP Skills extension): it is part of the application, describes only the MCP tools, and changes with them.
 You can add posts to the calendar, they will be added into the job queue and posted at the right time.
 You can find things like:
 - Schedule posts

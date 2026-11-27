@@ -27,7 +27,7 @@ export class DeletePostTool implements AgentToolInterface {
       description: `
 Use this when the user wants to delete an existing post (scheduled, draft, published or errored).
 Find the post first (list your posts) and pass its "id" here.
-It deletes the post on that one channel together with its comments - a post created for several channels has a separate id on each channel.
+It deletes the whole group of the post together with its comments, so the post goes on every channel that shares its group (postGetTool with the "group" lists them as "siblings"): posts created together in the web app share one group, each socialPost of integrationSchedulePostTool gets its own.
 A repeating post is listed once per repetition with the same id - deleting it deletes every repetition.
 A deleted scheduled post is not published. Deleting a published post only removes it from Omninoise - it stays live on the social network.
 The deletion cannot be undone.

@@ -31,8 +31,8 @@ export class PostChangeDateTool implements AgentToolInterface {
       description: `
 Use this to move a post to another date, like dragging it on the calendar.
 Find the post first (postsListTool or postsBrowseTool) and pass its "id" and the new "date" (UTC, for example 2026-07-20T10:00:00).
-action "update": only the date changes, the state stays as it is (a scheduled post stays scheduled, a draft stays a draft). Use this to move a post.
-action "schedule": the post is put back in the queue for the new date (a draft stays a draft) and its published link is cleared. A post that was already published is refused, because it would be published a second time, unless "republish" is true - only pass it when the user explicitly asked to publish the post again, and get their confirmation first.
+action "schedule": the post is put back in the queue for the new date (a draft stays a draft) and its published link is cleared. Use this to move a scheduled post or a draft, it is what dragging it on the calendar does.
+action "update": only the date stored and shown changes, the state stays as it is and the publish job keeps its old time, so a scheduled post still goes out at its old date. Use it only for a post that is already published or whose date is past. With "schedule", a post that was already published is refused, because it would be published a second time, unless "republish" is true - only pass it when the user explicitly asked to publish the post again, and get their confirmation first.
 If the post cannot be moved, the result contains output.errors.
 `,
       inputSchema: z.object({
