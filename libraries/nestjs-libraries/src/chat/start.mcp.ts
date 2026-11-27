@@ -21,6 +21,11 @@ import {
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { Role } from '@prisma/client';
 import { McpRelayService } from '@gitroom/nestjs-libraries/chat/mcp.relay.service';
+import {
+  serveSkills,
+  skillInstructions,
+  skillResources,
+} from '@gitroom/nestjs-libraries/chat/skills/mcp.skill';
 const fixAcceptHeader = (req: Request) => {
   const value = 'application/json, text/event-stream';
   req.headers.accept = value;
@@ -189,29 +194,41 @@ export const startMcp = async (app: INestApplication) => {
       : {}),
   };
 
+  // Every server serves the skill that teaches an agent how to use the tools
+  const skillConfig = {
+    instructions: skillInstructions,
+    resources: skillResources,
+  };
+
   const serverConfig = {
     name: 'Omninoise MCP',
     version: '1.0.0',
     tools,
     agents: { postiz: agent },
     appResources,
+    ...skillConfig,
   };
 
-  const server = new MCPServer({
-    ...serverConfig,
-    protocolVersion: '2026-07-28',
-  });
+  const server = serveSkills(
+    new MCPServer({
+      ...serverConfig,
+      protocolVersion: '2026-07-28',
+    })
+  );
 
   // The directory-facing servers don't register the agent - it would be
   // exposed as an annotation-less catch-all ask_postiz tool, which the
   // ChatGPT and Claude directory reviews reject
-  const oauthServer = new MCPServer({
-    name: 'Omninoise MCP',
-    version: '1.0.0',
-    protocolVersion: '2026-07-28',
-    tools,
-    appResources,
-  });
+  const oauthServer = serveSkills(
+    new MCPServer({
+      name: 'Omninoise MCP',
+      version: '1.0.0',
+      protocolVersion: '2026-07-28',
+      tools,
+      appResources,
+      ...skillConfig,
+    })
+  );
 
   // a widget of a hidden tool is hidden with it
   const { [CLIPPING_WIDGET_URI]: hiddenWidget, ...claudeAppResources } =
@@ -220,13 +237,16 @@ export const startMcp = async (app: INestApplication) => {
       (typeof appResources)[typeof UPLOAD_WIDGET_URI]
     >;
 
-  const claudeOauthServer = new MCPServer({
-    name: 'Omninoise MCP',
-    version: '1.0.0',
-    protocolVersion: '2026-07-28',
-    tools: claudeTools,
-    appResources: claudeAppResources,
-  });
+  const claudeOauthServer = serveSkills(
+    new MCPServer({
+      name: 'Omninoise MCP',
+      version: '1.0.0',
+      protocolVersion: '2026-07-28',
+      tools: claudeTools,
+      appResources: claudeAppResources,
+      ...skillConfig,
+    })
+  );
 
   // Self-hosted connections, built from the agent tools so the ui:// widgets
   // (which upload to this server) are left out
@@ -234,18 +254,24 @@ export const startMcp = async (app: INestApplication) => {
   let claudeSelfHostedServer: MCPServer | undefined;
   if (selfHostedRelayEnabled()) {
     const selfHostedTools = mcpRelayService.tools(agentTools);
-    selfHostedServer = new MCPServer({
-      name: 'Omninoise MCP',
-      version: '1.0.0',
-      protocolVersion: '2026-07-28',
-      tools: selfHostedTools,
-    });
-    claudeSelfHostedServer = new MCPServer({
-      name: 'Omninoise MCP',
-      version: '1.0.0',
-      protocolVersion: '2026-07-28',
-      tools: withoutClaudeHidden(selfHostedTools),
-    });
+    selfHostedServer = serveSkills(
+      new MCPServer({
+        name: 'Omninoise MCP',
+        version: '1.0.0',
+        protocolVersion: '2026-07-28',
+        tools: selfHostedTools,
+        ...skillConfig,
+      })
+    );
+    claudeSelfHostedServer = serveSkills(
+      new MCPServer({
+        name: 'Omninoise MCP',
+        version: '1.0.0',
+        protocolVersion: '2026-07-28',
+        tools: withoutClaudeHidden(selfHostedTools),
+        ...skillConfig,
+      })
+    );
   }
 
   // Two RFC 8414 path-based issuers backed by the same endpoints and code.
@@ -640,7 +666,7 @@ export const startMcp = async (app: INestApplication) => {
       await runWithContext(
         { requestId: req.params.id, auth: req.auth },
         async () => {
-          await new MCPServer(serverConfig).startSSE({
+          await serveSkills(new MCPServer(serverConfig)).startSSE({
             url,
             ssePath: `/sse/${req.params.id}`,
             messagePath: `/message/${req.params.id}`,

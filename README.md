@@ -3,7 +3,9 @@
 omninoise is a self-hosted social media scheduler. It plans, schedules and
 publishes posts to TikTok, Facebook, YouTube, Instagram, Threads and the other
 supported channels, with a calendar, media library, analytics, team accounts, a
-public API and an MCP server for agents.
+public API and an MCP server for agents. The MCP server also serves a skill
+(`skill://omninoise-mcp/SKILL.md`, MCP Skills extension) that teaches a
+connected agent how to use its tools.
 
 It runs on **Postgres alone** (Postgres 17 with the TimescaleDB extension): no
 Redis, no Temporal, no Elasticsearch. One application container and one Postgres

@@ -243,6 +243,7 @@
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
+    "@modelcontextprotocol/client": "~2.3.1",
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "11.2.7",
     "@swc-node/register": "1.9.2",
